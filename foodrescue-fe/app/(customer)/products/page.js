@@ -38,6 +38,7 @@ const SORT_OPTIONS = [
 const ITEMS_PER_PAGE = 8;
 
 export default function ProductsPage() {
+  const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const [sort, setSort] = useState("discount_desc");
   const [priceRange, setPriceRange] = useState([0, 250000]);
@@ -57,6 +58,15 @@ export default function ProductsPage() {
 
   const filtered = useMemo(() => {
     let list = [...ALL_PRODUCTS];
+    // Tìm kiếm theo tên sản phẩm hoặc tên cửa hàng
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      list = list.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          (p.storeName && p.storeName.toLowerCase().includes(q))
+      );
+    }
     if (category) list = list.filter((p) => p.category === category);
     list = list.filter((p) => p.discountPrice >= priceRange[0] && p.discountPrice <= priceRange[1]);
     list = list.filter((p) => p.discountPercent >= discountMin);
@@ -67,7 +77,7 @@ export default function ProductsPage() {
       case "expiry_asc": list.sort((a, b) => a.expiryHours - b.expiryHours); break;
     }
     return list;
-  }, [category, sort, priceRange, discountMin]);
+  }, [search, category, sort, priceRange, discountMin]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const paginatedList = useMemo(
@@ -77,63 +87,98 @@ export default function ProductsPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [category, sort, priceRange, discountMin]);
+  }, [search, category, sort, priceRange, discountMin]);
 
-  const hasActiveFilters = category || discountMin > 0 || priceRange[1] < 250000;
+  const clearAllFilters = () => {
+    setSearch("");
+    setCategory("");
+    setDiscountMin(0);
+    setPriceRange([0, 250000]);
+    setCurrentPage(1);
+  };
+
+  const hasActiveFilters = search.trim() || category || discountMin > 0 || priceRange[1] < 250000;
 
   return (
     <div className="min-h-screen bg-brand-bg">
       <div className="max-w-6xl mx-auto px-4 py-8">
-        <h1 className="text-xl font-bold text-gray-800 mb-6">Danh sách sản phẩm</h1>
+        <h1 className="text-2xl font-bold text-gray-800 mb-2">Sản phẩm ưu đãi</h1>
+        <p className="text-gray-500 text-sm mb-6">Tìm món ăn hoặc cửa hàng bạn thích, lọc theo giá và % giảm giá.</p>
 
-        {/* Danh mục: segmented control (một thanh, từng segment) */}
-        <div className="inline-flex p-1 bg-gray-100 rounded-2xl mb-6">
-          {CATEGORY_OPTIONS.map((opt) => (
+        {/* Thanh tìm kiếm */}
+        <div className="relative mb-6">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </span>
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Tìm thức ăn hoặc cửa hàng..."
+            className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-gray-200 bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand shadow-sm transition"
+            aria-label="Tìm kiếm sản phẩm hoặc cửa hàng"
+          />
+          {search && (
             <button
-              key={opt.value}
-              onClick={() => setCategory(opt.value)}
-              className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-                category === opt.value
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
+              type="button"
+              onClick={() => setSearch("")}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
+              aria-label="Xóa tìm kiếm"
             >
-              {opt.label}
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
-          ))}
+          )}
         </div>
 
-        {/* Thanh công cụ: số SP + Sắp xếp + nút Lọc */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-          <span className="text-sm text-gray-500">
-            <span className="font-medium text-gray-700">{filtered.length}</span> sản phẩm
-          </span>
-          <div className="flex items-center gap-3" ref={filterRef}>
+        {/* Danh mục + Lọc & Sắp xếp — gọn trên một dải */}
+        <div className="flex flex-wrap items-center gap-3 mb-6">
+          <div className="inline-flex p-1 bg-white/80 border border-gray-100 rounded-2xl shadow-sm">
+            {CATEGORY_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setCategory(opt.value)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  category === opt.value
+                    ? "bg-brand text-gray-900 shadow-sm"
+                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 ml-auto" ref={filterRef}>
             <div className="relative">
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); setFilterOpen((o) => !o); }}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition ${
-                  filterOpen || hasActiveFilters
-                    ? "bg-brand text-gray-900"
-                    : "bg-white border border-gray-200 text-gray-600 hover:border-brand/40"
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition border ${
+                  filterOpen || (discountMin > 0 || priceRange[1] < 250000)
+                    ? "bg-brand border-brand text-gray-900"
+                    : "bg-white border-gray-200 text-gray-600 hover:border-brand/50 hover:bg-brand/5"
                 }`}
               >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
                 Lọc
-                {hasActiveFilters && (
-                  <span className="w-5 h-5 rounded-full bg-white/30 flex items-center justify-center text-xs">
-                    •
-                  </span>
+                {(discountMin > 0 || priceRange[1] < 250000) && (
+                  <span className="w-5 h-5 rounded-full bg-white/40 flex items-center justify-center text-xs font-bold">!</span>
                 )}
-                <svg className={`w-4 h-4 text-current transition ${filterOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`w-4 h-4 transition ${filterOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
               {filterOpen && (
-                <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl border border-gray-100 shadow-lg p-4 z-50">
-                  <div className="space-y-4">
+                <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl border border-gray-100 shadow-xl p-5 z-50">
+                  <p className="text-sm font-semibold text-gray-800 mb-4">Bộ lọc</p>
+                  <div className="space-y-5">
                     <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-2">Giá tối đa</label>
+                      <label className="block text-xs font-medium text-gray-500 mb-2">Khoảng giá (giá sau giảm)</label>
                       <div className="flex items-center gap-3">
                         <input
                           type="range"
@@ -144,8 +189,8 @@ export default function ProductsPage() {
                           onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
                           className="flex-1 h-2 rounded-full bg-gray-100 accent-brand-dark"
                         />
-                        <span className="text-sm font-medium text-gray-700 tabular-nums w-16 text-right">
-                          {priceRange[1].toLocaleString("vi-VN")}đ
+                        <span className="text-sm font-semibold text-gray-700 tabular-nums w-20 text-right">
+                          ≤ {priceRange[1].toLocaleString("vi-VN")}đ
                         </span>
                       </div>
                     </div>
@@ -157,24 +202,22 @@ export default function ProductsPage() {
                             key={v}
                             type="button"
                             onClick={() => setDiscountMin(v)}
-                            className={`px-3 py-1.5 rounded-xl text-sm font-medium transition ${
+                            className={`px-3 py-2 rounded-xl text-sm font-medium transition ${
                               discountMin === v ? "bg-brand text-gray-900" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                             }`}
                           >
-                            {v === 0 ? "Tất cả" : `≥${v}%`}
+                            {v === 0 ? "Tất cả" : `≥ ${v}%`}
                           </button>
                         ))}
                       </div>
                     </div>
-                    {hasActiveFilters && (
-                      <button
-                        type="button"
-                        onClick={() => { setCategory(""); setDiscountMin(0); setPriceRange([0, 250000]); }}
-                        className="text-sm font-medium text-brand-dark hover:underline w-full text-left"
-                      >
-                        Xóa lọc
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => { setDiscountMin(0); setPriceRange([0, 250000]); }}
+                      className="text-sm font-medium text-brand-dark hover:underline w-full text-left"
+                    >
+                      Đặt lại lọc giá & giảm giá
+                    </button>
                   </div>
                 </div>
               )}
@@ -182,7 +225,7 @@ export default function ProductsPage() {
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value)}
-              className="bg-white border border-gray-200 rounded-xl pl-4 pr-9 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand/50"
+              className="bg-white border border-gray-200 rounded-xl pl-4 pr-10 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
             >
               {SORT_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -191,18 +234,38 @@ export default function ProductsPage() {
           </div>
         </div>
 
+        {/* Số kết quả + Xóa hết bộ lọc (khi có) */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <span className="text-sm text-gray-600">
+            <span className="font-semibold text-gray-800">{filtered.length}</span> sản phẩm
+          </span>
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={clearAllFilters}
+              className="text-sm font-medium text-brand-dark hover:underline flex items-center gap-1"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Xóa tìm kiếm & lọc
+            </button>
+          )}
+        </div>
+
         {/* Khu vực sản phẩm + phân trang (full width) */}
         <div className="min-w-0">
 
             {filtered.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-brand/20 shadow-sm text-center py-16">
+              <div className="bg-white rounded-2xl border border-brand/20 shadow-sm text-center py-16 px-4">
                 <p className="text-4xl mb-2">🔍</p>
-                <p className="text-gray-500">Không tìm thấy sản phẩm phù hợp</p>
+                <p className="text-gray-600 font-medium">Không tìm thấy sản phẩm phù hợp</p>
+                <p className="text-gray-500 text-sm mt-1">Thử đổi từ khóa, danh mục hoặc bộ lọc.</p>
                 <button
-                  onClick={() => { setCategory(""); setDiscountMin(0); setPriceRange([0, 250000]); }}
-                  className="mt-3 text-brand-dark font-medium text-sm hover:underline"
+                  onClick={clearAllFilters}
+                  className="mt-4 px-4 py-2 rounded-xl bg-brand/10 text-brand-dark font-medium text-sm hover:bg-brand/20 transition"
                 >
-                  Xóa bộ lọc
+                  Xóa tìm kiếm & lọc
                 </button>
               </div>
             ) : (
