@@ -9,7 +9,7 @@ const FEATURED_PRODUCTS = [
   {
     id: "1",
     name: "Rau cải xanh hữu cơ 500g",
-    image: "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=400&q=80",
+    image: "/images/products/raucai.jpg",
     originalPrice: 35000,
     discountPrice: 17500,
     discountPercent: 50,

@@ -1,163 +1,31 @@
-// FE02-002 – UI Trang Danh sách sản phẩm
+// FE02-002 – UI Trang Danh sách sản phẩm (đồng bộ brand, phân trang)
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import ProductCard from "@/components/customer/ProductCard";
 import Badge from "@/components/common/Badge";
 
-// ── Mock Data ─────────────────────────────────────────────────────────────
+// Ảnh theo tên file trong public/images/products/
 const ALL_PRODUCTS = [
-  {
-    id: "1",
-    name: "Rau cải xanh hữu cơ 500g",
-    image: "https://placehold.co/400x300/e8f5e9/2e7d32?text=Rau+Cải",
-    originalPrice: 35000,
-    discountPrice: 17500,
-    discountPercent: 50,
-    expiryLabel: "Còn 3 giờ",
-    storeName: "Vinmart Q1",
-    category: "rau",
-    expiryHours: 3,
-  },
-  {
-    id: "2",
-    name: "Thịt heo ba chỉ 300g",
-    image: "https://placehold.co/400x300/fce4ec/b71c1c?text=Thịt+Heo",
-    originalPrice: 85000,
-    discountPrice: 51000,
-    discountPercent: 40,
-    expiryLabel: "Còn 5 giờ",
-    storeName: "Circle K",
-    category: "thit",
-    expiryHours: 5,
-  },
-  {
-    id: "3",
-    name: "Tôm sú tươi 200g",
-    image: "https://placehold.co/400x300/e3f2fd/0d47a1?text=Tôm+Sú",
-    originalPrice: 120000,
-    discountPrice: 84000,
-    discountPercent: 30,
-    expiryLabel: "Còn 2 giờ",
-    storeName: "Lotte Mart Q7",
-    category: "haisan",
-    expiryHours: 2,
-  },
-  {
-    id: "4",
-    name: "Bánh mì sandwich nguyên cám",
-    image: "/images/products/banhmi.jpg",
-    originalPrice: 45000,
-    discountPrice: 22500,
-    discountPercent: 50,
-    expiryLabel: "Còn 1 giờ",
-    storeName: "BreadTalk",
-    category: "banh",
-    expiryHours: 1,
-  },
-  {
-    id: "5",
-    name: "Bắp cải tím 700g",
-    image: "/images/products/bapcai.jpg",
-    originalPrice: 28000,
-    discountPrice: 16800,
-    discountPercent: 40,
-    expiryLabel: "Còn 4 giờ",
-    storeName: "Co.opmart",
-    category: "rau",
-    expiryHours: 4,
-  },
-  {
-    id: "6",
-    name: "Cá basa phi lê 400g",
-    image: "/images/products/ca-ba-sa.jpg.webp",
-    originalPrice: 75000,
-    discountPrice: 45000,
-    discountPercent: 40,
-    expiryLabel: "Còn 6 giờ",
-    storeName: "Metro Q12",
-    category: "haisan",
-    expiryHours: 6,
-  },
-  {
-    id: "7",
-    name: "Dưa leo 1kg",
-    image: "/images/products/dualeo.jpg",
-    originalPrice: 20000,
-    discountPrice: 10000,
-    discountPercent: 50,
-    expiryLabel: "Còn 2 giờ",
-    storeName: "Emart",
-    category: "rau",
-    expiryHours: 2,
-  },
-  {
-    id: "8",
-    name: "Mực ống tươi 250g",
-    image: "/images/products/muc.jpg",
-    originalPrice: 95000,
-    discountPrice: 66500,
-    discountPercent: 30,
-    expiryLabel: "Còn 3 giờ",
-    storeName: "Aeon",
-    category: "haisan",
-    expiryHours: 3,
-  },
-  {
-    id: "9",
-    name: "Sườn heo non 400g",
-    image: "https://placehold.co/400x300/ffebee/c62828?text=Sườn+Heo",
-    originalPrice: 110000,
-    discountPrice: 55000,
-    discountPercent: 50,
-    expiryLabel: "Còn 4 giờ",
-    storeName: "Vinmart Q3",
-    category: "thit",
-    expiryHours: 4,
-  },
-  {
-    id: "10",
-    name: "Bánh croissant bơ 4 cái",
-    image: "https://placehold.co/400x300/fff3e0/e65100?text=Croissant",
-    originalPrice: 60000,
-    discountPrice: 36000,
-    discountPercent: 40,
-    expiryLabel: "Còn 2 giờ",
-    storeName: "Paris Baguette",
-    category: "banh",
-    expiryHours: 2,
-  },
-  {
-    id: "11",
-    name: "Cua biển tươi 500g",
-    image: "https://placehold.co/400x300/e3f2fd/0277bd?text=Cua+Biển",
-    originalPrice: 200000,
-    discountPrice: 100000,
-    discountPercent: 50,
-    expiryLabel: "Còn 5 giờ",
-    storeName: "Seafood Market",
-    category: "haisan",
-    expiryHours: 5,
-  },
-  {
-    id: "12",
-    name: "Cà chua bi 300g",
-    image: "https://placehold.co/400x300/ffebee/b71c1c?text=Cà+Chua",
-    originalPrice: 18000,
-    discountPrice: 9000,
-    discountPercent: 50,
-    expiryLabel: "Còn 6 giờ",
-    storeName: "GreenMart",
-    category: "rau",
-    expiryHours: 6,
-  },
+  { id: "1", name: "Rau cải xanh hữu cơ 500g", image: "/images/products/raucai.jpg", originalPrice: 35000, discountPrice: 17500, discountPercent: 50, expiryLabel: "Còn 3 giờ", storeName: "Vinmart Q1", category: "rau", expiryHours: 3 },
+  { id: "2", name: "Thịt heo ba chỉ 300g", image: "/images/products/thitheo.jpg", originalPrice: 85000, discountPrice: 51000, discountPercent: 40, expiryLabel: "Còn 5 giờ", storeName: "Circle K", category: "thit", expiryHours: 5 },
+  { id: "3", name: "Tôm sú tươi 200g", image: "/images/products/tomsu.jpg", originalPrice: 120000, discountPrice: 84000, discountPercent: 30, expiryLabel: "Còn 2 giờ", storeName: "Lotte Mart Q7", category: "haisan", expiryHours: 2 },
+  { id: "4", name: "Bánh mì sandwich nguyên cám", image: "/images/products/banhmi.jpg", originalPrice: 45000, discountPrice: 22500, discountPercent: 50, expiryLabel: "Còn 1 giờ", storeName: "BreadTalk", category: "banh", expiryHours: 1 },
+  { id: "5", name: "Bắp cải tím 700g", image: "/images/products/bapcai.jpg", originalPrice: 28000, discountPrice: 16800, discountPercent: 40, expiryLabel: "Còn 4 giờ", storeName: "Co.opmart", category: "rau", expiryHours: 4 },
+  { id: "6", name: "Cá basa phi lê 400g", image: "/images/products/ca-ba-sa.jpg.webp", originalPrice: 75000, discountPrice: 45000, discountPercent: 40, expiryLabel: "Còn 6 giờ", storeName: "Metro Q12", category: "haisan", expiryHours: 6 },
+  { id: "7", name: "Dưa leo 1kg", image: "/images/products/dualeo.jpg", originalPrice: 20000, discountPrice: 10000, discountPercent: 50, expiryLabel: "Còn 2 giờ", storeName: "Emart", category: "rau", expiryHours: 2 },
+  { id: "8", name: "Mực ống tươi 250g", image: "/images/products/muc.jpg", originalPrice: 95000, discountPrice: 66500, discountPercent: 30, expiryLabel: "Còn 3 giờ", storeName: "Aeon", category: "haisan", expiryHours: 3 },
+  { id: "9", name: "Sườn heo non 400g", image: "/images/products/suonheo.jpg", originalPrice: 110000, discountPrice: 55000, discountPercent: 50, expiryLabel: "Còn 4 giờ", storeName: "Vinmart Q3", category: "thit", expiryHours: 4 },
+  { id: "10", name: "Bánh croissant bơ 4 cái", image: "/images/products/croissant.jpg", originalPrice: 60000, discountPrice: 36000, discountPercent: 40, expiryLabel: "Còn 2 giờ", storeName: "Paris Baguette", category: "banh", expiryHours: 2 },
+  { id: "11", name: "Cua biển tươi 500g", image: "/images/products/cua.jpg", originalPrice: 200000, discountPrice: 100000, discountPercent: 50, expiryLabel: "Còn 5 giờ", storeName: "Seafood Market", category: "haisan", expiryHours: 5 },
+  { id: "12", name: "Cà chua bi 300g", image: "/images/products/cachua.jpg", originalPrice: 18000, discountPrice: 9000, discountPercent: 50, expiryLabel: "Còn 6 giờ", storeName: "GreenMart", category: "rau", expiryHours: 6 },
 ];
 
 const CATEGORY_OPTIONS = [
   { value: "", label: "Tất cả" },
-  { value: "rau", label: "🥬 Rau củ" },
-  { value: "thit", label: "🥩 Thịt" },
-  { value: "haisan", label: "🦐 Hải sản" },
-  { value: "banh", label: "🥐 Bánh" },
+  { value: "rau", label: "Rau củ" },
+  { value: "thit", label: "Thịt" },
+  { value: "haisan", label: "Hải sản" },
+  { value: "banh", label: "Bánh" },
 ];
 
 const SORT_OPTIONS = [
@@ -167,149 +35,218 @@ const SORT_OPTIONS = [
   { value: "expiry_asc", label: "HSD: sắp hết trước" },
 ];
 
+const ITEMS_PER_PAGE = 8;
+
 export default function ProductsPage() {
   const [category, setCategory] = useState("");
   const [sort, setSort] = useState("discount_desc");
   const [priceRange, setPriceRange] = useState([0, 250000]);
   const [discountMin, setDiscountMin] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const filterRef = useRef(null);
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (filterRef.current && !filterRef.current.contains(e.target)) setFilterOpen(false);
+    }
+    if (filterOpen) {
+      document.addEventListener("click", handleClickOutside);
+      return () => document.removeEventListener("click", handleClickOutside);
+    }
+  }, [filterOpen]);
 
   const filtered = useMemo(() => {
     let list = [...ALL_PRODUCTS];
-
     if (category) list = list.filter((p) => p.category === category);
     list = list.filter((p) => p.discountPrice >= priceRange[0] && p.discountPrice <= priceRange[1]);
     list = list.filter((p) => p.discountPercent >= discountMin);
-
     switch (sort) {
-      case "discount_desc":
-        list.sort((a, b) => b.discountPercent - a.discountPercent);
-        break;
-      case "price_asc":
-        list.sort((a, b) => a.discountPrice - b.discountPrice);
-        break;
-      case "price_desc":
-        list.sort((a, b) => b.discountPrice - a.discountPrice);
-        break;
-      case "expiry_asc":
-        list.sort((a, b) => a.expiryHours - b.expiryHours);
-        break;
+      case "discount_desc": list.sort((a, b) => b.discountPercent - a.discountPercent); break;
+      case "price_asc": list.sort((a, b) => a.discountPrice - b.discountPrice); break;
+      case "price_desc": list.sort((a, b) => b.discountPrice - a.discountPrice); break;
+      case "expiry_asc": list.sort((a, b) => a.expiryHours - b.expiryHours); break;
     }
     return list;
   }, [category, sort, priceRange, discountMin]);
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const paginatedList = useMemo(
+    () => filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE),
+    [filtered, currentPage]
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [category, sort, priceRange, discountMin]);
+
+  const hasActiveFilters = category || discountMin > 0 || priceRange[1] < 250000;
+
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">🛍️ Danh sách sản phẩm</h1>
+    <div className="min-h-screen bg-brand-bg">
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <h1 className="text-xl font-bold text-gray-800 mb-6">Danh sách sản phẩm</h1>
 
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* ── Sidebar Filters ── */}
-        <aside className="w-full lg:w-64 shrink-0 space-y-6">
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-            <h3 className="font-semibold text-gray-800 mb-3">📂 Loại hàng</h3>
-            <div className="space-y-2">
-              {CATEGORY_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setCategory(opt.value)}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-sm transition ${
-                    category === opt.value
-                      ? "bg-orange-100 text-orange-600 font-semibold"
-                      : "hover:bg-gray-50 text-gray-600"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
+        {/* Danh mục: segmented control (một thanh, từng segment) */}
+        <div className="inline-flex p-1 bg-gray-100 rounded-2xl mb-6">
+          {CATEGORY_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setCategory(opt.value)}
+              className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                category === opt.value
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
 
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-            <h3 className="font-semibold text-gray-800 mb-3">🏷️ % Giảm giá (tối thiểu)</h3>
-            <div className="space-y-2">
-              {[0, 30, 40, 50].map((v) => (
-                <button
-                  key={v}
-                  onClick={() => setDiscountMin(v)}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-sm transition ${
-                    discountMin === v ? "bg-orange-100 text-orange-600 font-semibold" : "hover:bg-gray-50 text-gray-600"
-                  }`}
-                >
-                  {v === 0 ? "Tất cả" : `≥ ${v}%`}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-            <h3 className="font-semibold text-gray-800 mb-3">💰 Khoảng giá</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs text-gray-500">Giá tối đa: {priceRange[1].toLocaleString("vi-VN")}đ</label>
-                <input
-                  type="range"
-                  min={0}
-                  max={250000}
-                  step={10000}
-                  value={priceRange[1]}
-                  onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
-                  className="w-full accent-orange-500"
-                />
-              </div>
-              <div className="flex justify-between text-xs text-gray-400">
-                <span>0đ</span>
-                <span>250,000đ</span>
-              </div>
-            </div>
-          </div>
-        </aside>
-
-        {/* ── Product Grid ── */}
-        <div className="flex-1">
-          {/* Sort + Count */}
-          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-            <p className="text-sm text-gray-500">
-              {filtered.length} sản phẩm
-              {category && (
-                <Badge variant="category" className="ml-2">
-                  {CATEGORY_OPTIONS.find((c) => c.value === category)?.label}
-                </Badge>
+        {/* Thanh công cụ: số SP + Sắp xếp + nút Lọc */}
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+          <span className="text-sm text-gray-500">
+            <span className="font-medium text-gray-700">{filtered.length}</span> sản phẩm
+          </span>
+          <div className="flex items-center gap-3" ref={filterRef}>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setFilterOpen((o) => !o); }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition ${
+                  filterOpen || hasActiveFilters
+                    ? "bg-brand text-gray-900"
+                    : "bg-white border border-gray-200 text-gray-600 hover:border-brand/40"
+                }`}
+              >
+                Lọc
+                {hasActiveFilters && (
+                  <span className="w-5 h-5 rounded-full bg-white/30 flex items-center justify-center text-xs">
+                    •
+                  </span>
+                )}
+                <svg className={`w-4 h-4 text-current transition ${filterOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {filterOpen && (
+                <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl border border-gray-100 shadow-lg p-4 z-50">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-2">Giá tối đa</label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="range"
+                          min={0}
+                          max={250000}
+                          step={10000}
+                          value={priceRange[1]}
+                          onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
+                          className="flex-1 h-2 rounded-full bg-gray-100 accent-brand-dark"
+                        />
+                        <span className="text-sm font-medium text-gray-700 tabular-nums w-16 text-right">
+                          {priceRange[1].toLocaleString("vi-VN")}đ
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-2">Giảm giá tối thiểu</label>
+                      <div className="flex flex-wrap gap-2">
+                        {[0, 30, 40, 50].map((v) => (
+                          <button
+                            key={v}
+                            type="button"
+                            onClick={() => setDiscountMin(v)}
+                            className={`px-3 py-1.5 rounded-xl text-sm font-medium transition ${
+                              discountMin === v ? "bg-brand text-gray-900" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                            }`}
+                          >
+                            {v === 0 ? "Tất cả" : `≥${v}%`}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {hasActiveFilters && (
+                      <button
+                        type="button"
+                        onClick={() => { setCategory(""); setDiscountMin(0); setPriceRange([0, 250000]); }}
+                        className="text-sm font-medium text-brand-dark hover:underline w-full text-left"
+                      >
+                        Xóa lọc
+                      </button>
+                    )}
+                  </div>
+                </div>
               )}
-            </p>
+            </div>
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+              className="bg-white border border-gray-200 rounded-xl pl-4 pr-9 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand/50"
             >
               {SORT_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
           </div>
+        </div>
 
-          {filtered.length === 0 ? (
-            <div className="text-center py-20 text-gray-400">
-              <p className="text-5xl mb-3">🔍</p>
-              <p>Không tìm thấy sản phẩm phù hợp</p>
-              <button
-                onClick={() => {
-                  setCategory("");
-                  setDiscountMin(0);
-                  setPriceRange([0, 250000]);
-                }}
-                className="mt-3 text-orange-500 text-sm hover:underline"
-              >
-                Xóa bộ lọc
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {filtered.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          )}
+        {/* Khu vực sản phẩm + phân trang (full width) */}
+        <div className="min-w-0">
+
+            {filtered.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-brand/20 shadow-sm text-center py-16">
+                <p className="text-4xl mb-2">🔍</p>
+                <p className="text-gray-500">Không tìm thấy sản phẩm phù hợp</p>
+                <button
+                  onClick={() => { setCategory(""); setDiscountMin(0); setPriceRange([0, 250000]); }}
+                  className="mt-3 text-brand-dark font-medium text-sm hover:underline"
+                >
+                  Xóa bộ lọc
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {paginatedList.map((product) => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
+
+                {/* Phân trang */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-2 mt-8 flex-wrap">
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="px-3 py-2 rounded-xl text-sm font-medium border border-brand/30 text-brand-dark hover:bg-brand/10 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    >
+                      Trước
+                    </button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`w-9 h-9 rounded-xl text-sm font-medium transition ${
+                          currentPage === page
+                            ? "bg-brand text-gray-900 shadow-sm"
+                            : "border border-brand/30 text-brand-dark hover:bg-brand/10"
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className="px-3 py-2 rounded-xl text-sm font-medium border border-brand/30 text-brand-dark hover:bg-brand/10 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    >
+                      Sau
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
         </div>
       </div>
     </div>
