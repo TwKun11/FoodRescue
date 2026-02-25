@@ -10,6 +10,11 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  /* Food Rescue brand */
+  --color-brand: #33ff99;
+  --color-brand-secondary: #12d18e;
+  --color-brand-dark: #0faf74;
+  --color-brand-bg: #f6fffb;
 }
 
 @media (prefers-color-scheme: dark) {

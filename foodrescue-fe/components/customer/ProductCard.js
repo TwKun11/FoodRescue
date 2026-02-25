@@ -21,7 +21,7 @@ export default function ProductCard({ product }) {
   return (
     <Link
       href={`/products/${id}`}
-      className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow overflow-hidden group border border-gray-100"
+      className="bg-white rounded-2xl shadow-sm hover:shadow-md hover:scale-[1.02] transition-all overflow-hidden group border border-gray-100"
     >
       {/* Image */}
       <div className="relative h-44 bg-gray-100 overflow-hidden">
@@ -30,7 +30,7 @@ export default function ProductCard({ product }) {
           alt={name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           onError={(e) => {
-            e.target.src = "https://placehold.co/400x300/FFF3E0/E65100?text=Food";
+            e.target.src = "https://placehold.co/400x300/F6FFFB/0FAF74?text=Ảnh";
           }}
         />
         <Badge variant="discount" className="absolute top-2 left-2">
@@ -44,7 +44,7 @@ export default function ProductCard({ product }) {
         <p className="text-xs text-gray-400 mt-0.5">📍 {storeName}</p>
 
         <div className="flex items-center gap-2 mt-2">
-          <span className="text-orange-500 font-bold text-base">{discountPrice.toLocaleString("vi-VN")}đ</span>
+          <span className="text-brand-dark font-bold text-base">{discountPrice.toLocaleString("vi-VN")}đ</span>
           <span className="text-gray-400 line-through text-xs">{originalPrice.toLocaleString("vi-VN")}đ</span>
         </div>
 
