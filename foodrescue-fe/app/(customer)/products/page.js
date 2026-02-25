@@ -45,7 +45,7 @@ const ALL_PRODUCTS = [
   {
     id: "4",
     name: "Bánh mì sandwich nguyên cám",
-    image: "https://placehold.co/400x300/fff8e1/e65100?text=Bánh+Mì",
+    image: "/images/products/banhmi.jpg",
     originalPrice: 45000,
     discountPrice: 22500,
     discountPercent: 50,
@@ -57,7 +57,7 @@ const ALL_PRODUCTS = [
   {
     id: "5",
     name: "Bắp cải tím 700g",
-    image: "https://placehold.co/400x300/f3e5f5/4a148c?text=Bắp+Cải",
+    image: "/images/products/bapcai.jpg",
     originalPrice: 28000,
     discountPrice: 16800,
     discountPercent: 40,
@@ -69,7 +69,7 @@ const ALL_PRODUCTS = [
   {
     id: "6",
     name: "Cá basa phi lê 400g",
-    image: "https://placehold.co/400x300/e0f7fa/006064?text=Cá+Basa",
+    image: "/images/products/ca-ba-sa.jpg.webp",
     originalPrice: 75000,
     discountPrice: 45000,
     discountPercent: 40,
@@ -81,7 +81,7 @@ const ALL_PRODUCTS = [
   {
     id: "7",
     name: "Dưa leo 1kg",
-    image: "https://placehold.co/400x300/f1f8e9/33691e?text=Dưa+Leo",
+    image: "/images/products/dualeo.jpg",
     originalPrice: 20000,
     discountPrice: 10000,
     discountPercent: 50,
@@ -93,7 +93,7 @@ const ALL_PRODUCTS = [
   {
     id: "8",
     name: "Mực ống tươi 250g",
-    image: "https://placehold.co/400x300/e8eaf6/1a237e?text=Mực+Ống",
+    image: "/images/products/muc.jpg",
     originalPrice: 95000,
     discountPrice: 66500,
     discountPercent: 30,

@@ -11,27 +11,24 @@ export default function Header() {
     <header className="bg-white shadow-sm sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 text-xl font-bold text-orange-500">
+        <Link href="/" className="flex items-center gap-2 text-xl font-bold text-brand-dark">
           <span className="text-2xl">🍃</span>
           <span>FoodRescue</span>
         </Link>
 
-        {/* Desktop Nav */}
+        {/* Desktop Nav: Trang chủ, Sản phẩm, Liên hệ, Về chúng tôi */}
         <nav className="hidden md:flex gap-6 text-sm font-medium text-gray-600">
-          <Link href="/" className="hover:text-orange-500 transition">
+          <Link href="/" className="hover:text-brand-dark transition">
             Trang chủ
           </Link>
-          <Link href="/products" className="hover:text-orange-500 transition">
+          <Link href="/products" className="hover:text-brand-dark transition">
             Sản phẩm
           </Link>
-          <Link href="/products?category=rau" className="hover:text-orange-500 transition">
-            Rau củ
+          <Link href="/contact" className="hover:text-brand-dark transition">
+            Liên hệ
           </Link>
-          <Link href="/products?category=thit" className="hover:text-orange-500 transition">
-            Thịt
-          </Link>
-          <Link href="/products?category=haisan" className="hover:text-orange-500 transition">
-            Hải sản
+          <Link href="/about" className="hover:text-brand-dark transition">
+            Về chúng tôi
           </Link>
         </nav>
 
@@ -41,18 +38,18 @@ export default function Header() {
           <Link href="/cart" className="relative p-1">
             <span className="text-2xl">🛒</span>
             {cartCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 bg-orange-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+              <span className="absolute -top-0.5 -right-0.5 bg-brand text-gray-900 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
                 {cartCount}
               </span>
             )}
           </Link>
 
-          {/* Store CTA */}
+          {/* Đăng nhập (thay Cửa hàng) */}
           <Link
-            href="/store/login"
-            className="bg-orange-500 text-white px-4 py-1.5 rounded-full text-sm font-medium hover:bg-orange-600 transition hidden sm:block"
+            href="/login"
+            className="bg-brand text-gray-900 px-4 py-1.5 rounded-full text-sm font-medium hover:opacity-90 transition hidden sm:block"
           >
-            Cửa hàng
+            Đăng nhập
           </Link>
 
           {/* Mobile menu toggle */}
@@ -71,11 +68,17 @@ export default function Header() {
           <Link href="/products" onClick={() => setMenuOpen(false)}>
             Sản phẩm
           </Link>
+          <Link href="/contact" onClick={() => setMenuOpen(false)}>
+            Liên hệ
+          </Link>
+          <Link href="/about" onClick={() => setMenuOpen(false)}>
+            Về chúng tôi
+          </Link>
           <Link href="/cart" onClick={() => setMenuOpen(false)}>
             Giỏ hàng ({cartCount})
           </Link>
-          <Link href="/store/login" onClick={() => setMenuOpen(false)}>
-            Đăng nhập cửa hàng
+          <Link href="/login" onClick={() => setMenuOpen(false)}>
+            Đăng nhập
           </Link>
         </nav>
       )}

@@ -19,7 +19,7 @@ export default function CategoryCard({ slug, label, count }) {
   return (
     <Link
       href={`/products?category=${slug}`}
-      className="flex flex-col items-center gap-2 bg-white border border-gray-100 rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-orange-200 transition group"
+      className="flex flex-col items-center gap-2 bg-white border border-brand/30 rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-brand-secondary/50 hover:-translate-y-0.5 transition group"
     >
       <span className="text-4xl group-hover:scale-110 transition-transform">{icon}</span>
       <p className="text-sm font-semibold text-gray-700">{label}</p>

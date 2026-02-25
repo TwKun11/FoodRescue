@@ -4,7 +4,7 @@
  */
 export default function Badge({ children, variant = "default", className = "" }) {
   const variants = {
-    discount: "bg-red-500 text-white",
+    discount: "bg-brand-secondary text-white",
     expiry: "bg-yellow-400 text-yellow-900",
     new: "bg-green-500 text-white",
     status_pending: "bg-yellow-100 text-yellow-700 border border-yellow-300",
