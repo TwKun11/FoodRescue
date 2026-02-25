@@ -11,7 +11,7 @@ export default function Badge({ children, variant = "default", className = "" })
     status_confirmed: "bg-blue-100 text-blue-700 border border-blue-300",
     status_done: "bg-green-100 text-green-700 border border-green-300",
     status_cancelled: "bg-red-100 text-red-700 border border-red-300",
-    category: "bg-orange-100 text-orange-700",
+    category: "bg-brand/20 text-brand-dark",
     default: "bg-gray-100 text-gray-600",
   };
 

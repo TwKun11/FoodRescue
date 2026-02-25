@@ -23,8 +23,8 @@ export default function ProductCard({ product }) {
       href={`/products/${id}`}
       className="bg-white rounded-2xl shadow-sm hover:shadow-md hover:scale-[1.02] transition-all overflow-hidden group border border-gray-100"
     >
-      {/* Image */}
-      <div className="relative h-44 bg-gray-100 overflow-hidden">
+      {/* Image — tỷ lệ cố định để mọi thẻ cùng kích thước */}
+      <div className="relative aspect-square w-full bg-gray-100 overflow-hidden">
         <img
           src={image}
           alt={name}
