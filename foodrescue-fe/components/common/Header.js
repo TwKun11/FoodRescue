@@ -30,6 +30,9 @@ export default function Header() {
           <Link href="/about" className="hover:text-brand-dark transition">
             Về chúng tôi
           </Link>
+          <Link href="/store" className="hover:text-brand-dark transition">
+            Quản lý
+          </Link>
         </nav>
 
         {/* Right Actions */}
@@ -73,6 +76,9 @@ export default function Header() {
           </Link>
           <Link href="/about" onClick={() => setMenuOpen(false)}>
             Về chúng tôi
+          </Link>
+          <Link href="/store" onClick={() => setMenuOpen(false)}>
+            Quản lý
           </Link>
           <Link href="/cart" onClick={() => setMenuOpen(false)}>
             Giỏ hàng ({cartCount})
