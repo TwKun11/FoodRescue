@@ -1,7 +1,9 @@
 import Sidebar from "@/components/store/Sidebar";
+import StoreGuard from "@/components/store/StoreGuard";
 
 export default function DashboardLayout({ children }) {
   return (
+    <StoreGuard>
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -50,5 +52,6 @@ export default function DashboardLayout({ children }) {
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
     </div>
+    </StoreGuard>
   );
 }

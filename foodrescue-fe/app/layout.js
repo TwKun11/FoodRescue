@@ -1,4 +1,5 @@
 import "./globals.css";
+import GoogleAuthProvider from "@/components/GoogleAuthProvider";
 
 export const metadata = {
   title: "FoodRescue – Giải cứu thực phẩm cuối ngày",
@@ -13,7 +14,9 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="vi">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <GoogleAuthProvider>{children}</GoogleAuthProvider>
+      </body>
     </html>
   );
 }
