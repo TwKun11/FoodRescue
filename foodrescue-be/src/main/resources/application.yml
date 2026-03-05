@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: ${APP_NAME:foodrescue-be}
+
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/foodrescue?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: ${HIBERNATE_DDL_AUTO:update}
+    show-sql: ${SHOW_SQL:false}
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+server:
+  port: ${PORT:8080}
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+    refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000}
+
+  verification:
+    base-url: ${VERIFICATION_BASE_URL:http://localhost:3000/verify-email}
+
+  reset-password:
+    base-url: ${RESET_PASSWORD_BASE_URL:http://localhost:3000/reset-password}
+
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:}
