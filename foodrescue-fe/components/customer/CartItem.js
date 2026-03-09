@@ -1,16 +1,45 @@
 "use client";
 import { useState } from "react";
+import { apiGetVariantStock } from "@/lib/api";
 
 /**
  * CartItem - Một dòng sản phẩm trong giỏ hàng (ảnh + thông tin + số lượng)
  */
 export default function CartItem({ item, onRemove, onQtyChange }) {
   const [qty, setQty] = useState(item?.quantity ?? 1);
+  const [stockLoading, setStockLoading] = useState(false);
+  const [atLimit, setAtLimit] = useState(false);
 
-  const handleQty = (delta) => {
-    const next = Math.max(1, qty + delta);
-    setQty(next);
-    onQtyChange?.(item.id, next);
+  const handleQty = async (delta) => {
+    if (delta > 0) {
+      // Query BE for latest stock before increasing
+      setStockLoading(true);
+      setAtLimit(false);
+      try {
+        const res = await apiGetVariantStock(item.variantId);
+        const stock = res.ok && res.data?.data != null ? Number(res.data.data) : (item.maxQty ?? Infinity);
+        const next = Math.min(stock, qty + 1);
+        if (next === qty) {
+          setAtLimit(true);
+          setTimeout(() => setAtLimit(false), 2000);
+        } else {
+          setQty(next);
+          onQtyChange?.(item.id, next);
+        }
+      } catch {
+        // fallback to cached maxQty
+        const max = item.maxQty ?? Infinity;
+        const next = Math.min(max, qty + 1);
+        setQty(next);
+        onQtyChange?.(item.id, next);
+      } finally {
+        setStockLoading(false);
+      }
+    } else {
+      const next = Math.max(1, qty + delta);
+      setQty(next);
+      onQtyChange?.(item.id, next);
+    }
   };
 
   const {
@@ -70,14 +99,25 @@ export default function CartItem({ item, onRemove, onQtyChange }) {
           <button
             type="button"
             onClick={() => handleQty(1)}
-            className="p-2 text-gray-600 hover:bg-brand/20 hover:text-brand-dark transition"
+            disabled={stockLoading}
+            className="p-2 text-gray-600 hover:bg-brand/20 hover:text-brand-dark transition disabled:opacity-40"
             aria-label="Tăng số lượng"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
+            {stockLoading ? (
+              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            )}
           </button>
         </div>
+        {atLimit && (
+          <p className="text-xs text-red-500 font-medium mt-1">Đã đạt giới hạn tồn kho</p>
+        )}
         <p className="text-sm font-bold text-gray-800 mt-2">{(discountPrice * qty).toLocaleString("vi-VN")}đ</p>
         <button
           type="button"

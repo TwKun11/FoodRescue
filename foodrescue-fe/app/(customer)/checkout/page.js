@@ -1,17 +1,11 @@
-// FE02-005 – UI Thanh toán (đồng bộ brand, ảnh từ images/banking)
+// FE02-005 – UI Thanh toán (API-connected)
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Badge from "@/components/common/Badge";
 import Link from "next/link";
+import { apiPlaceOrder } from "@/lib/api";
 
-// Mock order
-const ORDER_ITEMS = [
-  { id: "1", name: "Rau cải xanh hữu cơ 500g", discountPrice: 17500, quantity: 2, storeName: "Vinmart Q1" },
-  { id: "3", name: "Tôm sú tươi 200g", discountPrice: 84000, quantity: 1, storeName: "Lotte Mart Q7" },
-  { id: "4", name: "Bánh mì sandwich nguyên cám", discountPrice: 22500, quantity: 3, storeName: "BreadTalk" },
-];
-
-// Ảnh Momo, ZaloPay, VNPay từ public/images/banking
+// Payment methods with wallet images
 const PAYMENT_METHODS = [
   { id: "cod", label: "Tiền mặt (nhận tại cửa hàng)", icon: "💵", image: null },
   { id: "momo", label: "Ví MoMo", icon: null, image: "/images/banking/momo.jpg" },
@@ -34,24 +28,36 @@ const VOUCHERS = {
 const AVAILABLE_VOUCHERS = Object.entries(VOUCHERS).map(([code, v]) => ({ code, ...v }));
 
 export default function CheckoutPage() {
+  const [cartItems, setCartItems] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [note, setNote] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [placed, setPlaced] = useState(false);
+  const [orderId, setOrderId] = useState(null);
+  const [placing, setPlacing] = useState(false);
   const [voucherInput, setVoucherInput] = useState("");
   const [appliedVoucher, setAppliedVoucher] = useState(null);
   const [voucherError, setVoucherError] = useState("");
 
-  const subtotal = ORDER_ITEMS.reduce((s, i) => s + i.discountPrice * i.quantity, 0);
-  const serviceFee = Math.round(subtotal * SERVICE_FEE_RATE);
-  const beforeVoucher = subtotal + serviceFee;
+  useEffect(function () {
+    try {
+      var cart = JSON.parse(localStorage.getItem("cart") || "[]");
+      setCartItems(cart);
+    } catch (e) {}
+  }, []);
 
-  const voucherDiscount = appliedVoucher
+  var subtotal = cartItems.reduce(function (s, i) {
+    return s + (i.price || 0) * (i.quantity || 1);
+  }, 0);
+  var serviceFee = Math.round(subtotal * SERVICE_FEE_RATE);
+  var beforeVoucher = subtotal + serviceFee;
+
+  var voucherDiscount = appliedVoucher
     ? appliedVoucher.type === "percent"
       ? Math.round(beforeVoucher * (appliedVoucher.value / 100))
       : Math.min(appliedVoucher.value, beforeVoucher)
     : 0;
-  const total = Math.max(0, beforeVoucher - voucherDiscount);
+  var total = Math.max(0, beforeVoucher - voucherDiscount);
 
   const applyVoucherByCode = (code) => {
     setVoucherError("");
@@ -79,8 +85,26 @@ export default function CheckoutPage() {
   };
 
   const handlePlaceOrder = () => {
-    if (!agreed) return alert("Vui lòng đồng ý với điều khoản dịch vụ");
-    setPlaced(true);
+    if (!agreed) return alert("Vui long dong y voi dieu khoan dich vu");
+    if (cartItems.length === 0) return alert("Gio hang trong.");
+    setPlacing(true);
+    var orderLines = cartItems.map(function (i) {
+      return { variantId: i.variantId, quantity: i.quantity };
+    });
+    apiPlaceOrder({ paymentMethod, note, items: orderLines })
+      .then(function (res) {
+        if (res.ok && res.data && res.data.data) {
+          setOrderId(res.data.data.id || res.data.data.orderCode || "");
+          localStorage.removeItem("cart");
+          setPlaced(true);
+        } else {
+          var msg = (res.data && res.data.message) || "Dat hang that bai.";
+          alert(msg);
+        }
+      })
+      .finally(function () {
+        setPlacing(false);
+      });
   };
 
   if (placed) {
@@ -92,7 +116,11 @@ export default function CheckoutPage() {
           </div>
           <h2 className="text-xl font-bold text-gray-800">Đặt hàng thành công!</h2>
           <p className="text-gray-500 mt-2 text-sm">
-            Đơn hàng <span className="font-mono font-bold text-brand-dark">#FR{Date.now().toString().slice(-6)}</span> đã được xác nhận.
+            Don hang{" "}
+            <span className="font-mono font-bold text-brand-dark">
+              #{orderId || "FR" + Date.now().toString().slice(-6)}
+            </span>{" "}
+            da duoc xac nhan.
           </p>
           <p className="text-gray-500 text-sm mt-1">Vui lòng đến cửa hàng để nhận sản phẩm trước khi hết hạn.</p>
           <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
@@ -167,7 +195,11 @@ export default function CheckoutPage() {
                             const fallback = e.target.parentElement?.querySelector(".payment-fallback");
                             if (fallback) {
                               fallback.classList.remove("hidden");
-                              Object.assign(fallback.style, { display: "flex", alignItems: "center", justifyContent: "center" });
+                              Object.assign(fallback.style, {
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              });
                             }
                           }}
                         />
@@ -178,7 +210,9 @@ export default function CheckoutPage() {
                     )}
                     <span className="text-sm font-medium text-gray-700 flex-1">{method.label}</span>
                     {paymentMethod === method.id && (
-                      <Badge variant="discount" className="shrink-0">Đã chọn</Badge>
+                      <Badge variant="discount" className="shrink-0">
+                        Đã chọn
+                      </Badge>
                     )}
                   </label>
                 ))}
@@ -233,14 +267,24 @@ export default function CheckoutPage() {
               <h2 className="font-bold text-gray-800 pb-3 border-b border-gray-100">Tóm tắt đơn hàng</h2>
 
               <div className="space-y-3">
-                {ORDER_ITEMS.map((item) => (
-                  <div key={item.id} className="flex justify-between text-sm gap-2">
+                {cartItems.length === 0 ? (
+                  <p className="text-sm text-gray-400">
+                    Gio hang trong.{" "}
+                    <Link href="/products" className="text-brand-dark underline">
+                      Mua hang
+                    </Link>
+                  </p>
+                ) : null}
+                {cartItems.map((item) => (
+                  <div key={item.variantId} className="flex justify-between text-sm gap-2">
                     <div className="min-w-0">
                       <p className="text-gray-700 font-medium truncate">{item.name}</p>
-                      <p className="text-xs text-gray-500">x{item.quantity} • {item.storeName}</p>
+                      <p className="text-xs text-gray-500">
+                        x{item.quantity} • {item.storeName || ""}
+                      </p>
                     </div>
                     <span className="text-gray-800 font-medium shrink-0">
-                      {(item.discountPrice * item.quantity).toLocaleString("vi-VN")}đ
+                      {((item.price || 0) * (item.quantity || 1)).toLocaleString("vi-VN")}d
                     </span>
                   </div>
                 ))}
@@ -269,7 +313,10 @@ export default function CheckoutPage() {
                       <input
                         type="text"
                         value={voucherInput}
-                        onChange={(e) => { setVoucherInput(e.target.value); setVoucherError(""); }}
+                        onChange={(e) => {
+                          setVoucherInput(e.target.value);
+                          setVoucherError("");
+                        }}
                         onKeyDown={(e) => e.key === "Enter" && handleApplyVoucher()}
                         placeholder="Nhập mã giảm giá"
                         className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
@@ -344,10 +391,10 @@ export default function CheckoutPage() {
               <button
                 type="button"
                 onClick={handlePlaceOrder}
-                disabled={!agreed}
+                disabled={!agreed || placing || cartItems.length === 0}
                 className="w-full rounded-xl px-6 py-3 bg-brand text-gray-900 font-medium hover:bg-brand-dark transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                Đặt hàng ngay
+                {placing ? "Dang dat hang..." : "Dat hang ngay"}
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>

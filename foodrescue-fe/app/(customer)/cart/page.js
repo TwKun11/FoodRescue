@@ -1,52 +1,61 @@
-// FE02-004 – UI Giỏ hàng (đồng bộ brand, hiển thị ảnh)
+// FE02-004 – UI Giỏ hàng (API-integrated: reads from localStorage)
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import CartItem from "@/components/customer/CartItem";
 import Link from "next/link";
 
-// Mock data — ảnh từ public/images/products/
-const INIT_CART = [
-  {
-    id: "1",
-    name: "Rau cải xanh hữu cơ 500g",
-    image: "/images/products/raucai.jpg",
-    originalPrice: 35000,
-    discountPrice: 17500,
-    storeName: "Vinmart Q1",
-    expiryLabel: "Còn 3 giờ",
-    quantity: 2,
-  },
-  {
-    id: "3",
-    name: "Tôm sú tươi 200g",
-    image: "/images/products/tomsu.jpg",
-    originalPrice: 120000,
-    discountPrice: 84000,
-    storeName: "Lotte Mart Q7",
-    expiryLabel: "Còn 2 giờ",
-    quantity: 1,
-  },
-  {
-    id: "4",
-    name: "Bánh mì sandwich nguyên cám",
-    image: "/images/products/banhmi.jpg",
-    originalPrice: 45000,
-    discountPrice: 22500,
-    storeName: "BreadTalk",
-    expiryLabel: "Còn 1 giờ",
-    quantity: 3,
-  },
-];
-
 const SERVICE_FEE_RATE = 0.03; // 3%
 
-export default function CartPage() {
-  const [items, setItems] = useState(INIT_CART);
+function saveCart(items) {
+  try {
+    localStorage.setItem("cart", JSON.stringify(items));
+  } catch (e) {}
+}
 
-  const handleRemove = (id) => setItems((prev) => prev.filter((i) => i.id !== id));
+export default function CartPage() {
+  const [items, setItems] = useState([]);
+
+  useEffect(function () {
+    try {
+      var cart = JSON.parse(localStorage.getItem("cart") || "[]");
+      // normalize fields for CartItem component
+      setItems(
+        cart.map(function (i) {
+          return {
+            id: String(i.variantId || i.id),
+            name: i.name,
+            image: i.image || "/images/products/raucai.jpg",
+            originalPrice: i.originalPrice || i.price || 0,
+            discountPrice: i.price || i.originalPrice || 0,
+            storeName: i.storeName || "",
+            expiryLabel: "",
+            quantity: i.quantity || 1,
+            variantId: i.variantId,
+            maxQty: i.maxQty ?? null,
+          };
+        }),
+      );
+    } catch (e) {}
+  }, []);
+
+  const handleRemove = (id) => {
+    var next = items.filter(function (i) {
+      return i.id !== id;
+    });
+    setItems(next);
+    saveCart(
+      next.map(function (i) {
+        return Object.assign({}, i);
+      }),
+    );
+  };
 
   const handleQtyChange = (id, newQty) => {
-    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, quantity: newQty } : i)));
+    var next = items.map(function (i) {
+      return i.id === id ? Object.assign({}, i, { quantity: newQty }) : i;
+    });
+    setItems(next);
+    saveCart(next);
   };
 
   const subtotal = items.reduce((sum, i) => sum + i.discountPrice * i.quantity, 0);
@@ -65,7 +74,12 @@ export default function CartPage() {
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm text-center py-16 px-4">
             <div className="w-20 h-20 rounded-full bg-brand/20 flex items-center justify-center mx-auto mb-4">
               <svg className="w-10 h-10 text-brand-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+                />
               </svg>
             </div>
             <p className="text-gray-700 font-medium">Giỏ hàng trống</p>
@@ -93,7 +107,12 @@ export default function CartPage() {
                   className="text-xs text-red-500 hover:text-red-600 font-medium transition flex items-center gap-1"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                    />
                   </svg>
                   Xóa tất cả
                 </button>
