@@ -1,171 +1,478 @@
-// FE02-003 – Trang Chi tiết sản phẩm (đồng bộ brand + sản phẩm liên quan)
+// FE02-002 – Chi tiết sản phẩm (API-connected)
 "use client";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import CountdownTimer from "@/components/customer/CountdownTimer";
-import Button from "@/components/common/Button";
-import Badge from "@/components/common/Badge";
-import ProductCard from "@/components/customer/ProductCard";
 import Link from "next/link";
+import CountdownTimer from "@/components/customer/CountdownTimer";
+import ProductCard from "@/components/customer/ProductCard";
+import Badge from "@/components/common/Badge";
+import Button from "@/components/common/Button";
+import { apiGetProduct, apiGetProducts } from "@/lib/api";
 
-// Dữ liệu chi tiết + dùng chung cho related (ảnh theo public/images/products/)
-const PRODUCTS_DETAIL = [
-  { id: "1", name: "Rau cải xanh hữu cơ 500g", image: "/images/products/raucai.jpg", originalPrice: 35000, discountPrice: 17500, discountPercent: 50, expiryLabel: "Còn 3 giờ", storeName: "Vinmart Q1", category: "rau", expiryHours: 3, unit: "túi 500g", remaining: 8, description: "Rau cải xanh tươi, trồng theo tiêu chuẩn hữu cơ. Giàu vitamin C, K và chất xơ. Thích hợp xào, luộc, nấu canh.", store: { name: "Vinmart Q1", address: "123 Nguyễn Huệ, Q1, TP.HCM", phone: "028 1234 5678", rating: 4.8, reviewCount: 246 } },
-  { id: "2", name: "Thịt heo ba chỉ 300g", image: "/images/products/thitheo.jpg", originalPrice: 85000, discountPrice: 51000, discountPercent: 40, expiryLabel: "Còn 5 giờ", storeName: "Circle K", category: "thit", expiryHours: 5, unit: "300g", remaining: 5, description: "Thịt heo ba chỉ tươi, mềm, thích hợp kho, nướng, xào.", store: { name: "Circle K", address: "Hai Bà Trưng, Q1, TP.HCM", phone: "028 8765 4321", rating: 4.5, reviewCount: 89 } },
-  { id: "3", name: "Tôm sú tươi 200g", image: "/images/products/tomsu.jpg", originalPrice: 120000, discountPrice: 84000, discountPercent: 30, expiryLabel: "Còn 2 giờ", storeName: "Lotte Mart Q7", category: "haisan", expiryHours: 2, unit: "200g", remaining: 12, description: "Tôm sú tươi sống, ngọt thịt. Chế biến hấp, nướng, rim.", store: { name: "Lotte Mart Q7", address: "Nguyễn Lương Bằng, Q7, TP.HCM", phone: "028 5412 3456", rating: 4.7, reviewCount: 312 } },
-  { id: "4", name: "Bánh mì sandwich nguyên cám", image: "/images/products/banhmi.jpg", originalPrice: 45000, discountPrice: 22500, discountPercent: 50, expiryLabel: "Còn 1 giờ", storeName: "BreadTalk", category: "banh", expiryHours: 1, unit: "1 ổ", remaining: 6, description: "Bánh mì sandwich nguyên cám, thơm ngon, ăn kèm hoặc làm bữa sáng.", store: { name: "BreadTalk Vincom", address: "72 Lê Thánh Tôn, Q1, TP.HCM", phone: "028 3827 1928", rating: 4.6, reviewCount: 178 } },
-  { id: "5", name: "Bắp cải tím 700g", image: "/images/products/bapcai.jpg", originalPrice: 28000, discountPrice: 16800, discountPercent: 40, expiryLabel: "Còn 4 giờ", storeName: "Co.opmart", category: "rau", expiryHours: 4, unit: "700g", remaining: 10, description: "Bắp cải tím tươi, giòn, dùng làm salad hoặc xào.", store: { name: "Co.opmart Nguyễn Đình Chiểu", address: "Nguyễn Đình Chiểu, Q3, TP.HCM", phone: "028 3930 1234", rating: 4.4, reviewCount: 95 } },
-  { id: "6", name: "Cá basa phi lê 400g", image: "/images/products/ca-ba-sa.jpg.webp", originalPrice: 75000, discountPrice: 45000, discountPercent: 40, expiryLabel: "Còn 6 giờ", storeName: "Metro Q12", category: "haisan", expiryHours: 6, unit: "400g", remaining: 7, description: "Cá basa phi lê tươi, không xương, chiên hoặc nấu canh.", store: { name: "Metro Q12", address: "Lê Văn Việt, Q12, TP.HCM", phone: "028 3716 7890", rating: 4.5, reviewCount: 203 } },
-  { id: "7", name: "Dưa leo 1kg", image: "/images/products/dualeo.jpg", originalPrice: 20000, discountPrice: 10000, discountPercent: 50, expiryLabel: "Còn 2 giờ", storeName: "Emart", category: "rau", expiryHours: 2, unit: "1kg", remaining: 15, description: "Dưa leo tươi, giòn, ăn sống hoặc làm gỏi.", store: { name: "Emart Tân Phú", address: "Lạc Long Quân, Tân Phú, TP.HCM", phone: "028 3861 2345", rating: 4.3, reviewCount: 67 } },
-  { id: "8", name: "Mực ống tươi 250g", image: "/images/products/muc.jpg", originalPrice: 95000, discountPrice: 66500, discountPercent: 30, expiryLabel: "Còn 3 giờ", storeName: "Aeon", category: "haisan", expiryHours: 3, unit: "250g", remaining: 4, description: "Mực ống tươi, làm sạch, nướng hoặc xào.", store: { name: "Aeon Bình Dương", address: "Bình Dương", phone: "0274 381 2345", rating: 4.6, reviewCount: 144 } },
-  { id: "9", name: "Sườn heo non 400g", image: "/images/products/suonheo.jpg", originalPrice: 110000, discountPrice: 55000, discountPercent: 50, expiryLabel: "Còn 4 giờ", storeName: "Vinmart Q3", category: "thit", expiryHours: 4, unit: "400g", remaining: 9, description: "Sườn heo non mềm, nướng hoặc rim.", store: { name: "Vinmart Q3", address: "Võ Văn Tần, Q3, TP.HCM", phone: "028 3526 7890", rating: 4.5, reviewCount: 98 } },
-  { id: "10", name: "Bánh croissant bơ 4 cái", image: "/images/products/croissant.jpg", originalPrice: 60000, discountPrice: 36000, discountPercent: 40, expiryLabel: "Còn 2 giờ", storeName: "Paris Baguette", category: "banh", expiryHours: 2, unit: "4 cái", remaining: 11, description: "Croissant bơ thơm béo, bữa sáng hoặc ăn nhẹ.", store: { name: "Paris Baguette", address: "Lê Lợi, Q1, TP.HCM", phone: "028 3825 1122", rating: 4.8, reviewCount: 256 } },
-  { id: "11", name: "Cua biển tươi 500g", image: "/images/products/cua.jpg", originalPrice: 200000, discountPrice: 100000, discountPercent: 50, expiryLabel: "Còn 5 giờ", storeName: "Seafood Market", category: "haisan", expiryHours: 5, unit: "500g", remaining: 3, description: "Cua biển tươi sống, gạch vàng, hấp hoặc nấu bún.", store: { name: "Seafood Market", address: "Nguyễn Văn Linh, Q7, TP.HCM", phone: "028 5410 9988", rating: 4.7, reviewCount: 189 } },
-  { id: "12", name: "Cà chua bi 300g", image: "/images/products/cachua.jpg", originalPrice: 18000, discountPrice: 9000, discountPercent: 50, expiryLabel: "Còn 6 giờ", storeName: "GreenMart", category: "rau", expiryHours: 6, unit: "300g", remaining: 20, description: "Cà chua bi ngọt, làm salad hoặc nấu.", store: { name: "GreenMart", address: "Pasteur, Q1, TP.HCM", phone: "028 3822 3344", rating: 4.4, reviewCount: 72 } },
-];
-
-const CATEGORY_LABELS = { rau: "Rau củ", thit: "Thịt", haisan: "Hải sản", banh: "Bánh" };
-
-function ProductImageGallery({ image, name, countdownSlot }) {
+function ProductImageGallery({ images, name, countdownSlot }) {
+  const [active, setActive] = useState(0);
+  const list = images && images.length > 0 ? images : [{ imageUrl: "/images/products/raucai.jpg" }];
+  const src = list[active]?.imageUrl || "/images/products/raucai.jpg";
   return (
-    <div className="rounded-2xl overflow-hidden bg-white border border-gray-100 shadow-sm max-w-md mx-auto lg:mx-0 w-full">
+    <div className="rounded-2xl overflow-hidden bg-white border border-gray-100 shadow-md w-full">
       <div className="relative aspect-square w-full bg-gray-50">
-        <img src={image} alt={name} className="w-full h-full object-cover block" />
-        {/* Hạn ưu đãi chèn trong ảnh — dải dưới */}
+        <img src={src} alt={name} className="w-full h-full object-cover block" />
         {countdownSlot && (
-          <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-red-600/95 via-red-500/80 to-transparent pt-10 pb-3 px-4">
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-red-700/95 via-red-500/80 to-transparent pt-12 pb-4 px-4">
             {countdownSlot}
           </div>
         )}
+        {list.length > 1 && (
+          <span className="absolute top-3 right-3 bg-black/50 text-white text-xs font-medium px-2 py-0.5 rounded-full">
+            {active + 1} / {list.length}
+          </span>
+        )}
       </div>
+      {list.length > 1 && (
+        <div className="flex gap-2 p-3 overflow-x-auto bg-gray-50">
+          {list.map((img, i) => (
+            <button
+              key={i}
+              onClick={() => setActive(i)}
+              className={`shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition ${
+                i === active ? "border-brand-dark" : "border-transparent opacity-60 hover:opacity-100"
+              }`}
+            >
+              <img src={img.imageUrl} alt={`${name} ${i + 1}`} className="w-full h-full object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
+function mapProductDetail(p) {
+  if (!p) return null;
+  const variant = p.variants && p.variants[0] ? p.variants[0] : {};
+  const originalPrice = variant.listPrice || 0;
+  const discountPrice = variant.salePrice || variant.listPrice || 0;
+  const discountPercent = originalPrice > 0 ? Math.round((1 - discountPrice / originalPrice) * 100) : 0;
+  const remaining = variant.stockAvailable ?? variant.stockQuantity ?? 0;
+  const shelfLifeDays = p.shelfLifeDays || 1;
+  return {
+    id: String(p.id),
+    name: p.name,
+    image: p.primaryImageUrl || "/images/products/raucai.jpg",
+    images: p.images && p.images.length > 0
+      ? p.images
+      : (p.primaryImageUrl ? [{ imageUrl: p.primaryImageUrl }] : []),
+    originalPrice,
+    discountPrice,
+    discountPercent,
+    unit: variant.unit || p.unitLabel || "",
+    remaining,
+    description: p.description || "",
+    categoryName: p.categoryName || "",
+    categoryId: p.categoryId,
+    shelfLifeDays,
+    seller: p.seller || null,
+    variants: p.variants || [],
+  };
+}
+
+function mapRelated(p) {
+  const variant = p.variants && p.variants[0] ? p.variants[0] : {};
+  const originalPrice = variant.listPrice || 0;
+  const discountPrice = variant.salePrice || variant.listPrice || 0;
+  const discountPercent = originalPrice > 0 ? Math.round((1 - discountPrice / originalPrice) * 100) : 0;
+  return {
+    id: String(p.id),
+    name: p.name,
+    image: p.primaryImageUrl || "/images/products/raucai.jpg",
+    originalPrice,
+    discountPrice,
+    discountPercent,
+    expiryLabel: p.shelfLifeDays ? "Con " + p.shelfLifeDays + " ngay" : "",
+    storeName: (p.seller && p.seller.shopName) || "",
+    unit: variant.unit || "",
+    remaining: variant.stockAvailable ?? variant.stockQuantity ?? 0,
+  };
+}
+
 export default function ProductDetailPage() {
   const params = useParams();
-  const id = (params?.id ?? "1").toString();
-  const product = useMemo(() => PRODUCTS_DETAIL.find((p) => p.id === id) ?? PRODUCTS_DETAIL[0], [id]);
+  const id = params && params.id;
+  const [product, setProduct] = useState(null);
+  const [relatedProducts, setRelatedProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [expiryISO, setExpiryISO] = useState("");
-  useEffect(() => {
-    setExpiryISO(new Date(Date.now() + (product.expiryHours || 3) * 60 * 60 * 1000).toISOString());
-  }, [product.expiryHours]);
+  const [selectedSku, setSelectedSku] = useState(null);
+  const [qty, setQty] = useState(1);
 
-  const savings = product.originalPrice - product.discountPrice;
-
-  // Sản phẩm liên quan: cùng danh mục, bỏ sản phẩm hiện tại, tối đa 4
-  const relatedProducts = useMemo(
-    () => PRODUCTS_DETAIL.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 4),
-    [product.category, product.id]
+  // Reset qty to 1 whenever user switches variant
+  useEffect(
+    function () {
+      setQty(1);
+    },
+    [selectedSku],
   );
+  const [addedToCart, setAddedToCart] = useState(false);
+
+  useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+    setError("");
+    apiGetProduct(id)
+      .then(function (res) {
+        var ok = res.ok;
+        var data = res.data;
+        if (ok && data && data.data) {
+          var mapped = mapProductDetail(data.data);
+          setProduct(mapped);
+          setSelectedSku((data.data.variants && data.data.variants[0]) || null);
+          if (mapped.shelfLifeDays) {
+            setExpiryISO(new Date(Date.now() + mapped.shelfLifeDays * 24 * 60 * 60 * 1000).toISOString());
+          }
+          return apiGetProducts({ categoryId: mapped.categoryId, size: 5 });
+        } else {
+          setError("Khong tim thay san pham.");
+          return null;
+        }
+      })
+      .then(function (res2) {
+        if (res2 && res2.ok && res2.data && res2.data.data && res2.data.data.content) {
+          setRelatedProducts(
+            res2.data.data.content
+              .filter(function (r) {
+                return String(r.id) !== String(id);
+              })
+              .slice(0, 4)
+              .map(mapRelated),
+          );
+        }
+      })
+      .finally(function () {
+        setLoading(false);
+      });
+  }, [id]);
+
+  var handleAddToCart = function () {
+    if (!product || !selectedSku) return;
+    if (remaining <= 0) return;
+    try {
+      var cart = JSON.parse(localStorage.getItem("cart") || "[]");
+      var existing = cart.find(function (i) {
+        return i.variantId === selectedSku.id;
+      });
+      if (existing) {
+        // Cap total quantity in cart at available stock
+        existing.quantity = Math.min(remaining, existing.quantity + qty);
+      } else {
+        cart.push({
+          variantId: selectedSku.id,
+          productId: product.id,
+          name: product.name,
+          variantName: selectedSku.name || selectedSku.unit || "",
+          image: product.image,
+          price: selectedSku.salePrice || selectedSku.listPrice || 0,
+          originalPrice: selectedSku.listPrice || 0,
+          unit: selectedSku.unit || "",
+          storeName: (product.seller && product.seller.shopName) || "",
+          quantity: Math.min(remaining, qty),
+          maxQty: remaining,
+        });
+      }
+      localStorage.setItem("cart", JSON.stringify(cart));
+      setAddedToCart(true);
+      setTimeout(function () {
+        setAddedToCart(false);
+      }, 2000);
+    } catch (e) {}
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="animate-spin w-10 h-10 border-4 border-brand border-t-transparent rounded-full" />
+          <p className="text-gray-500 text-sm">Đang tải sản phẩm...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
+        <div className="text-center space-y-4 px-4">
+          <p className="text-5xl">😕</p>
+          <p className="text-gray-700 font-semibold">{error || "Không tìm thấy sản phẩm."}</p>
+          <Link
+            href="/products"
+            className="inline-block mt-2 px-5 py-2.5 rounded-xl bg-brand text-gray-900 font-semibold text-sm hover:bg-brand-secondary hover:text-white transition"
+          >
+            ← Quay lại danh sách
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  var displaySku = selectedSku || {};
+  var origP = displaySku.listPrice || product.originalPrice;
+  var discP = displaySku.salePrice || displaySku.listPrice || product.discountPrice;
+  var discPct = origP > 0 ? Math.round((1 - discP / origP) * 100) : 0;
+  var savings = origP - discP;
+  var remaining =
+    (displaySku.stockAvailable ?? displaySku.stockQuantity) != null
+      ? (displaySku.stockAvailable ?? displaySku.stockQuantity)
+      : product.remaining;
 
   return (
     <div className="min-h-screen bg-brand-bg">
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Breadcrumb */}
-        <nav className="text-sm text-gray-500 mb-6 flex items-center gap-2 flex-wrap">
-          <Link href="/" className="hover:text-brand-dark transition">Trang chủ</Link>
-          <span>/</span>
-          <Link href="/products" className="hover:text-brand-dark transition">Sản phẩm</Link>
-          <span>/</span>
-          <span className="text-gray-700 truncate max-w-[220px]">{product.name}</span>
+        <nav className="text-sm text-gray-400 mb-6 flex items-center gap-1.5 flex-wrap">
+          <Link href="/" className="hover:text-brand-dark transition font-medium">
+            Trang chủ
+          </Link>
+          <svg className="w-3.5 h-3.5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+          <Link href="/products" className="hover:text-brand-dark transition font-medium">
+            Sản phẩm
+          </Link>
+          <svg className="w-3.5 h-3.5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+          <span className="text-gray-600 font-medium truncate max-w-[200px]">{product.name}</span>
         </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10 items-start">
-          {/* Cột trái: Ảnh + Địa chỉ cửa hàng (dưới ảnh) */}
-          <div className="space-y-4 max-w-md mx-auto lg:mx-0 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
+          {/* Left column: image + seller card */}
+          <div className="space-y-4 w-full">
             <ProductImageGallery
-              image={product.image}
+              images={product.images}
               name={product.name}
               countdownSlot={
                 <div className="text-white text-center">
-                  <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider opacity-95 mb-1">⏰ Ưu đãi kết thúc sau</p>
+                  <p className="text-[11px] font-bold uppercase tracking-widest opacity-90 mb-1.5">
+                    ⏳ Ưu đãi kết thúc sau
+                  </p>
                   {expiryISO ? (
                     <div className="flex justify-center">
                       <CountdownTimer targetTime={expiryISO} variant="onRed" />
                     </div>
                   ) : (
-                    <span className="text-sm">...</span>
+                    <span className="text-sm opacity-70">...</span>
                   )}
-                  {product.remaining <= 10 && (
-                    <p className="text-xs font-semibold mt-1.5 opacity-95">Chỉ còn {product.remaining} sản phẩm</p>
+                  {remaining > 0 && remaining <= 10 && (
+                    <p className="text-xs font-bold mt-2 opacity-95 bg-white/20 rounded-full px-3 py-0.5 inline-block">
+                      🔥 Còn {remaining} sản phẩm
+                    </p>
                   )}
                 </div>
               }
             />
-            {/* Địa chỉ cửa hàng — ngay dưới ảnh sản phẩm */}
-            {product.store && (
+            {product.seller && (
               <div className="rounded-2xl p-4 bg-white border border-gray-100 shadow-sm">
-                <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2 text-sm">
-                  <span>🏪</span> Cửa hàng
+                <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2 text-sm">
+                  <span className="w-6 h-6 rounded-full bg-brand/20 flex items-center justify-center text-brand-dark text-xs">🏪</span>
+                  Cửa hàng
                 </h3>
                 <div className="space-y-1.5 text-sm">
-                  <p className="font-semibold text-gray-900">{product.store.name}</p>
-                  <p className="text-gray-600">📍 {product.store.address}</p>
-                  <p className="text-gray-600">📞 {product.store.phone}</p>
-                  <p className="flex items-center gap-1.5 pt-1">
-                    <span className="text-amber-500">★</span>
-                    <span className="font-medium text-gray-800">{product.store.rating}</span>
-                    <span className="text-gray-500 text-xs">({product.store.reviewCount} đánh giá)</span>
-                  </p>
+                  <p className="font-bold text-gray-900 text-base">{product.seller.shopName}</p>
+                  {product.seller.address && (
+                    <p className="text-gray-500 flex items-start gap-1.5">
+                      <svg className="w-3.5 h-3.5 mt-0.5 shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      {product.seller.address}
+                    </p>
+                  )}
+                  {product.seller.phone && (
+                    <p className="text-gray-500 flex items-center gap-1.5">
+                      <svg className="w-3.5 h-3.5 shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      </svg>
+                      {product.seller.phone}
+                    </p>
+                  )}
+                  {product.seller.ratingAvg > 0 && (
+                    <p className="flex items-center gap-1.5 pt-1">
+                      <span className="text-amber-400 text-base">★</span>
+                      <span className="font-semibold text-gray-800">{Number(product.seller.ratingAvg).toFixed(1)}</span>
+                      <span className="text-gray-400 text-xs">/ 5</span>
+                    </p>
+                  )}
                 </div>
               </div>
             )}
           </div>
 
-          {/* Cột phải: Thông tin sản phẩm (tên, đơn vị, số lượng, giá, mô tả, nút) */}
-          <div className="space-y-5 lg:max-w-md">
+          {/* Right column: product info */}
+          <div className="space-y-5">
             <div>
-              <Badge variant="category" className="mb-2">{CATEGORY_LABELS[product.category] || product.category}</Badge>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight">{product.name}</h1>
-              <p className="text-sm text-gray-500 mt-1">Đơn vị: {product.unit}</p>
-              <p className="text-sm text-gray-600 mt-2 font-medium">
-                Số lượng còn: <span className="text-brand-dark font-semibold">{product.remaining ?? 0}</span> sản phẩm
-              </p>
-            </div>
+              {product.categoryName && (
+                <Badge variant="category" className="mb-2">
+                  {product.categoryName}
+                </Badge>
+              )}
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight mt-1">{product.name}</h1>
 
-            {/* Khối giá */}
-            <div className="rounded-2xl p-5 bg-white border border-brand/20 shadow-sm border-l-4 border-l-brand">
-              <p className="text-xs font-semibold text-brand-dark uppercase tracking-wider mb-2">Giá ưu đãi</p>
-              <div className="flex flex-wrap items-baseline gap-3">
-                <span className="text-3xl font-bold text-brand-dark">{product.discountPrice.toLocaleString("vi-VN")}đ</span>
-                <span className="text-gray-400 line-through">{product.originalPrice.toLocaleString("vi-VN")}đ</span>
-                <Badge variant="discount">-{product.discountPercent}%</Badge>
+              {/* Stock badge */}
+              <div className="flex items-center gap-2 mt-3">
+                {remaining === 0 ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100 text-red-600 text-xs font-semibold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>Hết hàng
+                  </span>
+                ) : remaining <= 5 ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-100 text-orange-600 text-xs font-semibold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>Còn {remaining} sản phẩm
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>Còn hàng · {remaining} sản phẩm
+                  </span>
+                )}
+                {displaySku.unit && (
+                  <span className="text-xs text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">{displaySku.unit}</span>
+                )}
               </div>
-              <p className="text-sm text-brand-dark font-medium mt-2 flex items-center gap-1.5">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-brand" /> Tiết kiệm {savings.toLocaleString("vi-VN")}đ
-              </p>
+
+              {/* Variant selector */}
+              {product.variants.length > 1 && (
+                <div className="mt-4">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Phân loại</p>
+                  <div className="flex flex-wrap gap-2">
+                    {product.variants.map(function (variant) {
+                      const isActive = selectedSku && selectedSku.id === variant.id;
+                      return (
+                        <button
+                          key={variant.id}
+                          onClick={function () { setSelectedSku(variant); }}
+                          className={
+                            "px-4 py-2 rounded-xl border text-sm font-medium transition-all " +
+                            (isActive
+                              ? "border-brand-dark bg-brand/15 text-brand-dark shadow-sm"
+                              : "border-gray-200 text-gray-600 hover:border-brand/50 hover:bg-brand/5")
+                          }
+                        >
+                          {variant.name || variant.unit || "Loại " + variant.id}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Mô tả */}
-            <div className="rounded-2xl p-5 bg-white border border-gray-100 shadow-sm border-l-4 border-l-brand-secondary/60">
-              <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
-                <span className="text-brand-dark">Mô tả</span>
-              </h3>
-              <p className="text-sm text-gray-600 leading-relaxed">{product.description}</p>
+            {/* Price box */}
+            <div className="rounded-2xl p-5 bg-white border border-gray-100 shadow-sm">
+              <p className="text-xs font-bold text-brand-dark uppercase tracking-wider mb-3">💰 Giá ưu đãi</p>
+              <div className="flex flex-wrap items-end gap-3">
+                <span className="text-4xl font-extrabold text-gray-900">{discP.toLocaleString("vi-VN")}đ</span>
+                {discPct > 0 && (
+                  <div className="flex items-center gap-2 pb-1">
+                    <span className="text-gray-400 line-through text-base">{origP.toLocaleString("vi-VN")}đ</span>
+                    <Badge variant="discount" className="text-sm px-2.5 py-1">-{discPct}%</Badge>
+                  </div>
+                )}
+              </div>
+              {savings > 0 && (
+                <p className="text-sm text-brand-dark font-semibold mt-2.5 flex items-center gap-1.5">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Tiết kiệm {savings.toLocaleString("vi-VN")}đ so với giá gốc
+                </p>
+              )}
             </div>
 
-            {/* CTA */}
-            <div className="flex gap-3 pt-2">
-              <Button variant="primary" size="lg" fullWidth className="bg-brand! text-gray-900! hover:opacity-90! focus:ring-brand/40">
-                Thêm vào giỏ hàng
-              </Button>
-              <Button variant="secondary" size="lg" className="border-brand/50! text-brand-dark! hover:bg-brand/10!">
-                ♡
-              </Button>
+            {/* Description */}
+            {product.description && (
+              <div className="rounded-2xl p-5 bg-white border border-gray-100 shadow-sm">
+                <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2 text-sm">
+                  <svg className="w-4 h-4 text-brand-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Mô tả sản phẩm
+                </h3>
+                <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{product.description}</p>
+              </div>
+            )}
+
+            {/* Quantity + CTA */}
+            <div className="space-y-4 pt-1">
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-medium text-gray-700">Số lượng:</span>
+                <div className="flex items-center rounded-xl overflow-hidden border border-gray-200 bg-white shadow-sm">
+                  <button
+                    onClick={function () { setQty(function (q) { return Math.max(1, q - 1); }); }}
+                    disabled={qty <= 1}
+                    className="w-10 h-10 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition text-lg font-medium disabled:opacity-40"
+                  >−</button>
+                  <span className="w-12 text-center text-sm font-bold text-gray-800">{qty}</span>
+                  <button
+                    onClick={function () { setQty(function (q) { return Math.min(remaining || 99, q + 1); }); }}
+                    disabled={qty >= (remaining || 99)}
+                    className="w-10 h-10 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition text-lg font-medium disabled:opacity-40"
+                  >+</button>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleAddToCart}
+                  disabled={remaining === 0}
+                  className={
+                    "flex-1 flex items-center justify-center gap-2 py-3.5 px-6 rounded-2xl text-sm font-bold transition-all shadow-sm " +
+                    (addedToCart
+                      ? "bg-green-500 text-white"
+                      : remaining === 0
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "bg-brand hover:bg-brand-secondary hover:text-white text-gray-900")
+                  }
+                >
+                  {addedToCart ? (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Đã thêm vào giỏ!
+                    </>
+                  ) : remaining === 0 ? (
+                    "Hết hàng"
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                      Thêm vào giỏ hàng
+                    </>
+                  )}
+                </button>
+                <button className="w-14 h-14 rounded-2xl border-2 border-gray-200 flex items-center justify-center text-gray-400 hover:border-red-300 hover:text-red-400 transition text-xl shadow-sm hover:bg-red-50">
+                  ♡
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Sản phẩm liên quan */}
         {relatedProducts.length > 0 && (
-          <section className="mt-12 pt-10 border-t border-gray-200">
-            <h2 className="text-lg font-bold text-gray-800 mb-4">Sản phẩm liên quan</h2>
-            <p className="text-sm text-gray-500 mb-6">Cùng danh mục {CATEGORY_LABELS[product.category]} — có thể bạn cũng thích</p>
+          <section className="mt-14 pt-10 border-t border-gray-200">
+            <div className="flex items-end justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Sản phẩm liên quan</h2>
+                <p className="text-sm text-gray-500 mt-1">Cùng danh mục · {product.categoryName}</p>
+              </div>
+              <Link href={`/products?categoryId=${product.categoryId}`} className="text-sm text-brand-dark font-medium hover:underline">
+                Xem tất cả →
+              </Link>
+            </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {relatedProducts.map((p) => (
-                <ProductCard key={p.id} product={p} />
-              ))}
+              {relatedProducts.map(function (p) {
+                return <ProductCard key={p.id} product={p} />;
+              })}
             </div>
           </section>
         )}
