@@ -21,6 +21,7 @@ function AdminSidebar() {
     { href: "/admin/sellers", label: "Cửa hàng", icon: "🏪" },
     { href: "/admin/users", label: "Người dùng", icon: "👥" },
     { href: "/admin/categories", label: "Danh mục", icon: "🗂️" },
+    { href: "/admin/brands", label: "Thương hiệu", icon: "🏷️" },
   ];
   return (
     <aside className="w-52 shrink-0 bg-white border-r border-gray-200 min-h-screen flex flex-col">

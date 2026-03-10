@@ -5,6 +5,7 @@ import com.foodrescue.foodrescue_be.dto.request.CreateProductVariantRequest;
 import com.foodrescue.foodrescue_be.dto.request.CreateProductRequest;
 import com.foodrescue.foodrescue_be.dto.request.UpdateProductRequest;
 import com.foodrescue.foodrescue_be.dto.response.InventoryBatchResponse;
+import com.foodrescue.foodrescue_be.dto.response.ProductImageResponse;
 import com.foodrescue.foodrescue_be.dto.response.ProductResponse;
 import com.foodrescue.foodrescue_be.dto.response.ResponseData;
 import com.foodrescue.foodrescue_be.security.JwtUtil;
@@ -130,6 +131,39 @@ public class ProductController {
     public ResponseData<List<InventoryBatchResponse>> getBatches(Authentication auth) {
         Long sellerId = extractSellerId(auth);
         return ResponseData.ok(productService.getSellerBatches(sellerId));
+    }
+
+    // ---- Product Images ----
+
+    @GetMapping("/api/seller/products/{productId}/images")
+    public ResponseData<List<ProductImageResponse>> getImages(Authentication auth, @PathVariable Long productId) {
+        Long sellerId = extractSellerId(auth);
+        return ResponseData.ok(productService.getProductImages(sellerId, productId));
+    }
+
+    @PostMapping("/api/seller/products/{productId}/images")
+    public ResponseData<ProductImageResponse> addImage(
+            Authentication auth,
+            @PathVariable Long productId,
+            @RequestParam("file") MultipartFile file
+    ) {
+        if (file.isEmpty()) throw new IllegalArgumentException("File không được để trống");
+        Long sellerId = extractSellerId(auth);
+        String url = cloudinaryService.uploadImage(file, "foodrescue/products");
+        return ResponseData.ok("Thêm ảnh thành công", productService.addProductImage(sellerId, productId, url));
+    }
+
+    @DeleteMapping("/api/seller/products/{productId}/images/{imageId}")
+    public ResponseData<Void> deleteImage(Authentication auth, @PathVariable Long productId, @PathVariable Long imageId) {
+        Long sellerId = extractSellerId(auth);
+        productService.deleteProductImage(sellerId, productId, imageId);
+        return ResponseData.ok("Xóa ảnh thành công", null);
+    }
+
+    @PutMapping("/api/seller/products/{productId}/images/{imageId}/primary")
+    public ResponseData<ProductImageResponse> setPrimaryImage(Authentication auth, @PathVariable Long productId, @PathVariable Long imageId) {
+        Long sellerId = extractSellerId(auth);
+        return ResponseData.ok("Đặt ảnh đại diện thành công", productService.setProductImagePrimary(sellerId, productId, imageId));
     }
 
     // ----

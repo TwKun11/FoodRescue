@@ -40,6 +40,7 @@ public class CreateProductRequest {
     private String originCountry;
     private String originProvince;
     private Integer shelfLifeDays;
+    private Integer minPreparationMinutes;
     private String status;
 
     // Image URLs after uploading to Cloudinary

@@ -21,6 +21,7 @@ public class UpdateProductRequest {
     private String originCountry;
     private String originProvince;
     private Integer shelfLifeDays;
+    private Integer minPreparationMinutes;
     private String status;
     private List<String> imageUrls;
 }

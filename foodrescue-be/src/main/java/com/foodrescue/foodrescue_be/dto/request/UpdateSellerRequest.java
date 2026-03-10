@@ -8,6 +8,7 @@ import lombok.Setter;
 @Setter
 public class UpdateSellerRequest {
     private String shopName;
+    private String legalName;
     private String contactName;
     private String phone;
     private String description;

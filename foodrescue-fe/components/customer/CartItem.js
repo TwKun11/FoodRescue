@@ -51,7 +51,8 @@ export default function CartItem({ item, onRemove, onQtyChange }) {
     expiryLabel = "",
   } = item ?? {};
 
-  const placeholder = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Crect fill='%23f6fffb' width='80' height='80'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%230faf74' font-size='24'%3E?%3C/text%3E%3C/svg%3E";
+  const placeholder =
+    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Crect fill='%23f6fffb' width='80' height='80'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%230faf74' font-size='24'%3E?%3C/text%3E%3C/svg%3E";
 
   return (
     <div className="flex gap-4 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
@@ -72,9 +73,7 @@ export default function CartItem({ item, onRemove, onQtyChange }) {
         <div>
           <p className="font-semibold text-gray-800 line-clamp-2">{name}</p>
           <p className="text-xs text-gray-500 mt-0.5">📍 {storeName}</p>
-          {expiryLabel && (
-            <p className="text-xs text-red-500 mt-0.5 font-medium">⏰ {expiryLabel}</p>
-          )}
+          {expiryLabel && <p className="text-xs text-red-500 mt-0.5 font-medium">⏰ {expiryLabel}</p>}
         </div>
         <div className="flex items-center gap-2 mt-2">
           <span className="text-brand-dark font-bold">{discountPrice.toLocaleString("vi-VN")}đ</span>
@@ -115,9 +114,7 @@ export default function CartItem({ item, onRemove, onQtyChange }) {
             )}
           </button>
         </div>
-        {atLimit && (
-          <p className="text-xs text-red-500 font-medium mt-1">Đã đạt giới hạn tồn kho</p>
-        )}
+        {atLimit && <p className="text-xs text-red-500 font-medium mt-1">Đã đạt giới hạn tồn kho</p>}
         <p className="text-sm font-bold text-gray-800 mt-2">{(discountPrice * qty).toLocaleString("vi-VN")}đ</p>
         <button
           type="button"
@@ -125,7 +122,12 @@ export default function CartItem({ item, onRemove, onQtyChange }) {
           className="text-xs text-red-500 hover:text-red-600 font-medium mt-1 flex items-center gap-1 transition"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+            />
           </svg>
           Xóa
         </button>

@@ -116,9 +116,7 @@ export default function Header() {
                   aria-expanded={dropdownOpen}
                   aria-haspopup="true"
                 >
-                  <span className="text-sm text-gray-600 max-w-[120px] truncate">
-                    Xin chào, {displayName}
-                  </span>
+                  <span className="text-sm text-gray-600 max-w-[120px] truncate">Xin chào, {displayName}</span>
                   <span className="w-9 h-9 rounded-full bg-brand text-gray-900 font-semibold flex items-center justify-center text-sm shrink-0">
                     {(displayName.charAt(0) || "U").toUpperCase()}
                   </span>
@@ -127,9 +125,7 @@ export default function Header() {
                   <div className="absolute right-0 top-full mt-1 w-52 bg-white rounded-xl border border-gray-200 shadow-lg py-1 z-50">
                     <div className="px-4 py-2 border-b border-gray-100">
                       <p className="text-sm font-medium text-gray-800 truncate">{displayName}</p>
-                      {user?.email && (
-                        <p className="text-xs text-gray-500 truncate">{user.email}</p>
-                      )}
+                      {user?.email && <p className="text-xs text-gray-500 truncate">{user.email}</p>}
                     </div>
                     <Link
                       href="/profile"
@@ -137,6 +133,20 @@ export default function Header() {
                       onClick={() => setDropdownOpen(false)}
                     >
                       Thông tin cá nhân
+                    </Link>
+                    <Link
+                      href="/orders"
+                      className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                      onClick={() => setDropdownOpen(false)}
+                    >
+                      Đơn hàng của tôi
+                    </Link>
+                    <Link
+                      href="/profile/addresses"
+                      className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                      onClick={() => setDropdownOpen(false)}
+                    >
+                      Địa chỉ giao hàng
                     </Link>
                     <Link
                       href="/change-password"
@@ -190,6 +200,12 @@ export default function Header() {
               <p className="px-1 text-gray-500">Xin chào, {displayName}</p>
               <Link href="/profile" onClick={() => setMenuOpen(false)}>
                 Thông tin cá nhân
+              </Link>
+              <Link href="/orders" onClick={() => setMenuOpen(false)}>
+                Đơn hàng của tôi
+              </Link>
+              <Link href="/profile/addresses" onClick={() => setMenuOpen(false)}>
+                Địa chỉ giao hàng
               </Link>
               <Link href="/change-password" onClick={() => setMenuOpen(false)}>
                 Đổi mật khẩu

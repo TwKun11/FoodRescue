@@ -5,6 +5,7 @@ import com.foodrescue.foodrescue_be.dto.request.CreateProductVariantRequest;
 import com.foodrescue.foodrescue_be.dto.request.CreateProductRequest;
 import com.foodrescue.foodrescue_be.dto.request.UpdateProductRequest;
 import com.foodrescue.foodrescue_be.dto.response.InventoryBatchResponse;
+import com.foodrescue.foodrescue_be.dto.response.ProductImageResponse;
 import com.foodrescue.foodrescue_be.dto.response.ProductResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +28,15 @@ public interface ProductService {
     ProductResponse addVariantToProduct(Long sellerId, Long productId, CreateProductVariantRequest request);
 
     void deleteProduct(Long sellerId, Long productId);
+
+    // Product images
+    List<ProductImageResponse> getProductImages(Long sellerId, Long productId);
+
+    ProductImageResponse addProductImage(Long sellerId, Long productId, String imageUrl);
+
+    void deleteProductImage(Long sellerId, Long productId, Long imageId);
+
+    ProductImageResponse setProductImagePrimary(Long sellerId, Long productId, Long imageId);
 
     // Inventory
     InventoryBatchResponse addBatch(Long sellerId, CreateBatchRequest request);
