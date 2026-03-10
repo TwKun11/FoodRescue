@@ -1,295 +1,208 @@
-// FE03-004 – UI Quản lý đơn hàng
+// FE03-004 – UI Quản lý đơn hàng (API-connected)
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { apiSellerGetOrders, apiSellerUpdateOrderStatus } from "@/lib/api";
 
 const TABS = [
-  { id: "all", label: "Tất cả" },
-  { id: "pending", label: "Chờ xác nhận" },
-  { id: "preparing", label: "Chuẩn bị hàng", count: 6 },
-  { id: "packing", label: "Đang đóng gói" },
-  { id: "waiting", label: "Chờ lấy hàng" },
-  { id: "shipped", label: "Đã giao đơn vị vận chuyển", tip: true },
-  { id: "outofstock", label: "Hết hàng" },
-  { id: "cancelling", label: "Đang hủy" },
+  { id: "all", label: "Tat ca" },
+  { id: "pending", label: "Cho xac nhan" },
+  { id: "confirmed", label: "Da xac nhan" },
+  { id: "packing", label: "Dang dong goi" },
+  { id: "shipping", label: "Dang giao" },
+  { id: "completed", label: "Hoan thanh" },
+  { id: "cancelled", label: "Da huy" },
 ];
 
-const MOCK_ORDERS = [
-  {
-    group: "Facebook / Shop Facebook",
-    channelId: "ID Kênh Quản Lý: 1315241051373576",
-    orderId: "ID đơn hàng: –",
-    items: [
-      {
-        id: "1",
-        image: "/images/products/banhmi.jpg",
-        name: "Miss Dior Perfume - NH101",
-        variant: "Full Size",
-        type: "Thực tế",
-        qty: 1,
-        revenue: 189998,
-        status: "Đã giao đơn vị vận chuyển",
-        subStatus: "Giao không thà...",
-        carrier: "–",
-        createdAt: "29/11/2021\n01:42",
-        deliveryDate: "–",
-      },
-      {
-        id: "2",
-        image: null,
-        name: "hahaha 2021-10-19 14:39:05.758 Oct 25 ...",
-        variant: "",
-        type: "",
-        qty: 1,
-        revenue: null,
-        status: "",
-        subStatus: "",
-        carrier: "",
-        createdAt: "",
-        deliveryDate: "",
-      },
-    ],
-  },
-];
+const STATUS_LABELS = {
+  pending: "Cho xac nhan",
+  confirmed: "Da xac nhan",
+  packing: "Dang dong goi",
+  shipping: "Dang giao",
+  completed: "Hoan thanh",
+  cancelled: "Da huy",
+  refunded: "Hoan tien",
+};
+
+const STATUS_COLORS = {
+  pending: "bg-yellow-50 text-yellow-700",
+  confirmed: "bg-blue-50 text-blue-700",
+  packing: "bg-purple-50 text-purple-700",
+  shipping: "bg-indigo-50 text-indigo-700",
+  completed: "bg-green-50 text-green-700",
+  cancelled: "bg-red-50 text-red-700",
+  refunded: "bg-gray-50 text-gray-600",
+};
+
+const NEXT_STATUS = {
+  pending: "confirmed",
+  confirmed: "packing",
+  packing: "shipping",
+  shipping: "completed",
+};
 
 export default function StoreOrdersPage() {
   const [activeTab, setActiveTab] = useState("all");
-  const [showFilters, setShowFilters] = useState(true);
+  const [orders, setOrders] = useState([]);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(null);
+
+  const loadOrders = useCallback(function(p) {
+    setLoading(true);
+    var params = { page: p || 0, size: 20 };
+    if (activeTab !== "all") params.status = activeTab;
+    apiSellerGetOrders(params)
+      .then(function(res) {
+        if (res.ok && res.data && res.data.data) {
+          var d = res.data.data;
+          var content = d.content || d;
+          if (Array.isArray(content)) {
+            setOrders(content);
+            setTotalPages(d.totalPages || 1);
+            setTotalElements(d.totalElements || content.length);
+          }
+        }
+      })
+      .finally(function() { setLoading(false); });
+  }, [activeTab]);
+
+  useEffect(function() { loadOrders(0); setPage(0); }, [loadOrders]);
+
+  var handleUpdateStatus = function(sellerOrderId, newStatus) {
+    setUpdating(sellerOrderId);
+    apiSellerUpdateOrderStatus(sellerOrderId, newStatus)
+      .then(function(res) {
+        if (res.ok) {
+          setOrders(function(prev) {
+            return prev.map(function(o) {
+              return o.id === sellerOrderId ? Object.assign({}, o, { status: newStatus }) : o;
+            });
+          });
+        } else {
+          alert("Cap nhat trang thai that bai.");
+        }
+      })
+      .finally(function() { setUpdating(null); });
+  };
 
   return (
     <div className="p-6 space-y-4 text-sm text-gray-700">
-      {/* ── Page Header ── */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-xl font-bold text-gray-800">Quản lý đơn hàng</h1>
+        <h1 className="text-xl font-bold text-gray-800">Quan ly don hang</h1>
         <div className="flex items-center gap-3">
-          <span className="text-green-600 cursor-pointer hover:underline">Không tìm thấy đơn hàng?</span>
-          <button className="flex items-center gap-1.5 border border-gray-300 rounded px-3 py-1.5 text-gray-700 hover:bg-gray-50">
-            <span className="text-base">+</span> Thêm đơn hàng
-          </button>
-          <button className="flex items-center gap-1.5 bg-red-500 text-white rounded px-3 py-1.5 hover:bg-red-600">
-            <span>📋</span> Chuẩn bị đơn hàng loạt
-          </button>
+          <span className="text-xs text-gray-500">{totalElements} don hang</span>
         </div>
       </div>
 
-      {/* ── Tabs ── */}
-      <div className="bg-white border border-gray-200 rounded">
-        <div className="flex overflow-x-auto">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2.5 whitespace-nowrap font-medium border-b-2 transition flex items-center gap-1 ${
-                activeTab === tab.id
-                  ? "border-green-500 text-green-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              {tab.label}
-              {tab.count && (
-                <span className="ml-1 bg-gray-200 text-gray-600 text-xs rounded px-1.5 py-0.5">{tab.count}</span>
-              )}
-              {tab.tip && <span className="text-gray-400 text-xs">?</span>}
-            </button>
-          ))}
-          <button className="px-3 py-2.5 text-gray-400 hover:text-gray-600 ml-auto">···</button>
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="flex overflow-x-auto border-b border-gray-200">
+          {TABS.map(function(tab) {
+            return (
+              <button
+                key={tab.id}
+                onClick={function() { setActiveTab(tab.id); }}
+                className={"px-4 py-2.5 whitespace-nowrap font-medium border-b-2 transition " + (activeTab === tab.id ? "border-green-500 text-green-600" : "border-transparent text-gray-500 hover:text-gray-700")}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
-        {/* ── Filters ── */}
-        <div className="px-4 py-4 border-t border-gray-100 space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {/* Row 1 */}
-            <div className="flex items-center border border-gray-300 rounded overflow-hidden">
-              <select className="bg-white px-3 py-2 text-gray-700 border-r border-gray-300 outline-none text-sm">
-                <option>ID đơn hàng</option>
-              </select>
-              <div className="flex-1 relative">
-                <input placeholder="Nhập" className="w-full px-3 py-2 outline-none text-sm" />
-                <span className="absolute right-2 top-2 text-gray-400">🔍</span>
-              </div>
-            </div>
-            <div className="flex items-center border border-gray-300 rounded overflow-hidden">
-              <select className="bg-white px-3 py-2 text-gray-700 border-r border-gray-300 outline-none text-sm">
-                <option>Tên sản phẩm đã...</option>
-              </select>
-              <div className="flex-1 relative">
-                <input placeholder="Nhập" className="w-full px-3 py-2 outline-none text-sm" />
-                <span className="absolute right-2 top-2 text-gray-400">🔍</span>
-              </div>
-            </div>
-
-            {/* Row 2 */}
-            <div className="flex items-center border border-gray-300 rounded overflow-hidden">
-              <select className="bg-white px-3 py-2 text-gray-700 border-r border-gray-300 outline-none text-sm">
-                <option>Tên Shop</option>
-              </select>
-              <select className="flex-1 px-3 py-2 outline-none text-sm text-gray-400">
-                <option value="">Chọn</option>
-              </select>
-            </div>
-            <div className="flex items-center border border-gray-300 rounded overflow-hidden">
-              <span className="px-3 py-2 text-gray-700 border-r border-gray-300 whitespace-nowrap">Ngày tạo đơn 📅</span>
-              <input type="text" placeholder="Ngày bắt đầu" className="flex-1 px-3 py-2 outline-none text-sm text-gray-400" />
-              <span className="px-2 text-gray-400">–</span>
-              <input type="text" placeholder="Ngày kết thúc" className="flex-1 px-3 py-2 outline-none text-sm text-gray-400" />
-            </div>
-
-            {/* Row 3 */}
-            <div className="flex items-center border border-gray-300 rounded overflow-hidden">
-              <select className="bg-white px-3 py-2 text-gray-700 border-r border-gray-300 outline-none text-sm">
-                <option>Đơn vị vận chuyển</option>
-              </select>
-              <select className="flex-1 px-3 py-2 outline-none text-sm text-gray-400">
-                <option value="">Chọn</option>
-              </select>
-            </div>
-            <div className="flex items-center border border-gray-300 rounded overflow-hidden">
-              <span className="px-3 py-2 text-gray-700 border-r border-gray-300 whitespace-nowrap">Phương thức thanh toán</span>
-              <select className="flex-1 px-3 py-2 outline-none text-sm text-gray-400">
-                <option value="">Chọn</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Row 4 */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center border border-gray-300 rounded overflow-hidden w-64">
-              <span className="px-3 py-2 text-gray-700 border-r border-gray-300 whitespace-nowrap">Chưa được in</span>
-              <select className="flex-1 px-3 py-2 outline-none text-sm text-gray-400">
-                <option value="">Chọn</option>
-              </select>
-            </div>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="text-green-600 hover:underline flex items-center gap-1"
-            >
-              Thu gọn <span>▲</span>
-            </button>
-          </div>
-        </div>
-
-        {/* ── Table ── */}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-t border-gray-200 bg-gray-50 text-gray-600">
-                <th className="text-left px-4 py-3 font-medium">
-                  <span className="flex items-center gap-1">Sản phẩm <span className="text-xs">▾</span></span>
-                </th>
-                <th className="text-left px-4 py-3 font-medium">Doanh thu<br />đơn hàng</th>
-                <th className="text-left px-4 py-3 font-medium">Trạng thái</th>
-                <th className="text-left px-4 py-3 font-medium">Đơn vị vận<br />chuyển</th>
-                <th className="text-left px-4 py-3 font-medium">
-                  <span className="flex items-center gap-1">Thời gian<br />tạo <span className="text-xs text-gray-400">❓</span></span>
-                </th>
-                <th className="text-left px-4 py-3 font-medium">
-                  <span className="flex items-center gap-1">Ngày<br />giao<br />hàng <span className="text-xs text-gray-400">❓</span> <span className="text-xs">▾</span></span>
-                </th>
-                <th className="text-left px-4 py-3 font-medium">Thao<br />tác</th>
+              <tr className="border-b border-gray-100 bg-gray-50 text-gray-500 text-xs uppercase tracking-wide">
+                <th className="text-left px-4 py-3">Ma don</th>
+                <th className="text-left px-4 py-3">San pham</th>
+                <th className="text-left px-4 py-3">Doanh thu</th>
+                <th className="text-left px-4 py-3">Trang thai</th>
+                <th className="text-left px-4 py-3">Ngay tao</th>
+                <th className="text-left px-4 py-3">Thao tac</th>
               </tr>
             </thead>
             <tbody>
-              {MOCK_ORDERS.map((group, gi) => (
-                <>
-                  {/* Group row */}
-                  <tr key={`g-${gi}`} className="bg-gray-50 border-t border-gray-200">
-                    <td colSpan={7} className="px-4 py-2">
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <span className="flex items-center gap-2">
-                          <span className="w-5 h-5 rounded-full bg-gray-300 inline-block"></span>
-                          <span className="font-medium text-gray-700">{group.group}</span>
-                        </span>
-                        <span>
-                          {group.channelId} &nbsp;&nbsp; {group.orderId}
-                        </span>
-                      </div>
+              {loading ? (
+                <tr><td colSpan={6} className="text-center py-10 text-gray-400">Dang tai...</td></tr>
+              ) : orders.length === 0 ? (
+                <tr><td colSpan={6} className="text-center py-10 text-gray-400">Chua co don hang nao.</td></tr>
+              ) : null}
+              {orders.map(function(order) {
+                var statusLabel = STATUS_LABELS[order.status] || order.status;
+                var statusColor = STATUS_COLORS[order.status] || "bg-gray-50 text-gray-600";
+                var nextStatus = NEXT_STATUS[order.status];
+                var items = order.items || [];
+                return (
+                  <tr key={order.id} className="border-t border-gray-100 hover:bg-gray-50">
+                    <td className="px-4 py-3 font-mono text-xs text-gray-500">#{order.id}</td>
+                    <td className="px-4 py-3">
+                      {items.length > 0 ? (
+                        <div className="space-y-1">
+                          {items.slice(0, 2).map(function(item) {
+                            return (
+                              <div key={item.id} className="flex items-center gap-2">
+                                <span className="text-gray-700">{item.spuName || item.skuName}</span>
+                                <span className="text-gray-400 text-xs">x{item.quantity}</span>
+                              </div>
+                            );
+                          })}
+                          {items.length > 2 && (
+                            <span className="text-gray-400 text-xs">+{items.length - 2} san pham khac</span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 font-bold text-green-600">
+                      {(order.subtotal || 0).toLocaleString("vi-VN")}d
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={"inline-flex items-center px-2 py-1 rounded-full text-xs font-medium " + statusColor}>
+                        {statusLabel}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">
+                      {order.createdAt ? new Date(order.createdAt).toLocaleDateString("vi-VN") : "-"}
+                    </td>
+                    <td className="px-4 py-3">
+                      {nextStatus && (
+                        <button
+                          disabled={updating === order.id}
+                          onClick={function() { handleUpdateStatus(order.id, nextStatus); }}
+                          className="text-xs bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg transition disabled:opacity-50"
+                        >
+                          {updating === order.id ? "..." : "Chuyen: " + (STATUS_LABELS[nextStatus] || nextStatus)}
+                        </button>
+                      )}
                     </td>
                   </tr>
-                  {/* Item rows */}
-                  {group.items.map((item) => (
-                    <tr key={item.id} className="border-t border-gray-100 hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <div className="flex items-start gap-3">
-                          {item.image ? (
-                            <img src={item.image} alt={item.name} className="w-12 h-12 object-cover rounded border border-gray-200" />
-                          ) : (
-                            <div className="w-12 h-12 bg-gray-100 rounded border border-gray-200" />
-                          )}
-                          <div>
-                            <p className="font-medium text-gray-800 text-xs leading-snug">{item.name}</p>
-                            {item.variant && <p className="text-gray-500 text-xs">{item.variant}</p>}
-                            {item.type && (
-                              <p className="text-gray-400 text-xs">
-                                {item.type}
-                                <span className="ml-2 bg-gray-100 px-1.5 py-0.5 rounded text-xs">x{item.qty}</span>
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-gray-800">
-                        {item.revenue ? `đ ${item.revenue.toLocaleString("vi-VN")}` : ""}
-                      </td>
-                      <td className="px-4 py-3">
-                        {item.status && (
-                          <div>
-                            <p className="text-gray-700">{item.status}</p>
-                            {item.subStatus && (
-                              <p className="text-orange-500 text-xs mt-0.5">{item.subStatus}</p>
-                            )}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-gray-500">{item.carrier || ""}</td>
-                      <td className="px-4 py-3 text-gray-500 whitespace-pre-line text-xs">{item.createdAt}</td>
-                      <td className="px-4 py-3 text-gray-500">{item.deliveryDate}</td>
-                      <td className="px-4 py-3">
-                        {item.status && (
-                          <span className="text-green-600 font-semibold cursor-pointer hover:underline">Xem<br />thêm</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
 
-        {/* ── Bottom Filters (repeat) ── */}
-        <div className="px-4 py-4 border-t border-gray-100 space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="flex items-center border border-gray-300 rounded overflow-hidden">
-              <select className="bg-white px-3 py-2 text-gray-700 border-r border-gray-300 outline-none text-sm">
-                <option>ID đơn hàng</option>
-              </select>
-              <div className="flex-1 relative">
-                <input placeholder="Nhập" className="w-full px-3 py-2 outline-none text-sm" />
-                <span className="absolute right-2 top-2 text-gray-400">🔍</span>
-              </div>
-            </div>
-            <div className="flex items-center border border-gray-300 rounded overflow-hidden">
-              <select className="bg-white px-3 py-2 text-gray-700 border-r border-gray-300 outline-none text-sm">
-                <option>Tên sản phẩm đã...</option>
-              </select>
-              <div className="flex-1 relative">
-                <input placeholder="Nhập" className="w-full px-3 py-2 outline-none text-sm" />
-                <span className="absolute right-2 top-2 text-gray-400">🔍</span>
-              </div>
-            </div>
-            <div className="flex items-center border border-gray-300 rounded overflow-hidden">
-              <select className="bg-white px-3 py-2 text-gray-700 border-r border-gray-300 outline-none text-sm">
-                <option>Tên Shop</option>
-              </select>
-              <select className="flex-1 px-3 py-2 outline-none text-sm text-gray-400">
-                <option value="">Chọn</option>
-              </select>
-            </div>
-            <div className="flex items-center border border-gray-300 rounded overflow-hidden">
-              <span className="px-3 py-2 text-gray-700 border-r border-gray-300 whitespace-nowrap">Ngày tạo đơn 📅</span>
-              <input type="text" placeholder="Ngày bắt đầu" className="flex-1 px-3 py-2 outline-none text-sm text-gray-400" />
-              <span className="px-2 text-gray-400">–</span>
-              <input type="text" placeholder="Ngày kết thúc" className="flex-1 px-3 py-2 outline-none text-sm text-gray-400" />
-            </div>
+        <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between">
+          <p className="text-xs text-gray-500">{orders.length} / {totalElements} don hang</p>
+          <div className="flex items-center gap-2">
+            <button
+              disabled={page === 0}
+              onClick={function() { var np = page - 1; setPage(np); loadOrders(np); }}
+              className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:bg-gray-50 transition disabled:opacity-40"
+            >
+              &lt;
+            </button>
+            <span className="text-sm text-gray-600">{page + 1} / {totalPages}</span>
+            <button
+              disabled={page + 1 >= totalPages}
+              onClick={function() { var np = page + 1; setPage(np); loadOrders(np); }}
+              className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:bg-gray-50 transition disabled:opacity-40"
+            >
+              &gt;
+            </button>
           </div>
         </div>
       </div>

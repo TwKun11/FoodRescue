@@ -45,6 +45,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // ── Public auth endpoints ──────────────────────────
                         .requestMatchers(
                                 "/api/auth/register",
                                 "/api/auth/login",
@@ -54,7 +55,19 @@ public class SecurityConfig {
                                 "/api/auth/forgot-password",
                                 "/api/auth/reset-password"
                         ).permitAll()
-                        .requestMatchers("/api/auth/**").authenticated()
+                        // ── Public marketplace read-only ───────────────────
+                        .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                "/api/products", "/api/products/**", "/api/categories", "/api/brands"
+                        ).permitAll()
+                        // ── Authenticated user profile ─────────────────────
+                        .requestMatchers("/api/auth/me", "/api/auth/update", "/api/auth/change-password").authenticated()
+                        // ── Customer: place & view own orders ─────────────
+                        .requestMatchers("/api/orders/**").hasAnyRole("CUSTOMER", "ADMIN")
+                        // ── Seller: manage own products, inventory, orders ─
+                        .requestMatchers("/api/seller/**").hasAnyRole("SELLER", "ADMIN")
+                        // ── Admin only ────────────────────────────────────
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        // ── Anything else requires login ──────────────────
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

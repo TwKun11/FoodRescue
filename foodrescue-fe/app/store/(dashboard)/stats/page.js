@@ -1,70 +1,91 @@
-// FE03-005 – UI Thống kê
-import Link from "next/link";
-
-// ── Mock Data ─────────────────────────────────────────────────────────────
-const WEEKLY_REVENUE = [
-  { day: "T2", revenue: 2300000, orders: 28 },
-  { day: "T3", revenue: 3100000, orders: 41 },
-  { day: "T4", revenue: 2700000, orders: 34 },
-  { day: "T5", revenue: 4200000, orders: 58 },
-  { day: "T6", revenue: 3800000, orders: 52 },
-  { day: "T7", revenue: 5100000, orders: 70 },
-  { day: "CN", revenue: 4600000, orders: 63 },
-];
-
-const TOP_PRODUCTS = [
-  { name: "Rau cải xanh hữu cơ 500g", sold: 140, revenue: 2450000, percent: 100 },
-  { name: "Tôm sú tươi 200g", sold: 98, revenue: 8232000, percent: 70 },
-  { name: "Bánh mì sandwich nguyên cám", sold: 87, revenue: 1957500, percent: 62 },
-  { name: "Thịt heo ba chỉ 300g", sold: 73, revenue: 3723000, percent: 52 },
-  { name: "Cá basa phi lê 400g", sold: 61, revenue: 2745000, percent: 44 },
-];
-
-const CATEGORY_STATS = [
-  { label: "Rau củ", percent: 38, color: "bg-green-500" },
-  { label: "Hải sản", percent: 28, color: "bg-blue-500" },
-  { label: "Thịt tươi", percent: 20, color: "bg-red-400" },
-  { label: "Bánh", percent: 14, color: "bg-yellow-400" },
-];
-
-const MAX_REVENUE = Math.max(...WEEKLY_REVENUE.map((d) => d.revenue));
+// FE03-005 – UI Thống kê (API-connected)
+"use client";
+import { useState, useEffect } from "react";
+import { apiGetSellerStats } from "@/lib/api";
 
 export default function StoreStatsPage() {
-  const totalWeekRevenue = WEEKLY_REVENUE.reduce((s, d) => s + d.revenue, 0);
-  const totalWeekOrders = WEEKLY_REVENUE.reduce((s, d) => s + d.orders, 0);
-  const avgOrderValue = Math.round(totalWeekRevenue / totalWeekOrders);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    setLoading(true);
+    apiGetSellerStats()
+      .then((res) => {
+        if (res.ok && res.data?.data) {
+          setStats(res.data.data);
+        } else {
+          setError("Không thể tải dữ liệu thống kê");
+        }
+      })
+      .catch(() => setError("Lỗi kết nối đến máy chủ"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-64 text-gray-400 text-sm">Đang tải thống kê...</div>;
+  }
+
+  if (error || !stats) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-gray-400 space-y-2">
+        <span className="text-3xl">📊</span>
+        <p className="text-sm">{error || "Không có dữ liệu"}</p>
+      </div>
+    );
+  }
+
+  const { totalRevenue, totalOrders, completedOrders, avgOrderValue, dailyRevenue, topProducts } = stats;
+
+  const maxRevenue = dailyRevenue?.length ? Math.max(...dailyRevenue.map((d) => Number(d.revenue) || 0), 1) : 1;
+
+  const fmtMoney = (v) =>
+    Number(v || 0) >= 1_000_000
+      ? `${(Number(v) / 1_000_000).toFixed(1)}M đ`
+      : `${Number(v || 0).toLocaleString("vi-VN")}đ`;
+
+  const maxProductRevenue = topProducts?.length
+    ? Math.max(...topProducts.map((p) => Number(p.totalRevenue) || 0), 1)
+    : 1;
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-800">📈 Thống kê</h1>
-        <p className="text-sm text-gray-400 mt-0.5">Tuần 18–24/02/2025</p>
+        <p className="text-sm text-gray-400 mt-0.5">7 ngày gần nhất (doanh thu từ đơn hoàn thành)</p>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           {
-            label: "Doanh thu tuần",
-            value: `${(totalWeekRevenue / 1_000_000).toFixed(1)}M đ`,
+            label: "Tổng doanh thu",
+            value: fmtMoney(totalRevenue),
             icon: "💰",
-            sub: "+18% so với tuần trước",
+            sub: `${completedOrders} đơn hoàn thành`,
             color: "text-green-600",
           },
           {
             label: "Tổng đơn hàng",
-            value: totalWeekOrders,
+            value: String(totalOrders || 0),
             icon: "📦",
-            sub: "+12% so với tuần trước",
+            sub: `${completedOrders} đã giao`,
             color: "text-blue-600",
           },
           {
             label: "Giá trị đơn TB",
-            value: `${avgOrderValue.toLocaleString("vi-VN")}đ`,
+            value: fmtMoney(avgOrderValue),
             icon: "📊",
-            sub: "+5% so với tuần trước",
+            sub: "Từ đơn hoàn thành",
             color: "text-orange-600",
+          },
+          {
+            label: "Tỉ lệ hoàn thành",
+            value: totalOrders > 0 ? `${Math.round((completedOrders / totalOrders) * 100)}%` : "—",
+            icon: "✅",
+            sub: `${completedOrders}/${totalOrders} đơn`,
+            color: "text-purple-600",
           },
         ].map((kpi) => (
           <div key={kpi.label} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
@@ -72,105 +93,141 @@ export default function StoreStatsPage() {
               <span className="text-2xl">{kpi.icon}</span>
               <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{kpi.label}</p>
             </div>
-            <p className={`text-3xl font-extrabold ${kpi.color}`}>{kpi.value}</p>
-            <p className="text-xs text-green-600 mt-1 font-medium">▲ {kpi.sub}</p>
+            <p className={`text-2xl font-extrabold ${kpi.color}`}>{kpi.value}</p>
+            <p className="text-xs text-gray-400 mt-1">{kpi.sub}</p>
           </div>
         ))}
       </div>
 
-      {/* Revenue Chart */}
+      {/* Revenue Chart – last 7 days */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <h2 className="font-semibold text-gray-800 mb-5">📊 Doanh số theo ngày trong tuần</h2>
-        <div className="flex items-end gap-3 h-40">
-          {WEEKLY_REVENUE.map((d) => {
-            const heightPct = (d.revenue / MAX_REVENUE) * 100;
-            return (
-              <div key={d.day} className="flex-1 flex flex-col items-center gap-1.5 group">
-                <div className="w-full flex flex-col items-center">
-                  <span className="text-[10px] text-gray-400 opacity-0 group-hover:opacity-100 transition">
-                    {(d.revenue / 1_000_000).toFixed(1)}M
-                  </span>
-                  <div
-                    className="w-full bg-orange-300 group-hover:bg-orange-500 rounded-t-lg transition-colors cursor-pointer"
-                    style={{ height: `${heightPct * 1.2}px` }}
-                    title={`${d.day}: ${d.revenue.toLocaleString("vi-VN")}đ`}
-                  />
+        <h2 className="font-semibold text-gray-800 mb-5">📊 Doanh thu 7 ngày gần nhất</h2>
+        {dailyRevenue?.length ? (
+          <div className="flex items-end gap-3 h-40">
+            {dailyRevenue.map((d) => {
+              const rev = Number(d.revenue) || 0;
+              const heightPct = maxRevenue > 0 ? (rev / maxRevenue) * 100 : 0;
+              return (
+                <div key={d.date} className="flex-1 flex flex-col items-center gap-1.5 group">
+                  <div className="w-full flex flex-col items-center">
+                    <span className="text-[10px] text-gray-400 opacity-0 group-hover:opacity-100 transition">
+                      {rev > 0 ? fmtMoney(rev) : "0"}
+                    </span>
+                    <div
+                      className={`w-full rounded-t-lg transition-colors cursor-pointer ${
+                        rev > 0 ? "bg-orange-300 group-hover:bg-orange-500" : "bg-gray-100"
+                      }`}
+                      style={{ height: `${Math.max(heightPct * 1.2, rev > 0 ? 4 : 2)}px` }}
+                      title={`${d.date}: ${fmtMoney(rev)}`}
+                    />
+                  </div>
+                  <span className="text-xs font-medium text-gray-500">{d.dayLabel}</span>
+                  <span className="text-[10px] text-gray-400">{d.date}</span>
+                  <span className="text-[10px] text-gray-400">{d.orders} đơn</span>
                 </div>
-                <span className="text-xs font-medium text-gray-500">{d.day}</span>
-                <span className="text-[10px] text-gray-400">{d.orders} đơn</span>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-400 text-center py-10">Chưa có dữ liệu</p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Products */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-          <h2 className="font-semibold text-gray-800 mb-4">🏆 Sản phẩm bán chạy nhất</h2>
-          <div className="space-y-4">
-            {TOP_PRODUCTS.map((p, i) => (
-              <div key={p.name} className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span
-                      className={`text-xs font-bold w-5 ${i === 0 ? "text-yellow-500" : i === 1 ? "text-gray-400" : i === 2 ? "text-orange-400" : "text-gray-300"}`}
-                    >
-                      #{i + 1}
-                    </span>
-                    <p className="text-sm text-gray-700 truncate max-w-[200px]">{p.name}</p>
+          <h2 className="font-semibold text-gray-800 mb-4">🏆 Sản phẩm bán chạy (30 ngày)</h2>
+          {topProducts?.length ? (
+            <div className="space-y-4">
+              {topProducts.map((p, i) => {
+                const pct = Math.round((Number(p.totalRevenue) / maxProductRevenue) * 100);
+                return (
+                  <div key={p.name} className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span
+                          className={`text-xs font-bold w-5 ${
+                            i === 0
+                              ? "text-yellow-500"
+                              : i === 1
+                                ? "text-gray-400"
+                                : i === 2
+                                  ? "text-orange-400"
+                                  : "text-gray-300"
+                          }`}
+                        >
+                          #{i + 1}
+                        </span>
+                        <p className="text-sm text-gray-700 truncate max-w-[200px]">{p.name}</p>
+                      </div>
+                      <div className="text-right shrink-0 ml-2">
+                        <p className="text-xs font-semibold text-orange-600">
+                          {Number(p.totalQty || 0).toFixed(0)} bán
+                        </p>
+                        <p className="text-xs text-gray-400">{fmtMoney(p.totalRevenue)}</p>
+                      </div>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-1.5">
+                      <div className="bg-orange-400 h-1.5 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                    </div>
                   </div>
-                  <div className="text-right shrink-0 ml-2">
-                    <p className="text-xs font-semibold text-orange-600">{p.sold} bán</p>
-                    <p className="text-xs text-gray-400">{(p.revenue / 1000).toFixed(0)}k đ</p>
-                  </div>
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-1.5">
-                  <div className="bg-orange-400 h-1.5 rounded-full transition-all" style={{ width: `${p.percent}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400 text-center py-10">Chưa có dữ liệu trong 30 ngày qua</p>
+          )}
         </div>
 
-        {/* Category Breakdown */}
+        {/* Performance summary */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-          <h2 className="font-semibold text-gray-800 mb-4">🗂️ Phân bổ theo danh mục</h2>
+          <h2 className="font-semibold text-gray-800 mb-4">📋 Tóm tắt hiệu suất</h2>
           <div className="space-y-4">
-            {CATEGORY_STATS.map((cat) => (
-              <div key={cat.label} className="space-y-1.5">
-                <div className="flex justify-between text-sm">
-                  <span className="font-medium text-gray-700">{cat.label}</span>
-                  <span className="text-gray-500">{cat.percent}%</span>
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-3">
-                  <div
-                    className={`${cat.color} h-3 rounded-full transition-all`}
-                    style={{ width: `${cat.percent}%` }}
-                  />
-                </div>
-              </div>
-            ))}
+            <InfoRow label="Tổng doanh thu (toàn thời gian)" value={fmtMoney(totalRevenue)} accent="text-green-600" />
+            <InfoRow label="Tổng đơn hàng" value={String(totalOrders || 0)} />
+            <InfoRow label="Đơn hoàn thành" value={String(completedOrders || 0)} accent="text-green-600" />
+            <InfoRow
+              label="Đơn chưa hoàn thành"
+              value={String(Math.max(0, (totalOrders || 0) - (completedOrders || 0)))}
+              accent="text-orange-500"
+            />
+            <InfoRow label="Giá trị trung bình/đơn" value={fmtMoney(avgOrderValue)} />
           </div>
-
-          {/* Donut-style legend */}
-          <div className="mt-6 grid grid-cols-2 gap-2">
-            {CATEGORY_STATS.map((cat) => (
-              <div key={cat.label} className="flex items-center gap-2 text-xs text-gray-600">
-                <div className={`w-3 h-3 rounded-full ${cat.color}`} />
-                <span>
-                  {cat.label} ({cat.percent}%)
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* Export hint */}
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <button className="text-xs text-orange-500 hover:underline">📥 Xuất báo cáo CSV</button>
+          <div className="mt-6 pt-4 border-t border-gray-100">
+            <button
+              className="text-xs text-orange-500 hover:underline"
+              onClick={() => {
+                const rows = [
+                  ["Chỉ số", "Giá trị"],
+                  ["Tổng doanh thu", fmtMoney(totalRevenue)],
+                  ["Tổng đơn hàng", totalOrders],
+                  ["Đơn hoàn thành", completedOrders],
+                  ["Giá trị TB/đơn", fmtMoney(avgOrderValue)],
+                ];
+                const csv = rows.map((r) => r.join(",")).join("\n");
+                const blob = new Blob([csv], { type: "text/csv" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "thong_ke.csv";
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+            >
+              📥 Xuất báo cáo CSV
+            </button>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function InfoRow({ label, value, accent }) {
+  return (
+    <div className="flex items-center justify-between text-sm">
+      <span className="text-gray-500">{label}</span>
+      <span className={`font-semibold ${accent || "text-gray-800"}`}>{value}</span>
     </div>
   );
 }

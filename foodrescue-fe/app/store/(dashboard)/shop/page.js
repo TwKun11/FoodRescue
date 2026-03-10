@@ -1,6 +1,7 @@
-// FE03-005 – UI Quản lý Cửa hàng
+// FE03-005 – UI Quản lý Cửa hàng (API-connected)
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { apiGetMyShop, apiUpdateMyShop } from "@/lib/api";
 
 const TABS = [
   { id: "info", label: "Thông tin cửa hàng" },
@@ -10,46 +11,125 @@ const TABS = [
   { id: "policy", label: "Chính sách" },
 ];
 
-const SHOP_STATS = [
-  { label: "Tổng sản phẩm", value: "124", icon: "📦", color: "bg-green-50 text-green-600" },
-  { label: "Đơn hàng tháng này", value: "318", icon: "🛒", color: "bg-blue-50 text-blue-600" },
-  { label: "Đánh giá trung bình", value: "4.8 ★", icon: "⭐", color: "bg-yellow-50 text-yellow-600" },
-  { label: "Tỉ lệ giao thành công", value: "96%", icon: "✅", color: "bg-purple-50 text-purple-600" },
-];
-
-const INITIAL_SHOP = {
-  name: "Circle K – Cửa Hàng Tiện Lợi Q1",
-  description: "Cửa hàng tiện lợi chuyên cung cấp thực phẩm tươi sống, bánh mì, đồ uống và các nhu yếu phẩm hàng ngày với mức giá hợp lý.",
-  address: "123 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh",
-  phone: "028 3822 1234",
-  email: "circlek.q1@foodrescue.vn",
-  openTime: "06:00",
-  closeTime: "23:00",
-  category: "Cửa hàng tiện lợi",
-  status: "active",
-  logo: "/images/products/raucai.jpg",
-  banner: "/images/products/banhmi.jpg",
-  taxCode: "0312345678",
-  bankName: "Vietcombank",
-  bankAccount: "1234567890",
-  bankOwner: "CONG TY TNHH CIRCLE K VIET NAM",
+const EMPTY_SHOP = {
+  name: "",
+  description: "",
+  address: "",
+  phone: "",
+  legalName: "",
+  contactName: "",
+  email: "",
+  openTime: "",
+  closeTime: "",
+  avatarUrl: "",
+  coverUrl: "",
+  taxCode: "",
+  bankName: "",
+  bankAccount: "",
+  bankOwner: "",
+  shopSlug: "",
+  isVerified: false,
+  ratingAvg: null,
+  commissionRate: null,
 };
 
 const RECENT_REVIEWS = [
-  { id: 1, customer: "Nguyễn Văn A", rating: 5, comment: "Hàng tươi ngon, giao nhanh!", date: "24/02/2026", avatar: "N" },
-  { id: 2, customer: "Trần Thị B", rating: 4, comment: "Sản phẩm ok, đóng gói cẩn thận.", date: "23/02/2026", avatar: "T" },
-  { id: 3, customer: "Lê Minh C", rating: 5, comment: "Giá rẻ, chất lượng tốt. Sẽ ủng hộ tiếp!", date: "22/02/2026", avatar: "L" },
+  {
+    id: 1,
+    customer: "Nguyễn Văn A",
+    rating: 5,
+    comment: "Hàng tươi ngon, giao nhanh!",
+    date: "24/02/2026",
+    avatar: "N",
+  },
+  {
+    id: 2,
+    customer: "Trần Thị B",
+    rating: 4,
+    comment: "Sản phẩm ok, đóng gói cẩn thận.",
+    date: "23/02/2026",
+    avatar: "T",
+  },
+  {
+    id: 3,
+    customer: "Lê Minh C",
+    rating: 5,
+    comment: "Giá rẻ, chất lượng tốt. Sẽ ủng hộ tiếp!",
+    date: "22/02/2026",
+    avatar: "L",
+  },
 ];
 
 export default function ShopPage() {
   const [activeTab, setActiveTab] = useState("info");
-  const [shop, setShop] = useState(INITIAL_SHOP);
+  const [shop, setShop] = useState(EMPTY_SHOP);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState(INITIAL_SHOP);
+  const [form, setForm] = useState(EMPTY_SHOP);
+  const [saveMsg, setSaveMsg] = useState("");
+
+  useEffect(function () {
+    setLoading(true);
+    apiGetMyShop()
+      .then(function (res) {
+        if (res.ok && res.data && res.data.data) {
+          var d = res.data.data;
+          var mapped = {
+            name: d.shopName || "",
+            description: d.description || "",
+            address: d.address || "",
+            phone: d.phone || "",
+            legalName: d.legalName || "",
+            contactName: d.contactName || "",
+            email: d.email || "",
+            openTime: d.openTime || "",
+            closeTime: d.closeTime || "",
+            avatarUrl: d.avatarUrl || "",
+            coverUrl: d.coverUrl || "",
+            taxCode: d.taxCode || "",
+            bankName: d.bankName || "",
+            bankAccount: d.bankAccount || "",
+            bankOwner: d.bankOwner || "",
+            shopSlug: d.shopSlug || "",
+            isVerified: d.isVerified || false,
+            ratingAvg: d.ratingAvg || null,
+            commissionRate: d.commissionRate != null ? d.commissionRate : null,
+          };
+          setShop(mapped);
+          setForm(mapped);
+        }
+      })
+      .finally(function () {
+        setLoading(false);
+      });
+  }, []);
 
   const handleSave = () => {
-    setShop(form);
-    setEditing(false);
+    setSaving(true);
+    setSaveMsg("");
+    apiUpdateMyShop({
+      shopName: form.name,
+      legalName: form.legalName || null,
+      description: form.description,
+      phone: form.phone,
+      contactName: form.contactName || null,
+      avatarUrl: form.avatarUrl || null,
+      coverUrl: form.coverUrl || null,
+    })
+      .then(function (res) {
+        if (res.ok) {
+          setShop(form);
+          setEditing(false);
+          setSaveMsg("Đã lưu thay đổi");
+          setTimeout(() => setSaveMsg(""), 3000);
+        } else {
+          alert(res.data?.message || "Lưu thất bại.");
+        }
+      })
+      .finally(function () {
+        setSaving(false);
+      });
   };
 
   const handleCancel = () => {
@@ -69,16 +149,41 @@ export default function ShopPage() {
               className="flex items-center gap-2 border border-gray-300 text-gray-600 text-sm px-3 py-2 rounded-lg hover:bg-gray-50 transition"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                />
               </svg>
               Chỉnh sửa
             </button>
           )}
         </div>
+        {saveMsg && (
+          <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg px-4 py-3">
+            {saveMsg}
+          </div>
+        )}
 
         {/* ── Stats Row ── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {SHOP_STATS.map((s) => (
+          {[
+            { label: "Tổng sản phẩm", value: "—", icon: "📦", color: "bg-green-50 text-green-600" },
+            { label: "Đơn hàng tháng này", value: "—", icon: "🛒", color: "bg-blue-50 text-blue-600" },
+            {
+              label: "Đánh giá trung bình",
+              value: shop.ratingAvg != null ? Number(shop.ratingAvg).toFixed(1) : "—",
+              icon: "⭐",
+              color: "bg-yellow-50 text-yellow-600",
+            },
+            {
+              label: "Hoa hồng nền tảng",
+              value: shop.commissionRate != null ? Number(shop.commissionRate).toFixed(1) + "%" : "—",
+              icon: "💼",
+              color: "bg-purple-50 text-purple-600",
+            },
+          ].map((s) => (
             <div key={s.label} className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-3">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0 ${s.color}`}>
                 {s.icon}
@@ -122,16 +227,28 @@ export default function ShopPage() {
               <div className="relative mb-6 rounded-xl overflow-hidden border border-gray-200">
                 <div className="h-32 bg-gradient-to-r from-green-400 to-green-600 relative">
                   <img
-                    src={shop.banner}
+                    src={shop.coverUrl}
                     alt="Banner"
                     className="w-full h-full object-cover opacity-40"
-                    onError={(e) => { e.target.style.display = "none"; }}
+                    onError={(e) => {
+                      e.target.style.display = "none";
+                    }}
                   />
                   {editing && (
                     <button className="absolute bottom-2 right-2 bg-white/80 text-gray-700 text-xs px-2 py-1 rounded-lg flex items-center gap-1 hover:bg-white transition">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
                       </svg>
                       Đổi banner
                     </button>
@@ -141,7 +258,7 @@ export default function ShopPage() {
                   <div className="relative">
                     <div className="w-16 h-16 rounded-xl border-4 border-white overflow-hidden bg-white shadow-md shrink-0">
                       <img
-                        src={shop.logo}
+                        src={shop.avatarUrl}
                         alt="Logo"
                         className="w-full h-full object-cover"
                         onError={(e) => {
@@ -159,11 +276,19 @@ export default function ShopPage() {
                     )}
                   </div>
                   <div className="pb-1">
-                    <p className="font-bold text-gray-800">{shop.name}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-bold text-gray-800">{shop.name}</p>
+                      {shop.isVerified && (
+                        <span className="inline-flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                          ✓ Đã xác minh
+                        </span>
+                      )}
+                    </div>
                     <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
                       <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
                       Đang hoạt động
                     </span>
+                    {shop.shopSlug && <p className="text-xs text-gray-400 mt-0.5">@{shop.shopSlug}</p>}
                   </div>
                 </div>
               </div>
@@ -177,6 +302,18 @@ export default function ShopPage() {
                     value={editing ? form.name : shop.name}
                     editing={editing}
                     onChange={(v) => setForm({ ...form, name: v })}
+                  />
+                  <Field
+                    label="Tên pháp lý (công ty/hộ kinh doanh)"
+                    value={editing ? form.legalName : shop.legalName}
+                    editing={editing}
+                    onChange={(v) => setForm({ ...form, legalName: v })}
+                  />
+                  <Field
+                    label="Tên liên hệ"
+                    value={editing ? form.contactName : shop.contactName}
+                    editing={editing}
+                    onChange={(v) => setForm({ ...form, contactName: v })}
                   />
                   <Field
                     label="Danh mục"
@@ -276,9 +413,10 @@ export default function ShopPage() {
                   </button>
                   <button
                     onClick={handleSave}
-                    className="px-5 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-lg transition"
+                    disabled={saving}
+                    className="px-5 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-lg transition disabled:opacity-50"
                   >
-                    Lưu thay đổi
+                    {saving ? "Dang luu..." : "Luu thay doi"}
                   </button>
                 </div>
               )}
@@ -324,7 +462,10 @@ export default function ShopPage() {
                         <p className="text-sm font-semibold text-gray-800">{r.customer}</p>
                         <p className="text-xs text-gray-400">{r.date}</p>
                       </div>
-                      <p className="text-yellow-400 text-sm mt-0.5">{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</p>
+                      <p className="text-yellow-400 text-sm mt-0.5">
+                        {"★".repeat(r.rating)}
+                        {"☆".repeat(5 - r.rating)}
+                      </p>
                       <p className="text-sm text-gray-600 mt-1">{r.comment}</p>
                     </div>
                   </div>
@@ -365,9 +506,7 @@ export default function ShopPage() {
 function Field({ label, value, editing, onChange, type = "text", options = [] }) {
   return (
     <div>
-      <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1">
-        {label}
-      </label>
+      <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1">{label}</label>
       {!editing ? (
         <p className="text-sm text-gray-800 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200 min-h-[38px]">
           {value || <span className="text-gray-400">—</span>}
@@ -385,7 +524,9 @@ function Field({ label, value, editing, onChange, type = "text", options = [] })
           onChange={(e) => onChange(e.target.value)}
           className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-300"
         >
-          {options.map((o) => <option key={o}>{o}</option>)}
+          {options.map((o) => (
+            <option key={o}>{o}</option>
+          ))}
         </select>
       ) : (
         <input

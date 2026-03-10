@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 const NAV_ITEMS = [
   {
@@ -62,6 +62,14 @@ const NAV_ITEMS = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("user");
+    router.push("/login");
+  };
 
   return (
     <aside className="w-48 shrink-0 bg-white border-r border-gray-200 min-h-screen flex flex-col">
@@ -106,11 +114,24 @@ export default function Sidebar() {
       </nav>
 
       {/* Package box */}
-      <div className="mx-3 mb-3 bg-green-50 border border-green-200 rounded-xl p-3">
+      <div className="mx-3 bg-green-50 border border-green-200 rounded-xl p-3">
         <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">Gói cửa hàng</p>
         <p className="text-xs text-gray-500 mb-2">Hạn dùng: 15/12/2024</p>
         <button className="w-full bg-green-500 hover:bg-green-600 text-white text-xs font-semibold py-1.5 rounded-lg transition">
           Gia hạn ngay
+        </button>
+      </div>
+
+      {/* Logout */}
+      <div className="px-3 py-3">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 hover:text-red-600 transition"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          Đăng xuất
         </button>
       </div>
     </aside>
