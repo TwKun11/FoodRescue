@@ -101,81 +101,86 @@ export default function ProductsPage() {
 
   return (
     <div className="min-h-screen bg-brand-bg">
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">Sản phẩm ưu đãi</h1>
-        <p className="text-gray-500 text-sm mb-6">Tìm món ăn hoặc cửa hàng bạn thích.</p>
-
-        <div className="relative mb-6">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-          </span>
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm thức ăn hoặc cửa hàng..."
-            className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-gray-200 bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand shadow-sm transition"
-          />
-          {search && (
-            <button
-              type="button"
-              onClick={() => setSearch("")}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
-            >
+      {/* Hero search banner */}
+      <div className="bg-gradient-to-r from-brand-secondary to-brand-dark">
+        <div className="max-w-6xl mx-auto px-4 pt-10 pb-14">
+          <h1 className="text-3xl font-extrabold text-white mb-1">Sản phẩm ưu đãi</h1>
+          <p className="text-white/80 text-sm mb-6">Hàng chất lượng, giá tốt — giảm lãng phí thực phẩm cùng nhau.</p>
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/60 pointer-events-none">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-            </button>
-          )}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3 mb-6">
-          <div className="inline-flex flex-wrap gap-1 p-1 bg-white/80 border border-gray-100 rounded-2xl shadow-sm">
-            <button
-              onClick={() => setCategoryId(null)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${categoryId == null ? "bg-brand text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}
-            >
-              Tất cả
-            </button>
-            {categoryOptions.map((c) => (
+            </span>
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Tìm thức ăn hoặc cửa hàng..."
+              className="w-full pl-12 pr-4 py-3.5 rounded-2xl border-0 bg-white/20 backdrop-blur text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/40 shadow-inner transition"
+            />
+            {search && (
               <button
-                key={c.id}
-                onClick={() => setCategoryId(c.id)}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${categoryId === c.id ? "bg-brand text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}
+                type="button"
+                onClick={() => setSearch("")}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/60 hover:text-white p-1 rounded-full"
               >
-                {c.name}
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
-            ))}
+            )}
           </div>
-          <div className="ml-auto">
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 -mt-6">
+        {/* Category pills (card floating over banner) */}
+        <div className="bg-white rounded-2xl shadow-md border border-gray-100 px-4 py-3 mb-5 flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setCategoryId(null)}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+              categoryId == null
+                ? "bg-brand-dark text-white shadow-sm"
+                : "text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+            }`}
+          >
+            Tất cả
+          </button>
+          {categoryOptions.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => setCategoryId(c.id)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                categoryId === c.id
+                  ? "bg-brand-dark text-white shadow-sm"
+                  : "text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+              }`}
+            >
+              {c.name}
+            </button>
+          ))}
+          <div className="ml-auto shrink-0">
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value)}
-              className="bg-white border border-gray-200 rounded-xl pl-4 pr-10 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
+              className="bg-gray-50 border border-gray-200 rounded-xl pl-3 pr-8 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand/30"
             >
               {SORT_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
           </div>
         </div>
 
+        {/* Result count + clear filters */}
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <span className="text-sm text-gray-600">
+          <span className="text-sm text-gray-500">
             {loading ? (
               "Đang tải..."
             ) : (
               <>
-                <span className="font-semibold text-gray-800">{totalElements}</span> sản phẩm
+                <span className="font-bold text-gray-800">{totalElements}</span> sản phẩm
               </>
             )}
           </span>
@@ -195,11 +200,12 @@ export default function ProductsPage() {
 
         {error ? (
           <div className="bg-white rounded-2xl border border-red-100 text-center py-16 px-4">
-            <p className="text-4xl mb-2">⚠️</p>
-            <p className="text-gray-600 font-medium">{error}</p>
+            <p className="text-5xl mb-3">⚠️</p>
+            <p className="text-gray-700 font-semibold mb-1">{error}</p>
+            <p className="text-gray-400 text-sm mb-4">Kiểm tra kết nối và thử lại.</p>
             <button
               onClick={fetchProducts}
-              className="mt-4 px-4 py-2 rounded-xl bg-brand/10 text-brand-dark font-medium text-sm hover:bg-brand/20 transition"
+              className="px-5 py-2.5 rounded-xl bg-brand-dark text-white font-semibold text-sm hover:bg-brand-secondary transition"
             >
               Thử lại
             </button>
@@ -207,19 +213,19 @@ export default function ProductsPage() {
         ) : loading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-2xl border border-gray-100 h-64 animate-pulse" />
+              <div key={i} className="bg-white rounded-2xl border border-gray-100 aspect-[3/4] animate-pulse" />
             ))}
           </div>
         ) : products.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-brand/20 shadow-sm text-center py-16 px-4">
-            <p className="text-4xl mb-2">🔍</p>
-            <p className="text-gray-600 font-medium">Không tìm thấy sản phẩm phù hợp</p>
-            <p className="text-gray-500 text-sm mt-1">Thử đổi từ khóa hoặc danh mục.</p>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm text-center py-20 px-4">
+            <p className="text-5xl mb-3">🔍</p>
+            <p className="text-gray-700 font-semibold">Không tìm thấy sản phẩm phù hợp</p>
+            <p className="text-gray-400 text-sm mt-1">Thử đổi từ khóa hoặc danh mục khác.</p>
             <button
               onClick={clearFilters}
-              className="mt-4 px-4 py-2 rounded-xl bg-brand/10 text-brand-dark font-medium text-sm hover:bg-brand/20 transition"
+              className="mt-5 px-5 py-2.5 rounded-xl bg-brand-dark text-white font-semibold text-sm hover:bg-brand-secondary transition"
             >
-              Xóa bộ lọc
+              Xem tất cả sản phẩm
             </button>
           </div>
         ) : (
@@ -230,29 +236,48 @@ export default function ProductsPage() {
               ))}
             </div>
             {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 mt-8 flex-wrap">
+              <div className="flex items-center justify-center gap-1.5 mt-8 flex-wrap">
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
                   disabled={currentPage === 0}
-                  className="px-3 py-2 rounded-xl text-sm font-medium border border-brand/30 text-brand-dark hover:bg-brand/10 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  className="w-9 h-9 rounded-xl flex items-center justify-center border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
                 >
-                  Trước
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
                 </button>
-                {Array.from({ length: totalPages }, (_, i) => i).map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setCurrentPage(p)}
-                    className={`w-9 h-9 rounded-xl text-sm font-medium transition ${currentPage === p ? "bg-brand text-gray-900 shadow-sm" : "border border-brand/30 text-brand-dark hover:bg-brand/10"}`}
-                  >
-                    {p + 1}
-                  </button>
-                ))}
+                {Array.from({ length: totalPages }, (_, i) => i)
+                  .filter((p) => p === 0 || p === totalPages - 1 || Math.abs(p - currentPage) <= 1)
+                  .reduce((acc, p, idx, arr) => {
+                    if (idx > 0 && p - arr[idx - 1] > 1) acc.push("...");
+                    acc.push(p);
+                    return acc;
+                  }, [])
+                  .map((p, idx) =>
+                    p === "..." ? (
+                      <span key={`dot-${idx}`} className="w-9 h-9 flex items-center justify-center text-gray-400 text-sm">…</span>
+                    ) : (
+                      <button
+                        key={p}
+                        onClick={() => setCurrentPage(p)}
+                        className={`w-9 h-9 rounded-xl text-sm font-semibold transition ${
+                          currentPage === p
+                            ? "bg-brand-dark text-white shadow-sm"
+                            : "border border-gray-200 text-gray-600 hover:bg-gray-50"
+                        }`}
+                      >
+                        {p + 1}
+                      </button>
+                    )
+                  )}
                 <button
                   onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
                   disabled={currentPage >= totalPages - 1}
-                  className="px-3 py-2 rounded-xl text-sm font-medium border border-brand/30 text-brand-dark hover:bg-brand/10 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  className="w-9 h-9 rounded-xl flex items-center justify-center border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
                 >
-                  Sau
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
                 </button>
               </div>
             )}

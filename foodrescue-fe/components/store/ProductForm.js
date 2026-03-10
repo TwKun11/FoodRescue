@@ -10,7 +10,17 @@ import {
   apiSellerAddProductImage,
   apiSellerDeleteProductImage,
   apiSellerSetPrimaryImage,
+  apiSellerAddVariant,
+  apiSellerAddBatch,
 } from "@/lib/api";
+
+const VARIANT_UNITS = ["piece", "pack", "bag", "bundle", "loaf", "box", "tray", "bottle", "g", "kg"];
+
+function genVarCode() {
+  const ts = Date.now().toString(36).toUpperCase();
+  const rand = Math.random().toString(36).substring(2, 5).toUpperCase();
+  return `VAR-${ts}-${rand}`;
+}
 
 const PRODUCT_TYPES = [
   { value: "fresh_food", label: "Thực phẩm tươi" },
@@ -56,8 +66,7 @@ function slugify(str) {
 export default function ProductForm({ initialData, onSuccess, onCancel }) {
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(initialData?.primaryImageUrl || "");
+  const [createImgQueue, setCreateImgQueue] = useState([]); // { file, previewUrl }[] — create mode only
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -67,6 +76,15 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
   const [galleryUploading, setGalleryUploading] = useState(false);
 
   const isEdit = !!initialData;
+
+  const [initVariant, setInitVariant] = useState({
+    variantCode: genVarCode(),
+    name: "",
+    unit: "piece",
+    listPrice: "",
+    salePrice: "",
+    stockQuantity: "",
+  });
 
   const [form, setForm] = useState({
     productCode: initialData?.productCode ?? genProductCode(),
@@ -111,12 +129,13 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
     });
   };
 
-  const handleImage = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+  const handleCreateImgAdd = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setCreateImgQueue((prev) => [...prev, ...files.map((f) => ({ file: f, previewUrl: URL.createObjectURL(f) }))]);
+    e.target.value = "";
   };
+  const removeCreateImg = (idx) => setCreateImgQueue((prev) => prev.filter((_, i) => i !== idx));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -134,21 +153,32 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
       setError("Vui lòng chọn danh mục");
       return;
     }
+    if (!isEdit && !initVariant.name.trim()) {
+      setError("Tên biến thể đầu tiên không được để trống");
+      return;
+    }
+    if (!isEdit && (!initVariant.listPrice || Number(initVariant.listPrice) <= 0)) {
+      setError("Giá niêm yết biến thể đầu tiên không được để trống");
+      return;
+    }
 
     setLoading(true);
     try {
       let imageUrls = [];
 
-      if (imageFile) {
+      if (!isEdit && createImgQueue.length > 0) {
         setUploading(true);
-        const upRes = await apiSellerUploadImage(imageFile);
-        setUploading(false);
-        if (!upRes.ok) {
-          setError(upRes.data?.message || "Tải ảnh thất bại");
-          setLoading(false);
-          return;
+        for (const item of createImgQueue) {
+          const upRes = await apiSellerUploadImage(item.file);
+          if (!upRes.ok) {
+            setUploading(false);
+            setError(upRes.data?.message || `Tải ảnh thất bại: ${item.file.name}`);
+            setLoading(false);
+            return;
+          }
+          imageUrls.push(upRes.data.data);
         }
-        imageUrls = [upRes.data.data];
+        setUploading(false);
       }
 
       const payload = {
@@ -189,7 +219,47 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
       }
 
       if (res.ok) {
-        onSuccess?.(res.data?.data);
+        // For new products: add the initial variant and inventory batch before closing
+        if (!isEdit) {
+          const productId = res.data?.data?.id;
+          if (productId) {
+            const vCode = initVariant.variantCode || genVarCode();
+            const varRes = await apiSellerAddVariant(productId, {
+              variantCode: vCode,
+              name: initVariant.name,
+              unit: initVariant.unit,
+              listPrice: Number(initVariant.listPrice),
+              salePrice: initVariant.salePrice ? Number(initVariant.salePrice) : Number(initVariant.listPrice),
+              minOrderQty: 1,
+              stepQty: 1,
+              trackInventory: true,
+            });
+            if (!varRes.ok) {
+              setError(varRes.data?.message || "Tạo sản phẩm thành công nhưng không thêm được biến thể");
+              setLoading(false);
+              return;
+            }
+            if (Number(initVariant.stockQuantity) > 0) {
+              const updatedVariants = varRes.data?.data?.variants || [];
+              const addedVariant = updatedVariants.find((v) => v.variantCode === vCode);
+              if (addedVariant?.id) {
+                const batchRes = await apiSellerAddBatch({
+                  variantId: addedVariant.id,
+                  batchCode: `BATCH-${Date.now().toString(36).toUpperCase()}`,
+                  quantityReceived: Number(initVariant.stockQuantity),
+                  receivedAt: new Date().toISOString().replace("Z", ""),
+                  costPrice: Number(initVariant.listPrice),
+                });
+                if (!batchRes.ok) {
+                  setError(batchRes.data?.message || "Tạo sản phẩm và biến thể thành công nhưng không lưu được tồn kho");
+                  setLoading(false);
+                  return;
+                }
+              }
+            }
+          }
+        }
+        onSuccess?.(res.data?.data, isEdit ? "edit" : "create");
       } else {
         setError(res.data?.message || "Có lỗi xảy ra");
       }
@@ -247,7 +317,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
       {/* Hình ảnh */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          {isEdit ? "Thư viện ảnh sản phẩm" : "Hình ảnh sản phẩm (ảnh đại diện)"}
+          {isEdit ? "Thư viện ảnh sản phẩm" : "Hình ảnh sản phẩm"}
         </label>
 
         {isEdit ? (
@@ -335,22 +405,44 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
             </p>
           </div>
         ) : (
-          /* --- Single thumbnail (create mode) --- */
-          <div className="flex items-center gap-4">
-            <div className="w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 overflow-hidden flex items-center justify-center bg-gray-50 shrink-0">
-              {imagePreview ? (
-                <img src={imagePreview || null} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-3xl text-gray-300">📷</span>
-              )}
-            </div>
-            <div>
+          /* --- Multi-image queue (create mode) --- */
+          <div className="space-y-3">
+            {createImgQueue.length > 0 && (
+              <div className="flex flex-wrap gap-3">
+                {createImgQueue.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="relative w-20 h-20 rounded-xl overflow-hidden border-2 border-dashed"
+                    style={{ borderColor: idx === 0 ? "#22c55e" : "#e5e7eb" }}
+                  >
+                    <img src={item.previewUrl} alt="" className="w-full h-full object-cover" />
+                    {idx === 0 && (
+                      <span className="absolute bottom-0 left-0 right-0 text-center text-[9px] font-bold bg-green-500 text-white py-0.5">
+                        Ảnh chính
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeCreateImg(idx)}
+                      className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center hover:bg-red-600"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex items-center gap-3">
               <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition inline-block">
-                {uploading ? "Đang tải..." : "Chọn ảnh"}
-                <input type="file" accept="image/*" className="hidden" onChange={handleImage} disabled={uploading} />
+                + Thêm ảnh
+                <input type="file" accept="image/*" multiple className="hidden" onChange={handleCreateImgAdd} disabled={uploading} />
               </label>
-              <p className="text-xs text-gray-400 mt-1">JPG, PNG, WEBP – tối đa 10MB</p>
+              {createImgQueue.length === 0 && <span className="text-xs text-gray-400">Chưa chọn ảnh nào</span>}
+              {uploading && <span className="text-xs text-blue-500">Đang tải ảnh lên...</span>}
             </div>
+            <p className="text-xs text-gray-400">
+              Ảnh đầu tiên sẽ là ảnh đại diện • Có thể chọn nhiều ảnh • JPG, PNG, WEBP – tối đa 10MB/ảnh
+            </p>
           </div>
         )}
       </div>
@@ -569,6 +661,79 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
           <option value="inactive">Không hoạt động</option>
         </select>
       </div>
+
+      {/* Biến thể đầu tiên (chỉ khi tạo mới) */}
+      {!isEdit && (
+        <div className="border border-gray-200 rounded-xl p-4 bg-gray-50 space-y-3">
+          <div>
+            <p className="text-sm font-semibold text-gray-700">
+              Biến thể đầu tiên <span className="text-red-500">*</span>
+            </p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Mỗi sản phẩm cần ít nhất một biến thể để có thể đăng bán. Bạn có thể thêm thêm sau.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Tên biến thể *</label>
+              <input
+                type="text"
+                placeholder="VD: Gói 500g"
+                value={initVariant.name}
+                onChange={(e) => setInitVariant((p) => ({ ...p, name: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 bg-white"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Đơn vị *</label>
+              <select
+                value={initVariant.unit}
+                onChange={(e) => setInitVariant((p) => ({ ...p, unit: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-300"
+              >
+                {VARIANT_UNITS.map((u) => (
+                  <option key={u} value={u}>{u}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Giá niêm yết (đ) *</label>
+              <input
+                type="number"
+                min={0}
+                placeholder="0"
+                value={initVariant.listPrice}
+                onChange={(e) => setInitVariant((p) => ({ ...p, listPrice: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 bg-white"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Giá bán (đ) <span className="text-gray-400 font-normal">(nếu không điền = bằng giá niêm yết)</span></label>
+              <input
+                type="number"
+                min={0}
+                placeholder="Bằng giá niêm yết"
+                value={initVariant.salePrice}
+                onChange={(e) => setInitVariant((p) => ({ ...p, salePrice: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 bg-white"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Tồn kho ban đầu <span className="text-gray-400 font-normal">(tùy chọn)</span></label>
+              <input
+                type="number"
+                min={0}
+                placeholder="VD: 50"
+                value={initVariant.stockQuantity}
+                onChange={(e) => setInitVariant((p) => ({ ...p, stockQuantity: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 bg-white"
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex justify-end gap-3 pt-2">
         {onCancel && (

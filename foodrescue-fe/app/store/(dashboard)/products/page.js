@@ -1,6 +1,6 @@
 // FE03-003 – UI Quản lý sản phẩm (API-connected)
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { apiSellerGetProducts, apiSellerDeleteProduct, apiSellerAddVariant, apiSellerAddBatch } from "@/lib/api";
 import ProductForm from "@/components/store/ProductForm";
 
@@ -93,7 +93,17 @@ export default function StoreProductsPage() {
   const [variantForm, setVariantForm] = useState(EMPTY_VARIANT);
   const [variantLoading, setVariantLoading] = useState(false);
   const [variantError, setVariantError] = useState("");
+  const [variantSuccess, setVariantSuccess] = useState("");
   const [variantList, setVariantList] = useState([]);
+  const [toast, setToast] = useState(null); // { message, type: "success"|"error" }
+  const toastTimer = useRef(null);
+  const [deleteTarget, setDeleteTarget] = useState(null); // product id pending delete
+
+  const showToast = useCallback((message, type = "success") => {
+    setToast({ message, type });
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 4000);
+  }, []);
 
   const openCreate = () => {
     setEditingProduct(null);
@@ -107,8 +117,9 @@ export default function StoreProductsPage() {
     setShowForm(false);
     setEditingProduct(null);
   };
-  const handleFormSuccess = () => {
+  const handleFormSuccess = (data, mode) => {
     closeForm();
+    showToast(mode === "edit" ? "Cập nhật sản phẩm thành công" : "Thêm sản phẩm mới thành công");
     loadProducts(page);
   };
 
@@ -117,6 +128,7 @@ export default function StoreProductsPage() {
     setVariantList(p.variants || []);
     setVariantForm({ ...EMPTY_VARIANT, variantCode: genVariantCode() });
     setVariantError("");
+    setVariantSuccess("");
     setShowVariants(true);
   };
   const closeVariants = () => {
@@ -127,8 +139,13 @@ export default function StoreProductsPage() {
   const handleAddVariant = async (e) => {
     e.preventDefault();
     setVariantError("");
+    setVariantSuccess("");
     if (!variantForm.name.trim()) {
       setVariantError("Tên biến thể không được để trống");
+      return;
+    }
+    if (!variantForm.listPrice || Number(variantForm.listPrice) <= 0) {
+      setVariantError("Giá niêm yết không được để trống");
       return;
     }
     setVariantLoading(true);
@@ -136,8 +153,8 @@ export default function StoreProductsPage() {
       variantCode: variantForm.variantCode,
       name: variantForm.name,
       unit: variantForm.unit,
-      listPrice: variantForm.listPrice ? Number(variantForm.listPrice) : null,
-      salePrice: variantForm.salePrice ? Number(variantForm.salePrice) : null,
+      listPrice: Number(variantForm.listPrice),
+      salePrice: variantForm.salePrice ? Number(variantForm.salePrice) : Number(variantForm.listPrice),
       minOrderQty: Number(variantForm.minOrderQty) || 1,
       stepQty: Number(variantForm.stepQty) || 1,
       ...(variantForm.maxOrderQty ? { maxOrderQty: Number(variantForm.maxOrderQty) } : {}),
@@ -153,19 +170,35 @@ export default function StoreProductsPage() {
       setVariantError(res.data?.message || "Thêm biến thể thất bại");
       return;
     }
-    // Create inventory batch to set initial stock (BE stores stock in InventoryBatch, not ProductVariant)
-    const newVariantId = res.data?.data?.id;
+    // Update variant list from the returned ProductResponse
+    const updatedVariants = res.data?.data?.variants || [];
+    setVariantList(updatedVariants);
+
+    // Find the newly created variant by its code to get the correct variant ID
+    const addedVariant = updatedVariants.find((v) => v.variantCode === variantForm.variantCode);
+    const newVariantId = addedVariant?.id;
+
+    // Create inventory batch to set initial stock
     if (newVariantId && Number(variantForm.stockQuantity) > 0) {
       const batchCode = `BATCH-${Date.now().toString(36).toUpperCase()}`;
-      await apiSellerAddBatch({
+      const batchRes = await apiSellerAddBatch({
         variantId: newVariantId,
         batchCode,
         quantityReceived: Number(variantForm.stockQuantity),
         receivedAt: new Date().toISOString().replace("Z", ""),
-        costPrice: variantForm.listPrice ? Number(variantForm.listPrice) : 0,
+        costPrice: Number(variantForm.listPrice),
       });
+      if (!batchRes.ok) {
+        setVariantLoading(false);
+        setVariantError(batchRes.data?.message || "Thêm biến thể thành công nhưng không lưu được tồn kho");
+        setVariantForm({ ...EMPTY_VARIANT, variantCode: genVariantCode() });
+        loadProducts(page);
+        return;
+      }
     }
+
     setVariantLoading(false);
+    setVariantSuccess("Thêm biến thể thành công" + (Number(variantForm.stockQuantity) > 0 ? ` · Tồn kho: ${variantForm.stockQuantity}` : ""));
     setVariantForm({ ...EMPTY_VARIANT, variantCode: genVariantCode() });
     loadProducts(page);
   };
@@ -202,16 +235,15 @@ export default function StoreProductsPage() {
     [loadProducts],
   );
 
-  var handleDelete = function (id) {
-    if (!confirm("Xóa sản phẩm này?")) return;
-    apiSellerDeleteProduct(id).then(function (res) {
-      if (res.ok)
-        setProducts(function (prev) {
-          return prev.filter(function (x) {
-            return x.id !== id;
-          });
-        });
-      else alert("Xóa thất bại.");
+  const handleConfirmDelete = (id) => {
+    setDeleteTarget(null);
+    apiSellerDeleteProduct(id).then((res) => {
+      if (res.ok) {
+        setProducts((prev) => prev.filter((x) => x.id !== id));
+        showToast("Đã xóa sản phẩm thành công");
+      } else {
+        showToast("Xóa sản phẩm thất bại, vui lòng thử lại", "error");
+      }
     });
   };
 
@@ -229,6 +261,17 @@ export default function StoreProductsPage() {
 
   return (
     <div className="flex flex-col min-h-full">
+      {/* ── Toast Notification ── */}
+      {toast && (
+        <div
+          className={`fixed bottom-5 right-5 z-100 flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-sm font-semibold ${
+            toast.type === "error" ? "bg-red-500 text-white" : "bg-green-500 text-white"
+          }`}
+        >
+          <span>{toast.type === "error" ? "✕" : "✓"} {toast.message}</span>
+          <button onClick={() => setToast(null)} className="ml-2 text-white/70 hover:text-white leading-none text-base">✕</button>
+        </div>
+      )}
       <div className="flex-1 p-6 space-y-4">
         {/* ── Variant Modal ── */}
         {showVariants && variantProduct && (
@@ -300,10 +343,15 @@ export default function StoreProductsPage() {
               )}
 
               {/* Add variant form */}
-              <p className="text-sm font-semibold text-gray-700 mb-3">Thêm biến thể mới</p>
+              <p className="text-xs font-semibold text-gray-700 mb-3 border-t border-gray-100 pt-4">➕ Thêm biến thể mới</p>
               {variantError && (
                 <div className="bg-red-50 border border-red-200 text-red-600 text-xs rounded-lg px-3 py-2 mb-3">
                   {variantError}
+                </div>
+              )}
+              {variantSuccess && (
+                <div className="bg-green-50 border border-green-200 text-green-700 text-xs rounded-lg px-3 py-2 mb-3">
+                  ✓ {variantSuccess}
                 </div>
               )}
               <form onSubmit={handleAddVariant} className="space-y-3">
@@ -354,7 +402,7 @@ export default function StoreProductsPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">Giá niêm yết (đ)</label>
+                    <label className="block text-xs text-gray-500 mb-1">Giá niêm yết (đ) *</label>
                     <input
                       type="number"
                       min={0}
@@ -369,7 +417,7 @@ export default function StoreProductsPage() {
                     <input
                       type="number"
                       min={0}
-                      placeholder="0"
+                      placeholder="Mặc định bằng giá niêm yết"
                       value={variantForm.salePrice}
                       onChange={(e) => setVariantForm((p) => ({ ...p, salePrice: e.target.value }))}
                       className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
@@ -378,7 +426,7 @@ export default function StoreProductsPage() {
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">Tồn kho ban đầu *</label>
+                    <label className="block text-xs text-gray-500 mb-1">Tồn kho ban đầu</label>
                     <input
                       type="number"
                       min={0}
@@ -389,7 +437,7 @@ export default function StoreProductsPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">SL tối thiểu</label>
+                    <label className="block text-xs text-gray-500 mb-1">SL tối thiểu / đơn</label>
                     <input
                       type="number"
                       min={1}
@@ -706,20 +754,38 @@ export default function StoreProductsPage() {
                             </svg>
                           </button>
                           {/* Delete */}
-                          <button
-                            className="w-8 h-8 flex items-center justify-center rounded-lg border border-red-200 text-red-400 hover:bg-red-50 transition"
-                            title="Xóa"
-                            onClick={() => handleDelete(p.id)}
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                              />
-                            </svg>
-                          </button>
+                          {deleteTarget === p.id ? (
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs text-gray-500 whitespace-nowrap">Xóa?</span>
+                              <button
+                                onClick={() => handleConfirmDelete(p.id)}
+                                className="text-xs text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded-md transition"
+                              >
+                                Có
+                              </button>
+                              <button
+                                onClick={() => setDeleteTarget(null)}
+                                className="text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-md transition"
+                              >
+                                Không
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              className="w-8 h-8 flex items-center justify-center rounded-lg border border-red-200 text-red-400 hover:bg-red-50 transition"
+                              title="Xóa sản phẩm"
+                              onClick={() => setDeleteTarget(p.id)}
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                              </svg>
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
