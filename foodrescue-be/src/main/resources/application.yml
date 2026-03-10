@@ -2,8 +2,14 @@ spring:
   application:
     name: ${APP_NAME:foodrescue-be}
 
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
+
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/foodrescue?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8}
+    url: ${DB_URL:jdbc:mysql://localhost:3306/fresh_marketplace?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8mb4&characterSetResults=utf8mb4}
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -45,3 +51,8 @@ app:
 
   google:
     client-id: ${GOOGLE_CLIENT_ID:}
+
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME:}
+  api-key: ${CLOUDINARY_API_KEY:}
+  api-secret: ${CLOUDINARY_API_SECRET:}
