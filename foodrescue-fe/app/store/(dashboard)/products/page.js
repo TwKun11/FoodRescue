@@ -21,6 +21,11 @@ const EMPTY_VARIANT = {
   stockQuantity: "",
   minOrderQty: "1",
   stepQty: "1",
+  maxOrderQty: "",
+  barcode: "",
+  netWeightValue: "",
+  netWeightUnit: "g",
+  trackInventory: true,
 };
 
 const TABS = [
@@ -135,6 +140,12 @@ export default function StoreProductsPage() {
       salePrice: variantForm.salePrice ? Number(variantForm.salePrice) : null,
       minOrderQty: Number(variantForm.minOrderQty) || 1,
       stepQty: Number(variantForm.stepQty) || 1,
+      ...(variantForm.maxOrderQty ? { maxOrderQty: Number(variantForm.maxOrderQty) } : {}),
+      ...(variantForm.barcode ? { barcode: variantForm.barcode } : {}),
+      ...(variantForm.netWeightValue
+        ? { netWeightValue: Number(variantForm.netWeightValue), netWeightUnit: variantForm.netWeightUnit }
+        : {}),
+      trackInventory: variantForm.trackInventory,
     };
     const res = await apiSellerAddVariant(variantProduct.id, payload);
     if (!res.ok) {
@@ -258,7 +269,19 @@ export default function StoreProductsPage() {
                           <td className="px-3 py-2 text-right">
                             {(() => {
                               const qty = v.stockQuantity ?? v.stockAvailable ?? 0;
-                              return <span className={qty === 0 ? "text-red-500 font-semibold" : qty <= 5 ? "text-orange-500 font-semibold" : "text-gray-700"}>{qty === 0 ? "Hết" : qty}</span>;
+                              return (
+                                <span
+                                  className={
+                                    qty === 0
+                                      ? "text-red-500 font-semibold"
+                                      : qty <= 5
+                                        ? "text-orange-500 font-semibold"
+                                        : "text-gray-700"
+                                  }
+                                >
+                                  {qty === 0 ? "Hết" : qty}
+                                </span>
+                              );
                             })()}
                           </td>
                           <td className="px-3 py-2 text-right text-gray-500">
@@ -376,7 +399,9 @@ export default function StoreProductsPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">Bước số lượng <span className="text-gray-400">(khách đặt 1, 2, 3...)</span></label>
+                    <label className="block text-xs text-gray-500 mb-1">
+                      Bước số lượng <span className="text-gray-400">(khách đặt 1, 2, 3...)</span>
+                    </label>
                     <input
                       type="number"
                       min={1}
@@ -385,6 +410,69 @@ export default function StoreProductsPage() {
                       className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
                     />
                     <p className="text-xs text-gray-400 mt-1">Thường để 1. Nếu 2: khách chỉ đặt 2, 4, 6...</p>
+                  </div>
+                </div>
+                {/* Barcode + Khối lượng */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Mã vạch (Barcode)</label>
+                    <input
+                      type="text"
+                      placeholder="VD: 8936082020169"
+                      value={variantForm.barcode}
+                      onChange={(e) => setVariantForm((p) => ({ ...p, barcode: e.target.value }))}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Khối lượng tịnh</label>
+                    <input
+                      type="number"
+                      min={0}
+                      placeholder="VD: 500"
+                      value={variantForm.netWeightValue}
+                      onChange={(e) => setVariantForm((p) => ({ ...p, netWeightValue: e.target.value }))}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Đơn vị KL</label>
+                    <select
+                      value={variantForm.netWeightUnit}
+                      onChange={(e) => setVariantForm((p) => ({ ...p, netWeightUnit: e.target.value }))}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-300"
+                    >
+                      {["g", "kg", "ml", "l"].map((u) => (
+                        <option key={u} value={u}>
+                          {u}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                {/* SL tối đa + Track inventory */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">SL đặt tối đa / đơn</label>
+                    <input
+                      type="number"
+                      min={1}
+                      placeholder="Không giới hạn"
+                      value={variantForm.maxOrderQty}
+                      onChange={(e) => setVariantForm((p) => ({ ...p, maxOrderQty: e.target.value }))}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+                    />
+                  </div>
+                  <div className="flex items-end pb-1">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={variantForm.trackInventory}
+                        onChange={(e) => setVariantForm((p) => ({ ...p, trackInventory: e.target.checked }))}
+                        className="w-4 h-4 rounded border-gray-300 text-green-500 focus:ring-green-400"
+                      />
+                      <span className="text-xs text-gray-600">Theo dõi tồn kho</span>
+                    </label>
                   </div>
                 </div>
                 <div className="flex justify-end pt-1">

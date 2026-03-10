@@ -11,27 +11,26 @@ const TABS = [
   { id: "policy", label: "Chính sách" },
 ];
 
-const SHOP_STATS = [
-  { label: "Tổng sản phẩm", value: "—", icon: "📦", color: "bg-green-50 text-green-600" },
-  { label: "Đơn hàng tháng này", value: "—", icon: "🛒", color: "bg-blue-50 text-blue-600" },
-  { label: "Đánh giá trung bình", value: "—", icon: "⭐", color: "bg-yellow-50 text-yellow-600" },
-  { label: "Tỉ lệ giao thành công", value: "—", icon: "✅", color: "bg-purple-50 text-purple-600" },
-];
-
 const EMPTY_SHOP = {
   name: "",
   description: "",
   address: "",
   phone: "",
+  legalName: "",
+  contactName: "",
   email: "",
   openTime: "",
   closeTime: "",
-  logo: "",
-  banner: "",
+  avatarUrl: "",
+  coverUrl: "",
   taxCode: "",
   bankName: "",
   bankAccount: "",
   bankOwner: "",
+  shopSlug: "",
+  isVerified: false,
+  ratingAvg: null,
+  commissionRate: null,
 };
 
 const RECENT_REVIEWS = [
@@ -68,6 +67,7 @@ export default function ShopPage() {
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(EMPTY_SHOP);
+  const [saveMsg, setSaveMsg] = useState("");
 
   useEffect(function () {
     setLoading(true);
@@ -80,16 +80,21 @@ export default function ShopPage() {
             description: d.description || "",
             address: d.address || "",
             phone: d.phone || "",
+            legalName: d.legalName || "",
+            contactName: d.contactName || "",
             email: d.email || "",
             openTime: d.openTime || "",
             closeTime: d.closeTime || "",
-            logo: d.logoUrl || "",
-            banner: d.bannerUrl || "",
+            avatarUrl: d.avatarUrl || "",
+            coverUrl: d.coverUrl || "",
             taxCode: d.taxCode || "",
             bankName: d.bankName || "",
             bankAccount: d.bankAccount || "",
             bankOwner: d.bankOwner || "",
-            ratingAvg: d.ratingAvg || 0,
+            shopSlug: d.shopSlug || "",
+            isVerified: d.isVerified || false,
+            ratingAvg: d.ratingAvg || null,
+            commissionRate: d.commissionRate != null ? d.commissionRate : null,
           };
           setShop(mapped);
           setForm(mapped);
@@ -102,18 +107,24 @@ export default function ShopPage() {
 
   const handleSave = () => {
     setSaving(true);
+    setSaveMsg("");
     apiUpdateMyShop({
       shopName: form.name,
+      legalName: form.legalName || null,
       description: form.description,
-      address: form.address,
       phone: form.phone,
+      contactName: form.contactName || null,
+      avatarUrl: form.avatarUrl || null,
+      coverUrl: form.coverUrl || null,
     })
       .then(function (res) {
         if (res.ok) {
           setShop(form);
           setEditing(false);
+          setSaveMsg("Đã lưu thay đổi");
+          setTimeout(() => setSaveMsg(""), 3000);
         } else {
-          alert("Luu that bai.");
+          alert(res.data?.message || "Lưu thất bại.");
         }
       })
       .finally(function () {
@@ -149,10 +160,30 @@ export default function ShopPage() {
             </button>
           )}
         </div>
+        {saveMsg && (
+          <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg px-4 py-3">
+            {saveMsg}
+          </div>
+        )}
 
         {/* ── Stats Row ── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {SHOP_STATS.map((s) => (
+          {[
+            { label: "Tổng sản phẩm", value: "—", icon: "📦", color: "bg-green-50 text-green-600" },
+            { label: "Đơn hàng tháng này", value: "—", icon: "🛒", color: "bg-blue-50 text-blue-600" },
+            {
+              label: "Đánh giá trung bình",
+              value: shop.ratingAvg != null ? Number(shop.ratingAvg).toFixed(1) : "—",
+              icon: "⭐",
+              color: "bg-yellow-50 text-yellow-600",
+            },
+            {
+              label: "Hoa hồng nền tảng",
+              value: shop.commissionRate != null ? Number(shop.commissionRate).toFixed(1) + "%" : "—",
+              icon: "💼",
+              color: "bg-purple-50 text-purple-600",
+            },
+          ].map((s) => (
             <div key={s.label} className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-3">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0 ${s.color}`}>
                 {s.icon}
@@ -196,7 +227,7 @@ export default function ShopPage() {
               <div className="relative mb-6 rounded-xl overflow-hidden border border-gray-200">
                 <div className="h-32 bg-gradient-to-r from-green-400 to-green-600 relative">
                   <img
-                    src={shop.banner}
+                    src={shop.coverUrl}
                     alt="Banner"
                     className="w-full h-full object-cover opacity-40"
                     onError={(e) => {
@@ -227,7 +258,7 @@ export default function ShopPage() {
                   <div className="relative">
                     <div className="w-16 h-16 rounded-xl border-4 border-white overflow-hidden bg-white shadow-md shrink-0">
                       <img
-                        src={shop.logo}
+                        src={shop.avatarUrl}
                         alt="Logo"
                         className="w-full h-full object-cover"
                         onError={(e) => {
@@ -245,11 +276,19 @@ export default function ShopPage() {
                     )}
                   </div>
                   <div className="pb-1">
-                    <p className="font-bold text-gray-800">{shop.name}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-bold text-gray-800">{shop.name}</p>
+                      {shop.isVerified && (
+                        <span className="inline-flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                          ✓ Đã xác minh
+                        </span>
+                      )}
+                    </div>
                     <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
                       <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
                       Đang hoạt động
                     </span>
+                    {shop.shopSlug && <p className="text-xs text-gray-400 mt-0.5">@{shop.shopSlug}</p>}
                   </div>
                 </div>
               </div>
@@ -263,6 +302,18 @@ export default function ShopPage() {
                     value={editing ? form.name : shop.name}
                     editing={editing}
                     onChange={(v) => setForm({ ...form, name: v })}
+                  />
+                  <Field
+                    label="Tên pháp lý (công ty/hộ kinh doanh)"
+                    value={editing ? form.legalName : shop.legalName}
+                    editing={editing}
+                    onChange={(v) => setForm({ ...form, legalName: v })}
+                  />
+                  <Field
+                    label="Tên liên hệ"
+                    value={editing ? form.contactName : shop.contactName}
+                    editing={editing}
+                    onChange={(v) => setForm({ ...form, contactName: v })}
                   />
                   <Field
                     label="Danh mục"

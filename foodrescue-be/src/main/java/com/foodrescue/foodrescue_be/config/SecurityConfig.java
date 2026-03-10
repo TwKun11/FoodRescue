@@ -57,7 +57,7 @@ public class SecurityConfig {
                         ).permitAll()
                         // ── Public marketplace read-only ───────────────────
                         .requestMatchers(org.springframework.http.HttpMethod.GET,
-                                "/api/products", "/api/products/**", "/api/categories"
+                                "/api/products", "/api/products/**", "/api/categories", "/api/brands"
                         ).permitAll()
                         // ── Authenticated user profile ─────────────────────
                         .requestMatchers("/api/auth/me", "/api/auth/update", "/api/auth/change-password").authenticated()

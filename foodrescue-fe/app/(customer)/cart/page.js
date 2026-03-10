@@ -8,7 +8,15 @@ const SERVICE_FEE_RATE = 0.03; // 3%
 
 function saveCart(items) {
   try {
-    localStorage.setItem("cart", JSON.stringify(items));
+    // Always persist price field so checkout can read it regardless of field name
+    localStorage.setItem(
+      "cart",
+      JSON.stringify(
+        items.map(function (i) {
+          return Object.assign({}, i, { price: i.price != null ? i.price : i.discountPrice });
+        }),
+      ),
+    );
   } catch (e) {}
 }
 

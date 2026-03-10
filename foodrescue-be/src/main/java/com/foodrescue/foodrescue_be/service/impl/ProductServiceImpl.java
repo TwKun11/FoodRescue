@@ -5,6 +5,7 @@ import com.foodrescue.foodrescue_be.dto.request.CreateProductVariantRequest;
 import com.foodrescue.foodrescue_be.dto.request.CreateProductRequest;
 import com.foodrescue.foodrescue_be.dto.request.UpdateProductRequest;
 import com.foodrescue.foodrescue_be.dto.response.InventoryBatchResponse;
+import com.foodrescue.foodrescue_be.dto.response.ProductImageResponse;
 import com.foodrescue.foodrescue_be.dto.response.ProductResponse;
 import com.foodrescue.foodrescue_be.dto.response.ProductVariantResponse;
 import com.foodrescue.foodrescue_be.model.*;
@@ -27,6 +28,7 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final ProductVariantRepository variantRepository;
     private final CategoryRepository categoryRepository;
+    private final BrandRepository brandRepository;
     private final SellerRepository sellerRepository;
     private final ProductImageRepository imageRepository;
     private final InventoryBatchRepository batchRepository;
@@ -58,9 +60,16 @@ public class ProductServiceImpl implements ProductService {
         Category category = categoryRepository.findById(req.getCategoryId())
                 .orElseThrow(() -> new IllegalArgumentException("Danh mục không tồn tại"));
 
+        Brand brand = null;
+        if (req.getBrandId() != null) {
+            brand = brandRepository.findById(req.getBrandId())
+                    .orElseThrow(() -> new IllegalArgumentException("Thương hiệu không tồn tại"));
+        }
+
         Product product = Product.builder()
                 .seller(seller)
                 .category(category)
+                .brand(brand)
                 .productCode(req.getProductCode())
                 .name(req.getName())
                 .slug(req.getSlug())
@@ -72,6 +81,7 @@ public class ProductServiceImpl implements ProductService {
                 .originCountry(req.getOriginCountry())
                 .originProvince(req.getOriginProvince())
                 .shelfLifeDays(req.getShelfLifeDays())
+                .minPreparationMinutes(req.getMinPreparationMinutes())
                 .status(parseEnum(Product.ProductStatus.class, req.getStatus(), Product.ProductStatus.draft))
                 .isActive(true)
                 .build();
@@ -95,6 +105,11 @@ public class ProductServiceImpl implements ProductService {
                     .orElseThrow(() -> new IllegalArgumentException("Danh mục không tồn tại"));
             product.setCategory(category);
         }
+        if (req.getBrandId() != null) {
+            Brand brand = brandRepository.findById(req.getBrandId())
+                    .orElseThrow(() -> new IllegalArgumentException("Thương hiệu không tồn tại"));
+            product.setBrand(brand);
+        }
         if (req.getName() != null) product.setName(req.getName());
         if (req.getSlug() != null) product.setSlug(req.getSlug());
         if (req.getShortDescription() != null) product.setShortDescription(req.getShortDescription());
@@ -105,6 +120,7 @@ public class ProductServiceImpl implements ProductService {
         if (req.getOriginCountry() != null) product.setOriginCountry(req.getOriginCountry());
         if (req.getOriginProvince() != null) product.setOriginProvince(req.getOriginProvince());
         if (req.getShelfLifeDays() != null) product.setShelfLifeDays(req.getShelfLifeDays());
+        if (req.getMinPreparationMinutes() != null) product.setMinPreparationMinutes(req.getMinPreparationMinutes());
         if (req.getStatus() != null) product.setStatus(parseEnum(Product.ProductStatus.class, req.getStatus(), product.getStatus()));
 
         if (req.getImageUrls() != null && !req.getImageUrls().isEmpty()) {
@@ -198,13 +214,96 @@ public class ProductServiceImpl implements ProductService {
         return stock != null ? stock : java.math.BigDecimal.ZERO;
     }
 
+    // ── Image management ──────────────────────────────────────────────────
+
+    @Override
+    public List<ProductImageResponse> getProductImages(Long sellerId, Long productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại"));
+        if (!product.getSeller().getId().equals(sellerId)) {
+            throw new IllegalArgumentException("Bạn không có quyền xem ảnh sản phẩm này");
+        }
+        return imageRepository.findByProductIdOrderBySortOrderAsc(productId).stream()
+                .map(ProductImageResponse::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public ProductImageResponse addProductImage(Long sellerId, Long productId, String imageUrl) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại"));
+        if (!product.getSeller().getId().equals(sellerId)) {
+            throw new IllegalArgumentException("Bạn không có quyền thêm ảnh cho sản phẩm này");
+        }
+        List<ProductImage> existing = imageRepository.findByProductIdOrderBySortOrderAsc(productId);
+        boolean noPrimary = existing.stream().noneMatch(img -> Boolean.TRUE.equals(img.getIsPrimary()));
+        int nextOrder = existing.size();
+        ProductImage image = imageRepository.save(ProductImage.builder()
+                .product(product)
+                .imageUrl(imageUrl)
+                .isPrimary(noPrimary) // first image auto-primary
+                .sortOrder(nextOrder)
+                .build());
+        return ProductImageResponse.fromEntity(image);
+    }
+
+    @Override
+    @Transactional
+    public void deleteProductImage(Long sellerId, Long productId, Long imageId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại"));
+        if (!product.getSeller().getId().equals(sellerId)) {
+            throw new IllegalArgumentException("Bạn không có quyền xóa ảnh sản phẩm này");
+        }
+        ProductImage image = imageRepository.findById(imageId)
+                .orElseThrow(() -> new IllegalArgumentException("Ảnh không tồn tại"));
+        boolean wasPrimary = Boolean.TRUE.equals(image.getIsPrimary());
+        imageRepository.delete(image);
+        // If deleted image was primary, promote next image
+        if (wasPrimary) {
+            List<ProductImage> remaining = imageRepository.findByProductIdOrderBySortOrderAsc(productId);
+            if (!remaining.isEmpty()) {
+                remaining.get(0).setIsPrimary(true);
+                imageRepository.save(remaining.get(0));
+            }
+        }
+    }
+
+    @Override
+    @Transactional
+    public ProductImageResponse setProductImagePrimary(Long sellerId, Long productId, Long imageId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại"));
+        if (!product.getSeller().getId().equals(sellerId)) {
+            throw new IllegalArgumentException("Bạn không có quyền thao tác ảnh sản phẩm này");
+        }
+        // Unset all primaries for this product
+        List<ProductImage> allImages = imageRepository.findByProductIdOrderBySortOrderAsc(productId);
+        allImages.forEach(img -> img.setIsPrimary(false));
+        imageRepository.saveAll(allImages);
+        // Set target as primary
+        ProductImage target = allImages.stream()
+                .filter(img -> img.getId().equals(imageId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Ảnh không tồn tại hoặc không thuộc sản phẩm này"));
+        target.setIsPrimary(true);
+        return ProductImageResponse.fromEntity(imageRepository.save(target));
+    }
+
     // -------- helpers --------
 
     private ProductResponse toResponse(Product product) {
-        String primaryImage = imageRepository.findByProductIdAndIsPrimaryTrue(product.getId())
+        List<ProductImage> allImages = imageRepository.findByProductIdOrderBySortOrderAsc(product.getId());
+        String primaryImage = allImages.stream()
+                .filter(img -> Boolean.TRUE.equals(img.getIsPrimary()))
+                .findFirst()
                 .map(ProductImage::getImageUrl)
-                .orElseGet(() -> imageRepository.findByProductIdOrderBySortOrderAsc(product.getId())
-                        .stream().findFirst().map(ProductImage::getImageUrl).orElse(null));
+                .orElseGet(() -> allImages.stream().findFirst().map(ProductImage::getImageUrl).orElse(null));
+
+        List<ProductImageResponse> imageResponses = allImages.stream()
+                .map(ProductImageResponse::fromEntity)
+                .collect(Collectors.toList());
 
         List<ProductVariantResponse> variants = variantRepository.findByProductIdOrderByIsDefaultDescSalePriceAsc(product.getId())
                 .stream()
@@ -214,7 +313,7 @@ public class ProductServiceImpl implements ProductService {
                 })
                 .collect(Collectors.toList());
 
-        return ProductResponse.fromEntity(product, primaryImage, variants);
+        return ProductResponse.fromEntityWithImages(product, primaryImage, imageResponses, variants);
     }
 
     private <E extends Enum<E>> E parseEnum(Class<E> clazz, String value, E defaultValue) {

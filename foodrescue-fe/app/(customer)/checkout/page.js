@@ -47,7 +47,7 @@ export default function CheckoutPage() {
   }, []);
 
   var subtotal = cartItems.reduce(function (s, i) {
-    return s + (i.price || 0) * (i.quantity || 1);
+    return s + (i.price || i.discountPrice || 0) * (i.quantity || 1);
   }, 0);
   var serviceFee = Math.round(subtotal * SERVICE_FEE_RATE);
   var beforeVoucher = subtotal + serviceFee;
@@ -284,7 +284,7 @@ export default function CheckoutPage() {
                       </p>
                     </div>
                     <span className="text-gray-800 font-medium shrink-0">
-                      {((item.price || 0) * (item.quantity || 1)).toLocaleString("vi-VN")}d
+                      {((item.price || item.discountPrice || 0) * (item.quantity || 1)).toLocaleString("vi-VN")}d
                     </span>
                   </div>
                 ))}

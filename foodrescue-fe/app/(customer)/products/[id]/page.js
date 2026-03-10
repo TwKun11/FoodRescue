@@ -81,7 +81,12 @@ export default function ProductDetailPage() {
   const [qty, setQty] = useState(1);
 
   // Reset qty to 1 whenever user switches variant
-  useEffect(function () { setQty(1); }, [selectedSku]);
+  useEffect(
+    function () {
+      setQty(1);
+    },
+    [selectedSku],
+  );
   const [addedToCart, setAddedToCart] = useState(false);
 
   useEffect(() => {
@@ -182,7 +187,10 @@ export default function ProductDetailPage() {
   var discP = displaySku.salePrice || displaySku.listPrice || product.discountPrice;
   var discPct = origP > 0 ? Math.round((1 - discP / origP) * 100) : 0;
   var savings = origP - discP;
-  var remaining = (displaySku.stockAvailable ?? displaySku.stockQuantity) != null ? (displaySku.stockAvailable ?? displaySku.stockQuantity) : product.remaining;
+  var remaining =
+    (displaySku.stockAvailable ?? displaySku.stockQuantity) != null
+      ? (displaySku.stockAvailable ?? displaySku.stockQuantity)
+      : product.remaining;
 
   return (
     <div className="min-h-screen bg-brand-bg">

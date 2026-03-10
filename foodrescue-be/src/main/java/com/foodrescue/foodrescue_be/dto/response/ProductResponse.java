@@ -7,7 +7,7 @@ import lombok.Getter;
 import java.util.List;
 
 @Getter
-@Builder
+@Builder(toBuilder = true)
 public class ProductResponse {
     private Long id;
     private Long sellerId;
@@ -28,8 +28,10 @@ public class ProductResponse {
     private String originCountry;
     private String originProvince;
     private Integer shelfLifeDays;
+    private Integer minPreparationMinutes;
     private String status;
     private String primaryImageUrl;
+    private List<ProductImageResponse> images;
     private List<ProductVariantResponse> variants;
 
     public static ProductResponse fromEntity(Product product, String primaryImageUrl, List<ProductVariantResponse> variants) {
@@ -53,9 +55,18 @@ public class ProductResponse {
                 .originCountry(product.getOriginCountry())
                 .originProvince(product.getOriginProvince())
                 .shelfLifeDays(product.getShelfLifeDays())
+                .minPreparationMinutes(product.getMinPreparationMinutes())
                 .status(product.getStatus() != null ? product.getStatus().name() : null)
                 .primaryImageUrl(primaryImageUrl)
                 .variants(variants)
+                .build();
+    }
+
+    public static ProductResponse fromEntityWithImages(Product product, String primaryImageUrl,
+                                                       List<ProductImageResponse> images,
+                                                       List<ProductVariantResponse> variants) {
+        return fromEntity(product, primaryImageUrl, variants).toBuilder()
+                .images(images)
                 .build();
     }
 }
