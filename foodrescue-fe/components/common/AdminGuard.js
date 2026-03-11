@@ -15,7 +15,7 @@ export default function AdminGuard({ children }) {
       router.replace("/");
       return;
     }
-    setAllowed(true);
+    queueMicrotask(() => setAllowed(true));
   }, [router]);
 
   if (!allowed) {

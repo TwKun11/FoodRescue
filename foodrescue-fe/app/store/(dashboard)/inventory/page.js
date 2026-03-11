@@ -23,7 +23,7 @@ const STATUS_STYLE = {
   active: { label: "Còn hàng", bg: "bg-green-50", text: "text-green-700", dot: "bg-green-500" },
   depleted: { label: "Đã hết", bg: "bg-red-50", text: "text-red-700", dot: "bg-red-400" },
   expired: { label: "Hết hạn", bg: "bg-gray-100", text: "text-gray-500", dot: "bg-gray-400" },
-  recalled: { label: "Đã thu hồi", bg: "bg-orange-50", text: "text-orange-700", dot: "bg-orange-400" },
+  blocked: { label: "Bị chặn", bg: "bg-orange-50", text: "text-orange-700", dot: "bg-orange-400" },
 };
 
 function fmt(n) {
@@ -85,7 +85,7 @@ export default function InventoryPage() {
       router.replace("/login");
       return;
     }
-    load();
+    queueMicrotask(load);
   }, [load, router]);
 
   const openModal = useCallback(async () => {
@@ -236,7 +236,7 @@ export default function InventoryPage() {
               <option value="active">Còn hàng</option>
               <option value="depleted">Đã hết</option>
               <option value="expired">Hết hạn</option>
-              <option value="recalled">Đã thu hồi</option>
+              <option value="blocked">Bị chặn</option>
             </select>
           </div>
           <button

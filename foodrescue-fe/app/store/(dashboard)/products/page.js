@@ -198,7 +198,10 @@ export default function StoreProductsPage() {
     }
 
     setVariantLoading(false);
-    setVariantSuccess("Thêm biến thể thành công" + (Number(variantForm.stockQuantity) > 0 ? ` · Tồn kho: ${variantForm.stockQuantity}` : ""));
+    setVariantSuccess(
+      "Thêm biến thể thành công" +
+        (Number(variantForm.stockQuantity) > 0 ? ` · Tồn kho: ${variantForm.stockQuantity}` : ""),
+    );
     setVariantForm({ ...EMPTY_VARIANT, variantCode: genVariantCode() });
     loadProducts(page);
   };
@@ -268,8 +271,12 @@ export default function StoreProductsPage() {
             toast.type === "error" ? "bg-red-500 text-white" : "bg-green-500 text-white"
           }`}
         >
-          <span>{toast.type === "error" ? "✕" : "✓"} {toast.message}</span>
-          <button onClick={() => setToast(null)} className="ml-2 text-white/70 hover:text-white leading-none text-base">✕</button>
+          <span>
+            {toast.type === "error" ? "✕" : "✓"} {toast.message}
+          </span>
+          <button onClick={() => setToast(null)} className="ml-2 text-white/70 hover:text-white leading-none text-base">
+            ✕
+          </button>
         </div>
       )}
       <div className="flex-1 p-6 space-y-4">
@@ -343,7 +350,9 @@ export default function StoreProductsPage() {
               )}
 
               {/* Add variant form */}
-              <p className="text-xs font-semibold text-gray-700 mb-3 border-t border-gray-100 pt-4">➕ Thêm biến thể mới</p>
+              <p className="text-xs font-semibold text-gray-700 mb-3 border-t border-gray-100 pt-4">
+                ➕ Thêm biến thể mới
+              </p>
               {variantError && (
                 <div className="bg-red-50 border border-red-200 text-red-600 text-xs rounded-lg px-3 py-2 mb-3">
                   {variantError}

@@ -28,6 +28,46 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Query("""
         SELECT p FROM Product p
+        WHERE p.status = 'active'
+          AND p.isActive = true
+          AND (:categoryId IS NULL OR p.category.id = :categoryId)
+          AND (:sellerId IS NULL OR p.seller.id = :sellerId)
+          AND (:keyword IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
+        ORDER BY COALESCE(
+            (SELECT MIN(COALESCE(v.salePrice, v.listPrice)) FROM ProductVariant v WHERE v.product = p),
+            0
+        ) ASC,
+        p.createdAt DESC
+    """)
+    Page<Product> searchPublicOrderByPriceAsc(
+        @Param("categoryId") Long categoryId,
+        @Param("sellerId") Long sellerId,
+        @Param("keyword") String keyword,
+        Pageable pageable
+    );
+
+    @Query("""
+        SELECT p FROM Product p
+        WHERE p.status = 'active'
+          AND p.isActive = true
+          AND (:categoryId IS NULL OR p.category.id = :categoryId)
+          AND (:sellerId IS NULL OR p.seller.id = :sellerId)
+          AND (:keyword IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
+        ORDER BY COALESCE(
+            (SELECT MIN(COALESCE(v.salePrice, v.listPrice)) FROM ProductVariant v WHERE v.product = p),
+            0
+        ) DESC,
+        p.createdAt DESC
+    """)
+    Page<Product> searchPublicOrderByPriceDesc(
+        @Param("categoryId") Long categoryId,
+        @Param("sellerId") Long sellerId,
+        @Param("keyword") String keyword,
+        Pageable pageable
+    );
+
+    @Query("""
+        SELECT p FROM Product p
         WHERE p.seller.id = :sellerId
           AND (:keyword IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
     """)

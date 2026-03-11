@@ -49,12 +49,13 @@ function ProductImageGallery({ images, name, countdownSlot }) {
 
 function mapProductDetail(p) {
   if (!p) return null;
-  const variant = p.variants && p.variants[0] ? p.variants[0] : {};
+  const variant = (p.variants || []).find((item) => item.isDefault) || p.variants?.[0] || {};
   const originalPrice = variant.listPrice || 0;
   const discountPrice = variant.salePrice || variant.listPrice || 0;
   const discountPercent = originalPrice > 0 ? Math.round((1 - discountPrice / originalPrice) * 100) : 0;
   const remaining = variant.stockAvailable ?? variant.stockQuantity ?? 0;
   const shelfLifeDays = p.shelfLifeDays || 1;
+  const hasSellerInfo = p.sellerName || p.sellerPhone || p.sellerRatingAvg != null;
   return {
     id: String(p.id),
     name: p.name,
@@ -71,13 +72,21 @@ function mapProductDetail(p) {
     categoryName: p.categoryName || "",
     categoryId: p.categoryId,
     shelfLifeDays,
-    seller: p.seller || null,
+    seller: hasSellerInfo
+      ? {
+          shopName: p.sellerName || "",
+          shopSlug: p.sellerSlug || "",
+          phone: p.sellerPhone || "",
+          ratingAvg: p.sellerRatingAvg ?? 0,
+          isVerified: p.sellerVerified ?? false,
+        }
+      : null,
     variants: p.variants || [],
   };
 }
 
 function mapRelated(p) {
-  const variant = p.variants && p.variants[0] ? p.variants[0] : {};
+  const variant = (p.variants || []).find((item) => item.isDefault) || p.variants?.[0] || {};
   const originalPrice = variant.listPrice || 0;
   const discountPrice = variant.salePrice || variant.listPrice || 0;
   const discountPercent = originalPrice > 0 ? Math.round((1 - discountPrice / originalPrice) * 100) : 0;
@@ -89,7 +98,7 @@ function mapRelated(p) {
     discountPrice,
     discountPercent,
     expiryLabel: p.shelfLifeDays ? "Con " + p.shelfLifeDays + " ngay" : "",
-    storeName: (p.seller && p.seller.shopName) || "",
+    storeName: p.sellerName || "",
     unit: variant.unit || "",
     remaining: variant.stockAvailable ?? variant.stockQuantity ?? 0,
   };
@@ -126,7 +135,7 @@ export default function ProductDetailPage() {
         if (ok && data && data.data) {
           var mapped = mapProductDetail(data.data);
           setProduct(mapped);
-          setSelectedSku((data.data.variants && data.data.variants[0]) || null);
+          setSelectedSku((data.data.variants || []).find((item) => item.isDefault) || data.data.variants?.[0] || null);
           if (mapped.shelfLifeDays) {
             setExpiryISO(new Date(Date.now() + mapped.shelfLifeDays * 24 * 60 * 60 * 1000).toISOString());
           }
@@ -279,15 +288,6 @@ export default function ProductDetailPage() {
                 </h3>
                 <div className="space-y-1.5 text-sm">
                   <p className="font-bold text-gray-900 text-base">{product.seller.shopName}</p>
-                  {product.seller.address && (
-                    <p className="text-gray-500 flex items-start gap-1.5">
-                      <svg className="w-3.5 h-3.5 mt-0.5 shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      {product.seller.address}
-                    </p>
-                  )}
                   {product.seller.phone && (
                     <p className="text-gray-500 flex items-center gap-1.5">
                       <svg className="w-3.5 h-3.5 shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

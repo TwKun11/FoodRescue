@@ -39,7 +39,7 @@ export default function AdminBrandsPage() {
   };
 
   useEffect(() => {
-    load();
+    queueMicrotask(load);
   }, []);
 
   const flash = (msg) => {

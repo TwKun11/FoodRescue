@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_REGEX = /^0\d{0,9}$/;
 
 function validateEmail(value) {
   const v = (value || "").trim();
@@ -21,7 +21,7 @@ function validatePassword(value) {
   return "";
 }
 
-function validateFullName(value) {
+function validateFullName() {
   return "";
 }
 
@@ -45,6 +45,7 @@ function validateDateOfBirth(value) {
 }
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: null, text: "" });
   const [form, setForm] = useState({
@@ -101,8 +102,8 @@ export default function RegisterPage() {
       dateOfBirth: validateDateOfBirth(form.dateOfBirth),
     };
     setErrors(newErrors);
-    const hasError = Object.values(newErrors).some((err) => err !== "");
-    if (hasError) return;
+
+    if (Object.values(newErrors).some((err) => err !== "")) return;
 
     setLoading(true);
     try {
@@ -113,6 +114,7 @@ export default function RegisterPage() {
         dateOfBirth: form.dateOfBirth || null,
         phone: form.phone.trim() || null,
       };
+
       const res = await fetch(`${API_URL}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -133,7 +135,7 @@ export default function RegisterPage() {
       } else {
         setMessage({ type: "success", text: "Đăng ký thành công. Vui lòng kiểm tra email để xác thực." });
       }
-    } catch (err) {
+    } catch {
       setMessage({ type: "error", text: "Không kết nối được server. Kiểm tra backend và CORS." });
     } finally {
       setLoading(false);
@@ -141,18 +143,18 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-brand-bg py-12 px-4">
-      <div className="max-w-md mx-auto">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8">
-          <h1 className="text-xl font-bold text-gray-800 mb-1">Đăng ký tài khoản</h1>
-          <p className="text-sm text-gray-500 mb-6">Sau khi đăng ký, vui lòng xác thực email.</p>
+    <div className="min-h-screen bg-brand-bg px-4 py-12">
+      <div className="mx-auto max-w-md">
+        <div className="relative z-10 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm sm:p-8">
+          <h1 className="mb-1 text-xl font-bold text-gray-800">Đăng ký tài khoản</h1>
+          <p className="mb-6 text-sm text-gray-500">Sau khi đăng ký, vui lòng xác thực email.</p>
 
           {message.text && (
             <div
-              className={`mb-4 p-3 rounded-xl text-sm ${
+              className={`mb-4 rounded-xl border p-3 text-sm ${
                 message.type === "success"
-                  ? "bg-green-50 text-green-800 border border-green-200"
-                  : "bg-red-50 text-red-700 border border-red-200"
+                  ? "border-green-200 bg-green-50 text-green-800"
+                  : "border-red-200 bg-red-50 text-red-700"
               }`}
             >
               {message.text}
@@ -161,7 +163,7 @@ export default function RegisterPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="mb-1 block text-sm font-medium text-gray-700">
                 Email <span className="text-red-500">*</span>
               </label>
               <input
@@ -170,7 +172,7 @@ export default function RegisterPage() {
                 onChange={setField("email")}
                 onBlur={handleBlur("email")}
                 placeholder="you@example.com"
-                className={`w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/50 ${
+                className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/50 ${
                   errors.email ? "border-red-400 focus:border-red-400" : "border-gray-200 focus:border-brand"
                 }`}
               />
@@ -178,7 +180,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="mb-1 block text-sm font-medium text-gray-700">
                 Mật khẩu <span className="text-red-500">*</span>
               </label>
               <input
@@ -187,7 +189,7 @@ export default function RegisterPage() {
                 onChange={setField("password")}
                 onBlur={handleBlur("password")}
                 placeholder="Tối thiểu 6 ký tự"
-                className={`w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/50 ${
+                className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/50 ${
                   errors.password ? "border-red-400 focus:border-red-400" : "border-gray-200 focus:border-brand"
                 }`}
               />
@@ -195,14 +197,14 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Họ và tên</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Họ và tên</label>
               <input
                 type="text"
                 value={form.fullName}
                 onChange={setField("fullName")}
                 onBlur={handleBlur("fullName")}
                 placeholder="Nhập họ và tên"
-                className={`w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/50 ${
+                className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/50 ${
                   errors.fullName ? "border-red-400 focus:border-red-400" : "border-gray-200 focus:border-brand"
                 }`}
               />
@@ -210,19 +212,19 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Số điện thoại</label>
               <input
                 type="tel"
                 inputMode="numeric"
                 value={form.phone}
                 onChange={(e) => {
-                  const v = e.target.value.replace(/\D/g, "").slice(0, 10);
-                  setForm((prev) => ({ ...prev, phone: v }));
-                  setErrors((prev) => ({ ...prev, phone: validatePhone(v) }));
+                  const value = e.target.value.replace(/\D/g, "").slice(0, 10);
+                  setForm((prev) => ({ ...prev, phone: value }));
+                  setErrors((prev) => ({ ...prev, phone: validatePhone(value) }));
                 }}
                 onBlur={handleBlur("phone")}
                 placeholder="Nhập số điện thoại"
-                className={`w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/50 ${
+                className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/50 ${
                   errors.phone ? "border-red-400 focus:border-red-400" : "border-gray-200 focus:border-brand"
                 }`}
               />
@@ -230,13 +232,13 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Ngày sinh</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Ngày sinh</label>
               <input
                 type="date"
                 value={form.dateOfBirth}
                 onChange={setField("dateOfBirth")}
                 onBlur={handleBlur("dateOfBirth")}
-                className={`w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/50 ${
+                className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/50 ${
                   errors.dateOfBirth ? "border-red-400 focus:border-red-400" : "border-gray-200 focus:border-brand"
                 }`}
               />
@@ -246,7 +248,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl py-3 bg-brand text-gray-900 font-medium hover:bg-brand-dark transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="relative z-10 w-full rounded-xl bg-brand-dark py-3 font-semibold text-white shadow-sm transition hover:bg-brand-secondary active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? "Đang xử lý..." : "Đăng ký"}
             </button>
@@ -254,13 +256,17 @@ export default function RegisterPage() {
 
           <p className="mt-4 text-center text-sm text-gray-500">
             Đã có tài khoản?{" "}
-            <Link href="/login" className="text-brand-dark font-medium hover:underline">
+            <button
+              type="button"
+              onClick={() => router.push("/login")}
+              className="relative z-10 font-medium text-brand-dark hover:underline"
+            >
               Đăng nhập
-            </Link>
+            </button>
           </p>
         </div>
 
-        <p className="text-center mt-4">
+        <p className="mt-4 text-center">
           <Link href="/" className="text-sm text-gray-500 hover:text-brand-dark">
             ← Về trang chủ
           </Link>
