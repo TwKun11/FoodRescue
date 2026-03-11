@@ -112,18 +112,24 @@
 			<groupId>me.paulschwarz</groupId>
 			<artifactId>spring-dotenv</artifactId>
 			<version>4.0.0</version>
+<<<<<<< HEAD
 		</dependency>
 
+=======
+>>>>>>> 15bcd80aeb5a7f9524665e41385bd58a7e85dac4
 		<dependency>
 			<groupId>com.cloudinary</groupId>
 			<artifactId>cloudinary-http44</artifactId>
 			<version>1.36.0</version>
+<<<<<<< HEAD
 		</dependency>
 
 		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
 			<scope>test</scope>
+=======
+>>>>>>> 15bcd80aeb5a7f9524665e41385bd58a7e85dac4
 		</dependency>
 	</dependencies>
 
