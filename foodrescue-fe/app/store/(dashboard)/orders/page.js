@@ -136,14 +136,14 @@ export default function StoreOrdersPage() {
                 var items = order.items || [];
                 return (
                   <tr key={order.id} className="border-t border-gray-100 hover:bg-gray-50">
-                    <td className="px-4 py-3 font-mono text-xs text-gray-500">#{order.id}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-gray-500">#{order.orderCode || order.id}</td>
                     <td className="px-4 py-3">
                       {items.length > 0 ? (
                         <div className="space-y-1">
                           {items.slice(0, 2).map(function(item) {
                             return (
                               <div key={item.id} className="flex items-center gap-2">
-                                <span className="text-gray-700">{item.spuName || item.skuName}</span>
+                                <span className="text-gray-700">{item.productName || item.variantName || "-"}</span>
                                 <span className="text-gray-400 text-xs">x{item.quantity}</span>
                               </div>
                             );

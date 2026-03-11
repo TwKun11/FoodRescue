@@ -19,7 +19,7 @@ export default function StoreGuard({ children }) {
       router.replace("/");
       return;
     }
-    setAllowed(true);
+    queueMicrotask(() => setAllowed(true));
   }, [router]);
 
   if (!allowed) {

@@ -9,7 +9,6 @@ export default function StoreStatsPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    setLoading(true);
     apiGetSellerStats()
       .then((res) => {
         if (res.ok && res.data?.data) {

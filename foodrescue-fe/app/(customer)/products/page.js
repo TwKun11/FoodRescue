@@ -1,6 +1,6 @@
 ﻿// FE02-002 – Trang Danh sách sản phẩm — sử dụng API
 "use client";
-import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import ProductCard from "@/components/customer/ProductCard";
 import { apiGetProducts, apiGetCategories } from "@/lib/api";
 
@@ -60,7 +60,13 @@ export default function ProductsPage() {
   const fetchProducts = useCallback(() => {
     setLoading(true);
     setError(null);
-    apiGetProducts({ categoryId, keyword: debouncedSearch || undefined, page: currentPage, size: PAGE_SIZE })
+    apiGetProducts({
+      categoryId,
+      keyword: debouncedSearch || undefined,
+      sort,
+      page: currentPage,
+      size: PAGE_SIZE,
+    })
       .then(({ ok, data }) => {
         if (ok && data?.data) {
           const page = data.data;
@@ -74,14 +80,11 @@ export default function ProductsPage() {
       })
       .catch(() => setError("Lỗi kết nối máy chủ"))
       .finally(() => setLoading(false));
-  }, [categoryId, debouncedSearch, currentPage]);
+  }, [categoryId, debouncedSearch, currentPage, sort]);
 
   useEffect(() => {
-    fetchProducts();
+    queueMicrotask(fetchProducts);
   }, [fetchProducts]);
-  useEffect(() => {
-    setCurrentPage(0);
-  }, [categoryId, debouncedSearch, sort]);
 
   const categoryOptions = useMemo(() => {
     const flat = [];
@@ -109,13 +112,21 @@ export default function ProductsPage() {
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/60 pointer-events-none">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
               </svg>
             </span>
             <input
               type="search"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(0);
+              }}
               placeholder="Tìm thức ăn hoặc cửa hàng..."
               className="w-full pl-12 pr-4 py-3.5 rounded-2xl border-0 bg-white/20 backdrop-blur text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/40 shadow-inner transition"
             />
@@ -138,7 +149,10 @@ export default function ProductsPage() {
         {/* Category pills (card floating over banner) */}
         <div className="bg-white rounded-2xl shadow-md border border-gray-100 px-4 py-3 mb-5 flex flex-wrap items-center gap-2">
           <button
-            onClick={() => setCategoryId(null)}
+            onClick={() => {
+              setCategoryId(null);
+              setCurrentPage(0);
+            }}
             className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
               categoryId == null
                 ? "bg-brand-dark text-white shadow-sm"
@@ -150,7 +164,10 @@ export default function ProductsPage() {
           {categoryOptions.map((c) => (
             <button
               key={c.id}
-              onClick={() => setCategoryId(c.id)}
+              onClick={() => {
+                setCategoryId(c.id);
+                setCurrentPage(0);
+              }}
               className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
                 categoryId === c.id
                   ? "bg-brand-dark text-white shadow-sm"
@@ -163,11 +180,16 @@ export default function ProductsPage() {
           <div className="ml-auto shrink-0">
             <select
               value={sort}
-              onChange={(e) => setSort(e.target.value)}
+              onChange={(e) => {
+                setSort(e.target.value);
+                setCurrentPage(0);
+              }}
               className="bg-gray-50 border border-gray-200 rounded-xl pl-3 pr-8 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand/30"
             >
               {SORT_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
               ))}
             </select>
           </div>
@@ -255,7 +277,12 @@ export default function ProductsPage() {
                   }, [])
                   .map((p, idx) =>
                     p === "..." ? (
-                      <span key={`dot-${idx}`} className="w-9 h-9 flex items-center justify-center text-gray-400 text-sm">…</span>
+                      <span
+                        key={`dot-${idx}`}
+                        className="w-9 h-9 flex items-center justify-center text-gray-400 text-sm"
+                      >
+                        …
+                      </span>
                     ) : (
                       <button
                         key={p}
@@ -268,7 +295,7 @@ export default function ProductsPage() {
                       >
                         {p + 1}
                       </button>
-                    )
+                    ),
                   )}
                 <button
                   onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}

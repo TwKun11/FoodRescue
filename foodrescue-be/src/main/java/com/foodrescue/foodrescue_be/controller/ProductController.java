@@ -35,11 +35,12 @@ public class ProductController {
     public ResponseData<Page<ProductResponse>> listPublic(
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "createdAt_desc") String sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "12") int size
     ) {
         return ResponseData.ok(productService.getPublicProducts(
-                categoryId, keyword,
+                categoryId, keyword, sort,
                 PageRequest.of(page, size, Sort.by("createdAt").descending())
         ));
     }

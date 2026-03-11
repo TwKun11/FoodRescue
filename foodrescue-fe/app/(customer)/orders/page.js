@@ -77,7 +77,7 @@ export default function OrdersPage() {
       router.replace("/login");
       return;
     }
-    load(0);
+    queueMicrotask(() => load(0));
   }, [load, router]);
 
   const filtered = activeTab === "all" ? orders : orders.filter((o) => o.status?.toLowerCase() === activeTab);

@@ -54,7 +54,7 @@ export default function AddressesPage() {
       router.replace("/login");
       return;
     }
-    load();
+    queueMicrotask(load);
   }, [load, router]);
 
   const openCreate = () => {

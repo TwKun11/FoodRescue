@@ -76,6 +76,8 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
   const [galleryUploading, setGalleryUploading] = useState(false);
 
   const isEdit = !!initialData;
+  const initialProductId = initialData?.id ?? null;
+  const initialProductImages = initialData?.images ?? null;
 
   const [initVariant, setInitVariant] = useState({
     variantCode: genVarCode(),
@@ -111,14 +113,14 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
     apiGetBrands().then((res) => {
       if (res.ok && res.data?.data) setBrands(res.data.data);
     });
-    if (isEdit && initialData?.id) {
-      apiSellerGetProductImages(initialData.id).then((res) => {
+    if (isEdit && initialProductId) {
+      apiSellerGetProductImages(initialProductId).then((res) => {
         if (res.ok && res.data?.data) setGalleryImages(res.data.data);
       });
-    } else if (initialData?.images) {
-      setGalleryImages(initialData.images);
+    } else if (initialProductImages) {
+      setGalleryImages(initialProductImages);
     }
-  }, []);
+  }, [initialProductId, initialProductImages, isEdit]);
 
   const set = (k) => (e) => {
     const val = e.target.value;
@@ -251,7 +253,9 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
                   costPrice: Number(initVariant.listPrice),
                 });
                 if (!batchRes.ok) {
-                  setError(batchRes.data?.message || "Tạo sản phẩm và biến thể thành công nhưng không lưu được tồn kho");
+                  setError(
+                    batchRes.data?.message || "Tạo sản phẩm và biến thể thành công nhưng không lưu được tồn kho",
+                  );
                   setLoading(false);
                   return;
                 }
@@ -435,7 +439,14 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
             <div className="flex items-center gap-3">
               <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition inline-block">
                 + Thêm ảnh
-                <input type="file" accept="image/*" multiple className="hidden" onChange={handleCreateImgAdd} disabled={uploading} />
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleCreateImgAdd}
+                  disabled={uploading}
+                />
               </label>
               {createImgQueue.length === 0 && <span className="text-xs text-gray-400">Chưa chọn ảnh nào</span>}
               {uploading && <span className="text-xs text-blue-500">Đang tải ảnh lên...</span>}
@@ -692,7 +703,9 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-300"
               >
                 {VARIANT_UNITS.map((u) => (
-                  <option key={u} value={u}>{u}</option>
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
                 ))}
               </select>
             </div>
@@ -710,7 +723,9 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Giá bán (đ) <span className="text-gray-400 font-normal">(nếu không điền = bằng giá niêm yết)</span></label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Giá bán (đ) <span className="text-gray-400 font-normal">(nếu không điền = bằng giá niêm yết)</span>
+              </label>
               <input
                 type="number"
                 min={0}
@@ -721,7 +736,9 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Tồn kho ban đầu <span className="text-gray-400 font-normal">(tùy chọn)</span></label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Tồn kho ban đầu <span className="text-gray-400 font-normal">(tùy chọn)</span>
+              </label>
               <input
                 type="number"
                 min={0}
