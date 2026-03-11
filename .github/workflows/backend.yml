@@ -22,4 +22,6 @@ jobs:
           java-version: 21
 
       - name: Build with Maven
-        run: mvn clean package -DskipTests
+        run: |
+          cd foodrescue-be
+          mvn clean package -DskipTests
