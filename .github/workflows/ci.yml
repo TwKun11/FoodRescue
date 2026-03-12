@@ -1,0 +1,44 @@
+name: FoodRescue CI
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  backend-ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Build Backend
+        run: |
+          cd foodrescue-be
+          mvn clean package -DskipTests
+
+  frontend-ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build Frontend
+        run: |
+          cd foodrescue-fe
+          npm install
+          npm run build
