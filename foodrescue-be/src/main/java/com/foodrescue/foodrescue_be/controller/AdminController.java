@@ -35,10 +35,15 @@ public class AdminController {
     @GetMapping("/users")
     public ResponseData<Page<UserResponse>> listUsers(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Role role,
+            @RequestParam(required = false) UserStatus status
     ) {
+        String searchTrimmed = (search != null && !search.isBlank()) ? search.trim() : null;
         return ResponseData.ok(
-                userRepository.findAll(PageRequest.of(page, size, Sort.by("createdAt").descending()))
+                userRepository.findAllWithFilter(searchTrimmed, role, status,
+                        PageRequest.of(page, size, Sort.by("createdAt").descending()))
                         .map(UserResponse::fromEntity)
         );
     }
@@ -59,10 +64,14 @@ public class AdminController {
     @GetMapping("/sellers")
     public ResponseData<Page<SellerResponse>> listSellers(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Seller.Status status
     ) {
+        String searchTrimmed = (search != null && !search.isBlank()) ? search.trim() : null;
         return ResponseData.ok(
-                sellerRepository.findAll(PageRequest.of(page, size, Sort.by("createdAt").descending()))
+                sellerRepository.findAllWithFilter(searchTrimmed, status,
+                        PageRequest.of(page, size, Sort.by("createdAt").descending()))
                         .map(SellerResponse::fromEntity)
         );
     }

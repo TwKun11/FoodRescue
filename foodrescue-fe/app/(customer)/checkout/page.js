@@ -293,7 +293,7 @@ export default function CheckoutPage() {
                       </p>
                     </div>
                     <span className="text-gray-800 font-medium shrink-0">
-                      {((item.price || item.discountPrice || 0) * (item.quantity || 1)).toLocaleString("vi-VN")}đ
+                      {((item.price || item.discountPrice || 0) * (item.quantity || 1)).toLocaleString("vi-VN")} đồng
                     </span>
                   </div>
                 ))}
@@ -306,7 +306,7 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex justify-between font-bold text-gray-900 pt-2">
                   <span>Tổng cộng</span>
-                  <span className="text-brand-dark text-lg">{total.toLocaleString("vi-VN")}đ</span>
+                  <span className="text-brand-dark text-lg">{total.toLocaleString("vi-VN")} đồng</span>
                 </div>
                 <p className="text-xs text-gray-400">Tổng tiền được đồng bộ với backend theo giá sản phẩm hiện tại.</p>
               </div>

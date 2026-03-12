@@ -77,7 +77,7 @@ export default function OrderTable({ orders = [], onConfirm }) {
                       <p className="text-gray-400 text-xs">x{order.quantity}</p>
                     </td>
                     <td className="px-4 py-3 text-gray-600">{order.customerName}</td>
-                    <td className="px-4 py-3 font-semibold text-orange-600">{order.total?.toLocaleString("vi-VN")}đ</td>
+                    <td className="px-4 py-3 font-semibold text-orange-600">{order.total?.toLocaleString("vi-VN")} đồng</td>
                     <td className="px-4 py-3">
                       <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
                     </td>

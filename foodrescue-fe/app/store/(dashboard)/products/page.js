@@ -36,7 +36,7 @@ const TABS = [
 ];
 
 const STATUS_MAP = {
-  active: { label: "Đang bán", dot: "bg-green-500", text: "text-green-700", bg: "bg-green-50" },
+  active: { label: "Đang bán", dot: "bg-brand", text: "text-brand-dark", bg: "bg-brand-bg" },
   pending_approval: { label: "Chờ duyệt", dot: "bg-blue-400", text: "text-blue-700", bg: "bg-blue-50" },
   inactive: { label: "Không hoạt động", dot: "bg-gray-400", text: "text-gray-600", bg: "bg-gray-50" },
   draft: { label: "Nháp", dot: "bg-yellow-400", text: "text-yellow-700", bg: "bg-yellow-50" },
@@ -209,7 +209,7 @@ export default function StoreProductsPage() {
   const loadProducts = useCallback(
     function (p) {
       setLoading(true);
-      apiSellerGetProducts({ page: p || 0, keyword })
+      apiSellerGetProducts({ page: p || 0, size: 10, keyword })
         .then(function (res) {
           if (res.ok && res.data && res.data.data) {
             var d = res.data.data;
@@ -268,7 +268,7 @@ export default function StoreProductsPage() {
       {toast && (
         <div
           className={`fixed bottom-5 right-5 z-100 flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-sm font-semibold ${
-            toast.type === "error" ? "bg-red-500 text-white" : "bg-green-500 text-white"
+            toast.type === "error" ? "bg-red-500 text-white" : "bg-brand text-gray-900"
           }`}
         >
           <span>
@@ -279,7 +279,7 @@ export default function StoreProductsPage() {
           </button>
         </div>
       )}
-      <div className="flex-1 p-6 space-y-4">
+      <div className="flex-1 p-6 sm:p-8 space-y-6">
         {/* ── Variant Modal ── */}
         {showVariants && variantProduct && (
           <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 overflow-y-auto py-10">
@@ -335,10 +335,10 @@ export default function StoreProductsPage() {
                             })()}
                           </td>
                           <td className="px-3 py-2 text-right text-gray-500">
-                            {v.listPrice ? Number(v.listPrice).toLocaleString("vi-VN") + "đ" : "—"}
+                            {v.listPrice ? Number(v.listPrice).toLocaleString("vi-VN") + " đồng" : "—"}
                           </td>
                           <td className="px-3 py-2 text-right font-semibold text-green-600">
-                            {v.salePrice ? Number(v.salePrice).toLocaleString("vi-VN") + "đ" : "—"}
+                            {v.salePrice ? Number(v.salePrice).toLocaleString("vi-VN") + " đồng" : "—"}
                           </td>
                         </tr>
                       ))}
@@ -391,7 +391,7 @@ export default function StoreProductsPage() {
                       placeholder="VD: Gói 500g"
                       value={variantForm.name}
                       onChange={(e) => setVariantForm((p) => ({ ...p, name: e.target.value }))}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
                     />
                   </div>
                 </div>
@@ -401,7 +401,7 @@ export default function StoreProductsPage() {
                     <select
                       value={variantForm.unit}
                       onChange={(e) => setVariantForm((p) => ({ ...p, unit: e.target.value }))}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-300"
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-dark"
                     >
                       {VARIANT_UNITS.map((u) => (
                         <option key={u} value={u}>
@@ -418,18 +418,18 @@ export default function StoreProductsPage() {
                       placeholder="0"
                       value={variantForm.listPrice}
                       onChange={(e) => setVariantForm((p) => ({ ...p, listPrice: e.target.value }))}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">Giá bán (đ)</label>
+                    <label className="block text-xs text-gray-500 mb-1">Giá bán (đồng)</label>
                     <input
                       type="number"
                       min={0}
                       placeholder="Mặc định bằng giá niêm yết"
                       value={variantForm.salePrice}
                       onChange={(e) => setVariantForm((p) => ({ ...p, salePrice: e.target.value }))}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
                     />
                   </div>
                 </div>
@@ -442,7 +442,7 @@ export default function StoreProductsPage() {
                       placeholder="VD: 50"
                       value={variantForm.stockQuantity}
                       onChange={(e) => setVariantForm((p) => ({ ...p, stockQuantity: e.target.value }))}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
                     />
                   </div>
                   <div>
@@ -452,7 +452,7 @@ export default function StoreProductsPage() {
                       min={1}
                       value={variantForm.minOrderQty}
                       onChange={(e) => setVariantForm((p) => ({ ...p, minOrderQty: e.target.value }))}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
                     />
                   </div>
                   <div>
@@ -464,7 +464,7 @@ export default function StoreProductsPage() {
                       min={1}
                       value={variantForm.stepQty}
                       onChange={(e) => setVariantForm((p) => ({ ...p, stepQty: e.target.value }))}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
                     />
                     <p className="text-xs text-gray-400 mt-1">Thường để 1. Nếu 2: khách chỉ đặt 2, 4, 6...</p>
                   </div>
@@ -478,7 +478,7 @@ export default function StoreProductsPage() {
                       placeholder="VD: 8936082020169"
                       value={variantForm.barcode}
                       onChange={(e) => setVariantForm((p) => ({ ...p, barcode: e.target.value }))}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
                     />
                   </div>
                   <div>
@@ -489,7 +489,7 @@ export default function StoreProductsPage() {
                       placeholder="VD: 500"
                       value={variantForm.netWeightValue}
                       onChange={(e) => setVariantForm((p) => ({ ...p, netWeightValue: e.target.value }))}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
                     />
                   </div>
                   <div>
@@ -497,7 +497,7 @@ export default function StoreProductsPage() {
                     <select
                       value={variantForm.netWeightUnit}
                       onChange={(e) => setVariantForm((p) => ({ ...p, netWeightUnit: e.target.value }))}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-300"
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-dark"
                     >
                       {["g", "kg", "ml", "l"].map((u) => (
                         <option key={u} value={u}>
@@ -517,7 +517,7 @@ export default function StoreProductsPage() {
                       placeholder="Không giới hạn"
                       value={variantForm.maxOrderQty}
                       onChange={(e) => setVariantForm((p) => ({ ...p, maxOrderQty: e.target.value }))}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
                     />
                   </div>
                   <div className="flex items-end pb-1">
@@ -536,7 +536,7 @@ export default function StoreProductsPage() {
                   <button
                     type="submit"
                     disabled={variantLoading}
-                    className="px-5 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-lg transition disabled:opacity-60"
+                    className="px-5 py-2 bg-brand hover:bg-brand-secondary text-gray-900 text-sm font-semibold rounded-lg transition disabled:opacity-60"
                   >
                     {variantLoading ? "Đang lưu..." : "Thêm biến thể"}
                   </button>
@@ -580,16 +580,16 @@ export default function StoreProductsPage() {
         </div>
 
         {/* ── Main Card ── */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           {/* Tabs */}
-          <div className="flex border-b border-gray-200 overflow-x-auto">
+          <div className="flex border-b border-gray-100 overflow-x-auto">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`px-4 py-3 text-sm font-medium whitespace-nowrap transition border-b-2 -mb-px ${
                   activeTab === tab.id
-                    ? "border-green-500 text-green-600"
+                    ? "border-brand text-brand-dark"
                     : "border-transparent text-gray-500 hover:text-gray-700"
                 }`}
               >
@@ -603,34 +603,36 @@ export default function StoreProductsPage() {
             ))}
           </div>
 
-          {/* Filters */}
-          <div className="px-5 py-4 flex flex-wrap items-end gap-3 border-b border-gray-100">
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Tìm kiếm</label>
+          {/* Tìm kiếm & Bộ lọc */}
+          <div className="px-5 py-4 flex flex-wrap items-center gap-4 border-b border-gray-100 bg-gray-50/50">
+            <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+              <span className="text-gray-500 text-sm shrink-0">Tìm kiếm</span>
               <input
                 type="text"
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
-                placeholder="Tên sản phẩm..."
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-green-300 min-w-55"
+                onKeyDown={(e) => e.key === "Enter" && loadProducts(0)}
+                placeholder="Tên sản phẩm, mã..."
+                className="flex-1 min-w-0 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-dark"
               />
             </div>
-            <button
-              onClick={() => loadProducts(0)}
-              className="bg-green-500 hover:bg-green-600 text-white text-sm font-semibold px-5 py-2 rounded-lg transition"
-            >
-              Tìm kiếm
-            </button>
-            <button className="w-9 h-9 flex items-center justify-center border border-gray-300 rounded-lg text-gray-500 hover:bg-gray-50 transition">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
-              </svg>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => loadProducts(0)}
+                className="bg-brand hover:bg-brand-secondary text-gray-900 text-sm font-semibold px-4 py-2 rounded-xl transition"
+              >
+                Tìm kiếm
+              </button>
+              {keyword && (
+                <button
+                  type="button"
+                  onClick={() => { setKeyword(""); loadProducts(0); }}
+                  className="text-sm text-gray-500 hover:text-gray-700 underline"
+                >
+                  Xóa tìm kiếm
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Table */}
@@ -643,7 +645,7 @@ export default function StoreProductsPage() {
                       type="checkbox"
                       checked={filteredProducts.length > 0 && selected.length === filteredProducts.length}
                       onChange={toggleAll}
-                      className="rounded border-gray-300 text-green-500 focus:ring-green-400"
+                      className="rounded border-gray-300 text-brand focus:ring-brand-dark"
                     />
                   </th>
                   <th className="px-4 py-3 text-left">Sản phẩm</th>
@@ -676,7 +678,7 @@ export default function StoreProductsPage() {
                           type="checkbox"
                           checked={selected.includes(p.id)}
                           onChange={() => toggleSelect(p.id)}
-                          className="rounded border-gray-300 text-green-500 focus:ring-green-400"
+                          className="rounded border-gray-300 text-brand focus:ring-brand-dark"
                         />
                       </td>
                       <td className="px-4 py-4">
@@ -698,8 +700,8 @@ export default function StoreProductsPage() {
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <p className="text-xs text-gray-400 line-through">{p.originalPrice.toLocaleString("vi-VN")}đ</p>
-                        <p className="text-sm font-bold text-green-600">{p.discountPrice.toLocaleString("vi-VN")}đ</p>
+                        <p className="text-xs text-gray-400 line-through">{p.originalPrice.toLocaleString("vi-VN")} đồng</p>
+                        <p className="text-sm font-bold text-brand-dark">{p.discountPrice.toLocaleString("vi-VN")} đồng</p>
                       </td>
                       <td className="px-4 py-4">
                         <span
@@ -804,36 +806,29 @@ export default function StoreProductsPage() {
             </table>
           </div>
 
-          {/* Pagination */}
-          <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between">
-            <p className="text-xs text-gray-500">
-              Hiển thị {filteredProducts.length} / {totalElements} sản phẩm
+          {/* Pagination — 10 sản phẩm/trang */}
+          <div className="px-5 py-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-gray-500">
+              Hiển thị <span className="font-medium text-gray-700">{filteredProducts.length}</span> / {totalElements} sản phẩm
+              {totalPages > 1 && <span className="ml-1">· Trang {page + 1}/{totalPages}</span>}
             </p>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
               <button
                 disabled={page === 0}
-                onClick={() => {
-                  var np = page - 1;
-                  setPage(np);
-                  loadProducts(np);
-                }}
-                className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:bg-gray-50 transition disabled:opacity-40"
+                onClick={() => { const np = page - 1; setPage(np); loadProducts(np); }}
+                className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-brand-bg hover:border-brand/50 transition disabled:opacity-40 disabled:pointer-events-none"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
-              <span className="text-sm text-gray-600 px-2">
+              <span className="text-sm font-medium text-gray-700 min-w-16 text-center">
                 {page + 1} / {totalPages}
               </span>
               <button
                 disabled={page + 1 >= totalPages}
-                onClick={() => {
-                  var np = page + 1;
-                  setPage(np);
-                  loadProducts(np);
-                }}
-                className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:bg-gray-50 transition disabled:opacity-40"
+                onClick={() => { const np = page + 1; setPage(np); loadProducts(np); }}
+                className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-brand-bg hover:border-brand/50 transition disabled:opacity-40 disabled:pointer-events-none"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -843,57 +838,7 @@ export default function StoreProductsPage() {
           </div>
         </div>
 
-        {/* ── Bottom Stats ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-green-500 rounded-xl p-4 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-                />
-              </svg>
-            </div>
-            <div>
-              <p className="text-white/80 text-[10px] font-bold uppercase tracking-wide">Thực phẩm đã giải cứu</p>
-              <p className="text-white text-2xl font-extrabold leading-tight">1,240 kg</p>
-            </div>
-          </div>
-          <div className="bg-blue-500 rounded-xl p-4 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"
-                />
-              </svg>
-            </div>
-            <div>
-              <p className="text-white/80 text-[10px] font-bold uppercase tracking-wide">Lãng phí đã giảm</p>
-              <p className="text-white text-2xl font-extrabold leading-tight">32%</p>
-            </div>
-          </div>
-          <div className="bg-orange-400 rounded-xl p-4 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </div>
-            <div>
-              <p className="text-white/80 text-[10px] font-bold uppercase tracking-wide">Hàng cần date (24h)</p>
-              <p className="text-white text-2xl font-extrabold leading-tight">18 món</p>
-            </div>
-          </div>
-        </div>
+        
       </div>
 
       {/* ── Footer ── */}

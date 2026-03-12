@@ -141,11 +141,11 @@ export default function CartPage() {
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between text-gray-600">
                     <span>Tạm tính</span>
-                    <span className="font-medium text-gray-800">{subtotal.toLocaleString("vi-VN")}đ</span>
+                    <span className="font-medium text-gray-800">{subtotal.toLocaleString("vi-VN")} đồng</span>
                   </div>
                   <div className="flex justify-between text-brand-dark">
                     <span>Tiết kiệm</span>
-                    <span className="font-medium">-{savings.toLocaleString("vi-VN")}đ</span>
+                    <span className="font-medium">-{savings.toLocaleString("vi-VN")} đồng</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
                     <span>
@@ -156,7 +156,7 @@ export default function CartPage() {
                   </div>
                   <div className="border-t border-gray-100 pt-4 mt-4 flex justify-between items-center">
                     <span className="font-bold text-gray-900">Tổng cộng</span>
-                    <span className="text-xl font-bold text-brand-dark">{total.toLocaleString("vi-VN")}đ</span>
+                    <span className="text-xl font-bold text-brand-dark">{total.toLocaleString("vi-VN")} đồng</span>
                   </div>
                 </div>
 
