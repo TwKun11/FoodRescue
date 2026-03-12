@@ -18,7 +18,10 @@ const STATUS_LABEL = {
 const PAYMENT_METHOD_LABEL = {
   cod: "Thanh toán khi nhận hàng (COD)",
   bank_transfer: "Chuyển khoản ngân hàng",
-  e_wallet: "Ví điện tử",
+  momo: "Ví MoMo",
+  zalopay: "ZaloPay",
+  vnpay: "VNPay QR",
+  card: "Thẻ tín dụng / Visa",
 };
 
 const PAYMENT_STATUS_STYLE = {

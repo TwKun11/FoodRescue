@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -10,18 +10,16 @@ function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
+  const missingToken = !token;
 
-  const [status, setStatus] = useState("loading"); // loading | success | error
+  const [status, setStatus] = useState("loading");
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    if (!token) {
-      setStatus("error");
-      setMessage("Link xác thực không hợp lệ hoặc thiếu mã token.");
-      return;
-    }
+    if (missingToken) return;
 
     let cancelled = false;
+
     const verify = async () => {
       try {
         const res = await fetch(`${API_URL}/api/auth/verify-email?token=${encodeURIComponent(token)}`);
@@ -38,7 +36,7 @@ function VerifyEmailContent() {
         setStatus("success");
         setMessage(data?.message || "Xác thực email thành công. Bạn có thể đăng nhập.");
         setTimeout(() => router.push("/login"), 2000);
-      } catch (err) {
+      } catch {
         if (!cancelled) {
           setStatus("error");
           setMessage("Không kết nối được server. Vui lòng thử lại sau.");
@@ -47,8 +45,10 @@ function VerifyEmailContent() {
     };
 
     verify();
-    return () => { cancelled = true; };
-  }, [token, router]);
+    return () => {
+      cancelled = true;
+    };
+  }, [missingToken, router, token]);
 
   return (
     <div className="min-h-screen bg-brand-bg py-12 px-4">
@@ -56,7 +56,7 @@ function VerifyEmailContent() {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8 text-center">
           <h1 className="text-xl font-bold text-gray-800 mb-2">Xác thực email</h1>
 
-          {status === "loading" && (
+          {status === "loading" && !missingToken && (
             <>
               <p className="text-gray-600 mb-6">Đang xác thực tài khoản...</p>
               <div className="flex justify-center">
@@ -80,10 +80,10 @@ function VerifyEmailContent() {
             </>
           )}
 
-          {status === "error" && (
+          {(missingToken || status === "error") && (
             <>
               <div className="mb-4 p-3 rounded-xl text-sm bg-red-50 text-red-700 border border-red-200">
-                {message}
+                {missingToken ? "Link xác thực không hợp lệ hoặc thiếu mã token." : message}
               </div>
               <Link
                 href="/login"

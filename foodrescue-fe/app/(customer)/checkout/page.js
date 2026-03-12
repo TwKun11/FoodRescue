@@ -1,11 +1,10 @@
-// FE02-005 – UI Thanh toán (API-connected)
 "use client";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Badge from "@/components/common/Badge";
 import Link from "next/link";
-import { apiPlaceOrder } from "@/lib/api";
+import { apiGetAddresses, apiPlaceOrder } from "@/lib/api";
 
-// Payment methods with wallet images
 const PAYMENT_METHODS = [
   { id: "cod", label: "Tiền mặt (nhận tại cửa hàng)", icon: "💵", image: null },
   { id: "momo", label: "Ví MoMo", icon: null, image: "/images/banking/momo.jpg" },
@@ -14,95 +13,82 @@ const PAYMENT_METHODS = [
   { id: "card", label: "Thẻ tín dụng / Visa", icon: "💳", image: null },
 ];
 
-const SERVICE_FEE_RATE = 0.03;
-
-// Mock danh sách voucher (mã → { type: 'percent'|'fixed', value, label })
-const VOUCHERS = {
-  FOOD10: { type: "percent", value: 10, label: "Giảm 10% đơn hàng" },
-  FOOD20: { type: "percent", value: 20, label: "Giảm 20% đơn hàng" },
-  GIAM20K: { type: "fixed", value: 20000, label: "Giảm 20.000đ" },
-  GIAM50K: { type: "fixed", value: 50000, label: "Giảm 50.000đ" },
-};
-
-// Danh sách voucher hiển thị để chọn từ hệ thống
-const AVAILABLE_VOUCHERS = Object.entries(VOUCHERS).map(([code, v]) => ({ code, ...v }));
-
 export default function CheckoutPage() {
-  const [cartItems, setCartItems] = useState([]);
+  const router = useRouter();
+  const [cartItems] = useState(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      return JSON.parse(localStorage.getItem("cart") || "[]");
+    } catch {
+      return [];
+    }
+  });
+  const [addresses, setAddresses] = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState("");
+  const [addressesLoading, setAddressesLoading] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [note, setNote] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [placed, setPlaced] = useState(false);
   const [orderId, setOrderId] = useState(null);
   const [placing, setPlacing] = useState(false);
-  const [voucherInput, setVoucherInput] = useState("");
-  const [appliedVoucher, setAppliedVoucher] = useState(null);
-  const [voucherError, setVoucherError] = useState("");
 
-  useEffect(function () {
-    try {
-      var cart = JSON.parse(localStorage.getItem("cart") || "[]");
-      setCartItems(cart);
-    } catch (e) {}
-  }, []);
-
-  var subtotal = cartItems.reduce(function (s, i) {
-    return s + (i.price || i.discountPrice || 0) * (i.quantity || 1);
-  }, 0);
-  var serviceFee = Math.round(subtotal * SERVICE_FEE_RATE);
-  var beforeVoucher = subtotal + serviceFee;
-
-  var voucherDiscount = appliedVoucher
-    ? appliedVoucher.type === "percent"
-      ? Math.round(beforeVoucher * (appliedVoucher.value / 100))
-      : Math.min(appliedVoucher.value, beforeVoucher)
-    : 0;
-  var total = Math.max(0, beforeVoucher - voucherDiscount);
-
-  const applyVoucherByCode = (code) => {
-    setVoucherError("");
-    const c = (code || voucherInput.trim()).toUpperCase();
-    if (!c) {
-      setVoucherError("Vui lòng nhập mã voucher");
+  useEffect(() => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+    if (!token) {
+      router.replace("/login");
       return;
     }
-    const v = VOUCHERS[c];
-    if (!v) {
-      setVoucherError("Mã không hợp lệ hoặc đã hết hạn");
-      return;
-    }
-    setAppliedVoucher({ code: c, ...v });
-    setVoucherInput("");
-  };
 
-  const handleApplyVoucher = () => applyVoucherByCode(voucherInput.trim());
-
-  const handleSelectVoucher = (code) => applyVoucherByCode(code);
-
-  const handleRemoveVoucher = () => {
-    setAppliedVoucher(null);
-    setVoucherError("");
-  };
-
-  const handlePlaceOrder = () => {
-    if (!agreed) return alert("Vui long dong y voi dieu khoan dich vu");
-    if (cartItems.length === 0) return alert("Gio hang trong.");
-    setPlacing(true);
-    var orderLines = cartItems.map(function (i) {
-      return { variantId: i.variantId, quantity: i.quantity };
-    });
-    apiPlaceOrder({ paymentMethod, note, items: orderLines })
-      .then(function (res) {
-        if (res.ok && res.data && res.data.data) {
-          setOrderId(res.data.data.id || res.data.data.orderCode || "");
-          localStorage.removeItem("cart");
-          setPlaced(true);
-        } else {
-          var msg = (res.data && res.data.message) || "Dat hang that bai.";
-          alert(msg);
+    apiGetAddresses()
+      .then((res) => {
+        if (res.ok && res.data?.data) {
+          const nextAddresses = res.data.data;
+          setAddresses(nextAddresses);
+          const defaultAddress = nextAddresses.find((item) => item.isDefault);
+          if (defaultAddress) {
+            setSelectedAddressId(String(defaultAddress.id));
+          }
+        } else if (res.status === 401) {
+          router.replace("/login");
         }
       })
-      .finally(function () {
+      .finally(() => setAddressesLoading(false));
+  }, [router]);
+
+  const subtotal = cartItems.reduce((sum, item) => {
+    return sum + (item.price || item.discountPrice || 0) * (item.quantity || 1);
+  }, 0);
+  const total = subtotal;
+
+  const handlePlaceOrder = () => {
+    if (!agreed) return alert("Vui lòng đồng ý với điều khoản dịch vụ");
+    if (cartItems.length === 0) return alert("Giỏ hàng trống.");
+
+    setPlacing(true);
+    const orderLines = cartItems.map((item) => ({
+      variantId: item.variantId,
+      quantity: item.quantity,
+    }));
+
+    apiPlaceOrder({
+      addressId: selectedAddressId ? Number(selectedAddressId) : null,
+      paymentMethod,
+      note: note.trim() || null,
+      items: orderLines,
+    })
+      .then((res) => {
+        if (res.ok && res.data?.data) {
+          setOrderId(res.data.data.orderCode || res.data.data.id || "");
+          localStorage.removeItem("cart");
+          setPlaced(true);
+        } else if (res.status === 401) {
+          router.replace("/login");
+        } else {
+          alert(res.data?.message || "Đặt hàng thất bại.");
+        }
+      })
+      .finally(() => {
         setPlacing(false);
       });
   };
@@ -116,19 +102,15 @@ export default function CheckoutPage() {
           </div>
           <h2 className="text-xl font-bold text-gray-800">Đặt hàng thành công!</h2>
           <p className="text-gray-500 mt-2 text-sm">
-            Don hang{" "}
-            <span className="font-mono font-bold text-brand-dark">
-              #{orderId || "FR" + Date.now().toString().slice(-6)}
-            </span>{" "}
-            da duoc xac nhan.
+            Đơn hàng <span className="font-mono font-bold text-brand-dark">#{orderId || "—"}</span> đã được xác nhận.
           </p>
-          <p className="text-gray-500 text-sm mt-1">Vui lòng đến cửa hàng để nhận sản phẩm trước khi hết hạn.</p>
+          <p className="text-gray-500 text-sm mt-1">Bạn có thể theo dõi trạng thái trong mục đơn hàng của tôi.</p>
           <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
             <Link
-              href="/"
+              href="/orders"
               className="inline-flex items-center justify-center rounded-xl px-5 py-2.5 bg-brand text-gray-900 font-medium text-sm hover:bg-brand-dark transition"
             >
-              Về trang chủ
+              Xem đơn hàng
             </Link>
             <Link
               href="/products"
@@ -149,20 +131,78 @@ export default function CheckoutPage() {
         <p className="text-gray-500 text-sm mb-6">Chọn phương thức thanh toán và xác nhận đơn hàng.</p>
 
         <div className="flex flex-col lg:flex-row gap-8">
-          {/* Cột trái: Nhận hàng + Phương thức thanh toán + Ghi chú */}
           <div className="flex-1 space-y-5">
-            {/* Nhận hàng tại cửa hàng */}
             <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-              <h2 className="font-semibold text-gray-800 mb-3">📍 Nhận hàng tại cửa hàng</h2>
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <h2 className="font-semibold text-gray-800">📍 Địa chỉ liên hệ</h2>
+                <Link href="/profile/addresses" className="text-xs font-medium text-brand-dark hover:underline">
+                  Quản lý địa chỉ
+                </Link>
+              </div>
+              {addressesLoading ? (
+                <p className="text-sm text-gray-400">Đang tải địa chỉ...</p>
+              ) : addresses.length === 0 ? (
+                <div className="bg-brand-bg rounded-xl p-4 text-sm border border-brand/20 space-y-2">
+                  <p className="font-semibold text-gray-800">Chưa có địa chỉ nào được lưu</p>
+                  <p className="text-gray-600 text-xs">
+                    Bạn vẫn có thể đặt đơn nhận tại cửa hàng, nhưng nên thêm địa chỉ để lưu thông tin liên hệ cho đơn hàng.
+                  </p>
+                  <Link href="/profile/addresses" className="inline-flex text-xs font-medium text-brand-dark hover:underline">
+                    + Thêm địa chỉ mới
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {addresses.map((address) => (
+                    <label
+                      key={address.id}
+                      className={`block rounded-xl border-2 p-4 cursor-pointer transition ${
+                        String(address.id) === selectedAddressId
+                          ? "border-brand bg-brand-bg"
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="radio"
+                          name="address"
+                          value={address.id}
+                          checked={String(address.id) === selectedAddressId}
+                          onChange={() => setSelectedAddressId(String(address.id))}
+                          className="mt-0.5 accent-brand-dark"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-semibold text-gray-800">{address.receiverName}</p>
+                            <span className="text-sm text-gray-400">{address.receiverPhone}</span>
+                            {address.isDefault && (
+                              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                                Mặc định
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600 mt-1">
+                            {address.addressLine}, {address.ward}, {address.district}, {address.province}
+                          </p>
+                          {address.note && <p className="text-xs text-gray-400 mt-1">Ghi chú: {address.note}</p>}
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <h2 className="font-semibold text-gray-800 mb-3">🏪 Nhận hàng</h2>
               <div className="bg-brand-bg rounded-xl p-4 text-sm border border-brand/20">
                 <p className="font-semibold text-gray-800">FoodRescue – Click & Collect</p>
                 <p className="text-gray-600 mt-1 text-xs">
-                  Đặt hàng online → đến cửa hàng cụ thể để nhận trong ngày. Mang theo mã đơn khi đến nhận.
+                  Đơn hàng hiện được xử lý theo hình thức nhận tại cửa hàng. Địa chỉ đã chọn được dùng làm thông tin liên hệ cho đơn hàng.
                 </p>
               </div>
             </div>
 
-            {/* Phương thức thanh toán — ảnh từ images/banking cho Momo, ZaloPay, VNPay */}
             <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
               <h2 className="font-semibold text-gray-800 mb-4">Chọn phương thức thanh toán</h2>
               <div className="space-y-3">
@@ -217,38 +257,8 @@ export default function CheckoutPage() {
                   </label>
                 ))}
               </div>
-
-              {paymentMethod === "momo" && (
-                <div className="mt-3 bg-brand-bg rounded-xl p-3 text-xs text-gray-700 border border-brand/20">
-                  📱 Quét mã QR MoMo tại bước xác nhận. SĐT MoMo: <strong>0901 234 567</strong>
-                </div>
-              )}
-              {(paymentMethod === "zalopay" || paymentMethod === "vnpay") && (
-                <div className="mt-3 bg-brand-bg rounded-xl p-3 text-xs text-gray-700 border border-brand/20">
-                  📱 Bạn sẽ được chuyển đến trang thanh toán để quét QR hoặc nhập thông tin.
-                </div>
-              )}
-              {paymentMethod === "card" && (
-                <div className="mt-3 space-y-2">
-                  <input
-                    placeholder="Số thẻ"
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
-                  />
-                  <div className="flex gap-2">
-                    <input
-                      placeholder="MM/YY"
-                      className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
-                    />
-                    <input
-                      placeholder="CVV"
-                      className="w-20 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
-                    />
-                  </div>
-                </div>
-              )}
             </div>
 
-            {/* Ghi chú */}
             <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
               <h2 className="font-semibold text-gray-800 mb-3">📝 Ghi chú đơn hàng</h2>
               <textarea
@@ -261,7 +271,6 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* Cột phải: Review đơn hàng */}
           <div className="w-full lg:w-96 shrink-0">
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 sticky top-24 space-y-4">
               <h2 className="font-bold text-gray-800 pb-3 border-b border-gray-100">Tóm tắt đơn hàng</h2>
@@ -269,9 +278,9 @@ export default function CheckoutPage() {
               <div className="space-y-3">
                 {cartItems.length === 0 ? (
                   <p className="text-sm text-gray-400">
-                    Gio hang trong.{" "}
+                    Giỏ hàng trống.{" "}
                     <Link href="/products" className="text-brand-dark underline">
-                      Mua hang
+                      Mua hàng
                     </Link>
                   </p>
                 ) : null}
@@ -284,73 +293,10 @@ export default function CheckoutPage() {
                       </p>
                     </div>
                     <span className="text-gray-800 font-medium shrink-0">
-                      {((item.price || item.discountPrice || 0) * (item.quantity || 1)).toLocaleString("vi-VN")}d
+                      {((item.price || item.discountPrice || 0) * (item.quantity || 1)).toLocaleString("vi-VN")}đ
                     </span>
                   </div>
                 ))}
-              </div>
-
-              {/* Mã voucher: nhập hoặc chọn từ hệ thống */}
-              <div className="border-t border-gray-100 pt-3">
-                <p className="text-sm font-medium text-gray-700 mb-2">Mã voucher</p>
-                {appliedVoucher ? (
-                  <div className="flex items-center justify-between gap-2 p-3 rounded-xl bg-brand-bg border border-brand/20">
-                    <div>
-                      <p className="text-sm font-semibold text-brand-dark">{appliedVoucher.code}</p>
-                      <p className="text-xs text-gray-600">{appliedVoucher.label}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleRemoveVoucher}
-                      className="text-xs text-red-500 hover:text-red-600 font-medium shrink-0"
-                    >
-                      Xóa
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={voucherInput}
-                        onChange={(e) => {
-                          setVoucherInput(e.target.value);
-                          setVoucherError("");
-                        }}
-                        onKeyDown={(e) => e.key === "Enter" && handleApplyVoucher()}
-                        placeholder="Nhập mã giảm giá"
-                        className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleApplyVoucher}
-                        className="shrink-0 rounded-xl px-4 py-2 text-sm font-medium bg-brand text-gray-900 hover:bg-brand-dark transition"
-                      >
-                        Áp dụng
-                      </button>
-                    </div>
-                    <div className="mt-2 flex items-center gap-2">
-                      <span className="text-xs text-gray-500 shrink-0">Hoặc chọn:</span>
-                      <select
-                        value=""
-                        onChange={(e) => {
-                          const code = e.target.value;
-                          if (code) handleSelectVoucher(code);
-                          e.target.value = "";
-                        }}
-                        className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand bg-white"
-                      >
-                        <option value="">Chọn voucher từ hệ thống...</option>
-                        {AVAILABLE_VOUCHERS.map((v) => (
-                          <option key={v.code} value={v.code}>
-                            {v.code} – {v.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </>
-                )}
-                {voucherError && <p className="text-xs text-red-500 mt-1">{voucherError}</p>}
               </div>
 
               <div className="border-t border-gray-100 pt-3 space-y-2 text-sm">
@@ -358,20 +304,11 @@ export default function CheckoutPage() {
                   <span>Tạm tính</span>
                   <span>{subtotal.toLocaleString("vi-VN")}đ</span>
                 </div>
-                <div className="flex justify-between text-gray-600">
-                  <span>Phí dịch vụ (3%)</span>
-                  <span>{serviceFee.toLocaleString("vi-VN")}đ</span>
-                </div>
-                {appliedVoucher && (
-                  <div className="flex justify-between text-brand-dark">
-                    <span>Voucher ({appliedVoucher.code})</span>
-                    <span>-{voucherDiscount.toLocaleString("vi-VN")}đ</span>
-                  </div>
-                )}
                 <div className="flex justify-between font-bold text-gray-900 pt-2">
                   <span>Tổng cộng</span>
                   <span className="text-brand-dark text-lg">{total.toLocaleString("vi-VN")}đ</span>
                 </div>
+                <p className="text-xs text-gray-400">Tổng tiền được đồng bộ với backend theo giá sản phẩm hiện tại.</p>
               </div>
 
               <label className="flex items-start gap-2 cursor-pointer">
@@ -382,8 +319,7 @@ export default function CheckoutPage() {
                   className="mt-0.5 accent-brand-dark"
                 />
                 <span className="text-xs text-gray-500">
-                  Tôi đồng ý với{" "}
-                  <span className="text-brand-dark cursor-pointer hover:underline">điều khoản dịch vụ</span> và{" "}
+                  Tôi đồng ý với <span className="text-brand-dark cursor-pointer hover:underline">điều khoản dịch vụ</span> và{" "}
                   <span className="text-brand-dark cursor-pointer hover:underline">chính sách hoàn tiền</span>.
                 </span>
               </label>
@@ -394,7 +330,7 @@ export default function CheckoutPage() {
                 disabled={!agreed || placing || cartItems.length === 0}
                 className="w-full rounded-xl px-6 py-3 bg-brand text-gray-900 font-medium hover:bg-brand-dark transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {placing ? "Dang dat hang..." : "Dat hang ngay"}
+                {placing ? "Đang đặt hàng..." : "Đặt hàng ngay"}
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>

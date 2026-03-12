@@ -79,10 +79,11 @@ export async function apiGetCategories() {
 // ============================================================
 // PRODUCTS (public)
 // ============================================================
-export async function apiGetProducts({ categoryId, keyword, page = 0, size = 12 } = {}) {
+export async function apiGetProducts({ categoryId, keyword, sort, page = 0, size = 12 } = {}) {
   const params = new URLSearchParams({ page, size });
   if (categoryId) params.set("categoryId", categoryId);
   if (keyword) params.set("keyword", keyword);
+  if (sort) params.set("sort", sort);
   return request(`/api/products?${params}`);
 }
 

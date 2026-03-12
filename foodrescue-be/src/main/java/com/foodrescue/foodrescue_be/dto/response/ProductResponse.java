@@ -4,6 +4,7 @@ import com.foodrescue.foodrescue_be.model.Product;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Getter
@@ -13,6 +14,9 @@ public class ProductResponse {
     private Long sellerId;
     private String sellerName;
     private String sellerSlug;
+    private String sellerPhone;
+    private BigDecimal sellerRatingAvg;
+    private Boolean sellerVerified;
     private Long categoryId;
     private String categoryName;
     private Long brandId;
@@ -40,6 +44,9 @@ public class ProductResponse {
                 .sellerId(product.getSeller() != null ? product.getSeller().getId() : null)
                 .sellerName(product.getSeller() != null ? product.getSeller().getShopName() : null)
                 .sellerSlug(product.getSeller() != null ? product.getSeller().getShopSlug() : null)
+                .sellerPhone(product.getSeller() != null ? product.getSeller().getPhone() : null)
+                .sellerRatingAvg(product.getSeller() != null ? product.getSeller().getRatingAvg() : null)
+                .sellerVerified(product.getSeller() != null ? product.getSeller().getIsVerified() : null)
                 .categoryId(product.getCategory() != null ? product.getCategory().getId() : null)
                 .categoryName(product.getCategory() != null ? product.getCategory().getName() : null)
                 .brandId(product.getBrand() != null ? product.getBrand().getId() : null)

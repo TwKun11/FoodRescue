@@ -34,8 +34,17 @@ public class ProductServiceImpl implements ProductService {
     private final InventoryBatchRepository batchRepository;
 
     @Override
-    public Page<ProductResponse> getPublicProducts(Long categoryId, String keyword, Pageable pageable) {
-        return productRepository.searchPublic(categoryId, null, keyword, pageable)
+    public Page<ProductResponse> getPublicProducts(Long categoryId, String keyword, String sort, Pageable pageable) {
+        Pageable unsortedPageable = org.springframework.data.domain.PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize()
+        );
+        Page<Product> page = switch (sort == null ? "" : sort) {
+            case "salePrice_asc" -> productRepository.searchPublicOrderByPriceAsc(categoryId, null, keyword, unsortedPageable);
+            case "salePrice_desc" -> productRepository.searchPublicOrderByPriceDesc(categoryId, null, keyword, unsortedPageable);
+            default -> productRepository.searchPublic(categoryId, null, keyword, pageable);
+        };
+        return page
                 .map(this::toResponse);
     }
 
