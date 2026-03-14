@@ -75,7 +75,7 @@ sudo chown -R ubuntu:ubuntu /opt/foodrescue
 
 Create `/opt/foodrescue/backend.env` from [backend.env.example](d:/FoodRescue/backend.env.example).
 
-The current public IPv4 in your AWS screenshot is `13.250.95.15`, but the instance has no Elastic IP. If you stop/start the instance again, update every IP-based setting and the `EC2_HOST` GitHub secret.
+The current public IPv4 in your AWS screenshot is `18.141.199.14`, but the instance has no Elastic IP. If you stop/start the instance again, update every IP-based setting and the `EC2_HOST` GitHub secret.
 
 Important values to replace:
 
