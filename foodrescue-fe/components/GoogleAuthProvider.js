@@ -1,15 +1,16 @@
 "use client";
 
 import { GoogleOAuthProvider } from "@react-oauth/google";
-
-const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+import { getGoogleClientId } from "@/lib/runtime-config";
 
 export default function GoogleAuthProvider({ children }) {
-  if (!GOOGLE_CLIENT_ID) {
+  const googleClientId = getGoogleClientId();
+
+  if (!googleClientId) {
     return <>{children}</>;
   }
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+    <GoogleOAuthProvider clientId={googleClientId}>
       {children}
     </GoogleOAuthProvider>
   );

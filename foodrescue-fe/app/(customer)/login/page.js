@@ -6,9 +6,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GoogleLogin } from "@react-oauth/google";
 import toast from "react-hot-toast";
+import { getApiBaseUrl, getGoogleClientId } from "@/lib/runtime-config";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+const API_URL = getApiBaseUrl();
+const GOOGLE_CLIENT_ID = getGoogleClientId();
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
