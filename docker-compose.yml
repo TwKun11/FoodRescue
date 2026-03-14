@@ -1,62 +1,95 @@
+name: foodrescue
+
+x-default-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
-  mysql:
-    image: mysql:8.4
-    container_name: mysql-foodrescue
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-foodrescue}
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: foodrescue-nginx
+    restart: always
+    depends_on:
+      - frontend
+      - backend
     ports:
-      - "3306:3306"
+      - "80:80"
     volumes:
-      - mysql-data:/var/lib/mysql
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/healthz || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     networks:
       - foodrescue-net
+    logging: *default-logging
+
+  frontend:
+    image: ${FRONTEND_IMAGE:-your-dockerhub-username/foodrescue-fe:latest}
+    container_name: foodrescue-frontend
+    restart: always
+    init: true
+    env_file:
+      - ./frontend.env
+    expose:
+      - "3000"
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-123456}"]
-      interval: 10s
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000 || exit 1"]
+      interval: 30s
       timeout: 5s
-      retries: 5
+      retries: 3
+      start_period: 20s
+    networks:
+      - foodrescue-net
+    logging: *default-logging
 
   backend:
-    image: foodrescue-be
-    container_name: foodrescue-be
-    build:
-      context: ./foodrescue-be
-    restart: unless-stopped
+    image: ${BACKEND_IMAGE:-your-dockerhub-username/foodrescue-be:latest}
+    container_name: foodrescue-backend
+    restart: always
+    init: true
+    stop_grace_period: 30s
+    env_file:
+      - ./backend.env
+    environment:
+      JAVA_OPTS: -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=25.0 -Djava.security.egd=file:/dev/./urandom
     depends_on:
       mysql:
         condition: service_healthy
-    environment:
-      DB_URL: jdbc:mysql://mysql-foodrescue:3306/${MYSQL_DATABASE:-foodrescue}?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
-      DB_USERNAME: ${DB_USERNAME:-root}
-      DB_PASSWORD: ${DB_PASSWORD:-123456}
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
-      JWT_REFRESH_EXPIRATION_MS: ${JWT_REFRESH_EXPIRATION_MS:-604800000}
-      MAIL_USERNAME: ${MAIL_USERNAME}
-      MAIL_PASSWORD: ${MAIL_PASSWORD}
-      VERIFICATION_BASE_URL: ${VERIFICATION_BASE_URL:-http://localhost:3000/verify-email}
-      RESET_PASSWORD_BASE_URL: ${RESET_PASSWORD_BASE_URL:-http://localhost:3000/reset-password}
-    ports:
-      - "8080:8080"
+    expose:
+      - "8080"
     networks:
       - foodrescue-net
+    logging: *default-logging
 
-  frontend:
-    image: foodrescue-fe
-    container_name: foodrescue-fe
-    build:
-      context: ./foodrescue-fe
-    restart: unless-stopped
-    depends_on:
-      - backend
-    environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
-    ports:
-      - "3000:3000"
+  mysql:
+    image: mysql:8.4
+    container_name: foodrescue-mysql
+    restart: always
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-name-resolve
+      - --innodb-buffer-pool-size=128M
+    env_file:
+      - ./backend.env
+    expose:
+      - "3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 30s
     networks:
       - foodrescue-net
+    logging: *default-logging
 
 networks:
   foodrescue-net:
