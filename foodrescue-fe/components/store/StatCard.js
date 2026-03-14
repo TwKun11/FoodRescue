@@ -15,9 +15,9 @@ export default function StatCard({ title, value, subtitle, icon, trend, color = 
       value: "text-orange-600",
     },
     green: {
-      bg: "bg-green-50",
-      icon: "bg-green-100 text-green-600",
-      value: "text-green-600",
+      bg: "bg-brand-bg",
+      icon: "bg-brand/30 text-brand-dark",
+      value: "text-brand-dark",
     },
     blue: {
       bg: "bg-blue-50",
@@ -48,7 +48,7 @@ export default function StatCard({ title, value, subtitle, icon, trend, color = 
         {subtitle && <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>}
         {trend && (
           <span
-            className={`text-xs font-semibold mt-1 inline-block ${trendPositive ? "text-green-600" : "text-red-500"}`}
+            className={`text-xs font-semibold mt-1 inline-block ${trendPositive ? "text-brand-dark" : "text-red-500"}`}
           >
             {trendPositive ? "▲" : "▼"} {trend} so với hôm qua
           </span>
