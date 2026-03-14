@@ -1,23 +1,30 @@
 import "./globals.css";
 import GoogleAuthProvider from "@/components/GoogleAuthProvider";
 import { Toaster } from "react-hot-toast";
-import { Be_Vietnam_Pro } from "next/font/google";
-
-const beVietnamPro = Be_Vietnam_Pro({
-  subsets: ["latin", "vietnamese"],
-  weight: ["400", "500", "600", "700", "800"],
-  variable: "--font-be-vietnam-pro",
-});
 
 export const metadata = {
-  title: "FoodRescue – Giải cứu thực phẩm cuối ngày",
-  description: "Mua thực phẩm tươi giảm giá cuối ngày, giảm lãng phí và tiết kiệm chi phí.",
+  title: "FoodRescue - Giai cuu thuc pham cuoi ngay",
+  description: "Mua thuc pham tuoi giam gia cuoi ngay, giam lang phi va tiet kiem chi phi.",
 };
 
 export default function RootLayout({ children }) {
+  const runtimeConfig = {
+    apiBaseUrl:
+      process.env.FRONTEND_API_BASE_URL ||
+      process.env.NEXT_PUBLIC_API_BASE_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      "/api",
+    googleClientId:
+      process.env.GOOGLE_CLIENT_ID ||
+      process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
+      "",
+  };
+  const runtimeConfigScript = `window.__FOODRESCUE_RUNTIME_CONFIG__=${JSON.stringify(runtimeConfig).replace(/</g, "\\u003c")};`;
+
   return (
     <html lang="vi">
-      <body className={`${beVietnamPro.variable} antialiased`}>
+      <body className="antialiased">
+        <script dangerouslySetInnerHTML={{ __html: runtimeConfigScript }} />
         <GoogleAuthProvider>{children}</GoogleAuthProvider>
         <Toaster
           position="top-right"

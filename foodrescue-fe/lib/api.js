@@ -1,4 +1,6 @@
-const BASE = () => process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+import { getApiBaseUrl } from "@/lib/runtime-config";
+
+const BASE = () => getApiBaseUrl();
 
 function getToken() {
   if (typeof window === "undefined") return null;
