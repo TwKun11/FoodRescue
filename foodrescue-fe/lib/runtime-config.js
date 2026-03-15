@@ -21,7 +21,8 @@ export function getRuntimeConfig() {
 }
 
 export function getApiBaseUrl() {
-  return normalizeApiBaseUrl(getRuntimeConfig().apiBaseUrl || "/api");
+  const value = normalizeApiBaseUrl(getRuntimeConfig().apiBaseUrl || "/api");
+  return value;
 }
 
 export function getGoogleClientId() {
