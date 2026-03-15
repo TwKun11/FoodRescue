@@ -1,5 +1,7 @@
+import { normalizeApiBaseUrl } from "@/lib/normalize-runtime-config";
+
 const FALLBACK_RUNTIME_CONFIG = {
-  apiBaseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || "/api",
+  apiBaseUrl: normalizeApiBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || "/api"),
   googleClientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "",
 };
 
@@ -19,7 +21,7 @@ export function getRuntimeConfig() {
 }
 
 export function getApiBaseUrl() {
-  return getRuntimeConfig().apiBaseUrl || "/api";
+  return normalizeApiBaseUrl(getRuntimeConfig().apiBaseUrl || "/api");
 }
 
 export function getGoogleClientId() {
