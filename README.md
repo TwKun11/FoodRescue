@@ -47,9 +47,11 @@ Use this layout on the server:
 
 Open only:
 
-- `22` from your own IP if possible
+- `22` from your own IP if you connect manually from your laptop
 - `80` from anywhere
 - `443` later when you add a domain and TLS
+
+If you keep the GitHub-hosted deployment workflow in [deploy-master.yml](d:/FoodRescue/.github/workflows/deploy-master.yml), port `22` must also be reachable from the GitHub Actions runner. If you restrict SSH to only your current home or office IP, the workflow cannot deploy. The more stable fix is to attach an Elastic IP and move to either a self-hosted runner or another deploy method that does not require inbound SSH from GitHub-hosted runners.
 
 Install Docker:
 
@@ -75,7 +77,7 @@ sudo chown -R ubuntu:ubuntu /opt/foodrescue
 
 Create `/opt/foodrescue/backend.env` from [backend.env.example](d:/FoodRescue/backend.env.example).
 
-The current public IPv4 in your AWS screenshot is `18.141.199.14`, but the instance has no Elastic IP. If you stop/start the instance again, update every IP-based setting and the `EC2_HOST` GitHub secret.
+The current public IPv4 in your AWS screenshot is `18.140.61.242`, but the instance has no Elastic IP. If you stop/start the instance again, update every IP-based setting and the `EC2_HOST` GitHub secret. For a stable deployment target, attach an Elastic IP before relying on automation.
 
 Important values to replace:
 
