@@ -33,7 +33,7 @@ services:
     container_name: foodrescue-backend
     restart: always
     init: true
-    mem_limit: 320m
+    mem_limit: 256m
     stop_grace_period: 30s
     env_file:
       - ./backend.env
@@ -52,7 +52,7 @@ services:
     image: mysql:8.0
     container_name: foodrescue-mysql
     restart: always
-    mem_limit: 256m
+    mem_limit: 512m
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
