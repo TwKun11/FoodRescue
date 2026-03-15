@@ -3,10 +3,10 @@ name: FoodRescue CI
 on:
   push:
     branches:
-      - develop
+      - cicd-test
   pull_request:
     branches:
-      - develop
+      - cicd-test
 
 jobs:
   backend-ci:
