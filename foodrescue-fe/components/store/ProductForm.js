@@ -712,7 +712,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Giá niêm yết (đ) *</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Giá niêm yết (đồng) *</label>
               <input
                 type="number"
                 min={0}
@@ -724,7 +724,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">
-                Giá bán (đ) <span className="text-gray-400 font-normal">(nếu không điền = bằng giá niêm yết)</span>
+                Giá bán (đồng) <span className="text-gray-400 font-normal">(nếu không điền = bằng giá niêm yết)</span>
               </label>
               <input
                 type="number"

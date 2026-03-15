@@ -32,7 +32,7 @@ const PAYMENT_STATUS_STYLE = {
 
 function fmt(n) {
   if (n == null) return "—";
-  return Number(n).toLocaleString("vi-VN") + "đ";
+  return Number(n).toLocaleString("vi-VN") + " đồng";
 }
 
 function fmtDate(iso) {

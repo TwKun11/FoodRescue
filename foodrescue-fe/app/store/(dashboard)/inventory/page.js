@@ -19,8 +19,10 @@ const EMPTY_BATCH = {
   note: "",
 };
 
+const PAGE_SIZE = 10;
+
 const STATUS_STYLE = {
-  active: { label: "Còn hàng", bg: "bg-green-50", text: "text-green-700", dot: "bg-green-500" },
+  active: { label: "Còn hàng", bg: "bg-brand-bg", text: "text-brand-dark", dot: "bg-brand" },
   depleted: { label: "Đã hết", bg: "bg-red-50", text: "text-red-700", dot: "bg-red-400" },
   expired: { label: "Hết hạn", bg: "bg-gray-100", text: "text-gray-500", dot: "bg-gray-400" },
   blocked: { label: "Bị chặn", bg: "bg-orange-50", text: "text-orange-700", dot: "bg-orange-400" },
@@ -33,7 +35,7 @@ function fmt(n) {
 
 function fmtMoney(n) {
   if (n == null) return "—";
-  return Number(n).toLocaleString("vi-VN") + "đ";
+  return Number(n).toLocaleString("vi-VN") + " đồng";
 }
 
 function fmtDate(iso) {
@@ -56,6 +58,7 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState("all");
   const [keyword, setKeyword] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Add-batch modal
   const [showModal, setShowModal] = useState(false);
@@ -164,6 +167,16 @@ export default function InventoryPage() {
     return true;
   });
 
+  const totalFiltered = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE));
+  const pageStart = (currentPage - 1) * PAGE_SIZE;
+  const paginatedBatches = filtered.slice(pageStart, pageStart + PAGE_SIZE);
+
+  const setFilterAndResetPage = (setter, value) => {
+    setter(value);
+    setCurrentPage(1);
+  };
+
   const stats = {
     total: batches.length,
     active: batches.filter((b) => b.status?.toLowerCase() === "active").length,
@@ -177,60 +190,60 @@ export default function InventoryPage() {
 
   return (
     <div className="flex flex-col min-h-full">
-      <div className="flex-1 p-6 space-y-4">
+      <div className="flex-1 p-6 sm:p-8 space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-800">Quản lý kho hàng</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Kho hàng</h1>
           <button
             onClick={openModal}
-            className="bg-green-500 hover:bg-green-600 text-white text-sm font-semibold px-4 py-2 rounded-lg transition flex items-center gap-2"
+            className="bg-brand hover:bg-brand-secondary text-gray-900 text-sm font-semibold px-4 py-2 rounded-xl transition flex items-center gap-2"
           >
             <span className="text-base leading-none">+</span> Nhập lô hàng
           </button>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { label: "Tổng lô hàng", value: stats.total, icon: "📦", color: "bg-blue-50 text-blue-600" },
-            { label: "Đang có hàng", value: stats.active, icon: "✅", color: "bg-green-50 text-green-600" },
+            { label: "Đang có hàng", value: stats.active, icon: "✅", color: "bg-brand-bg text-brand-dark" },
             {
               label: "Sắp hết hạn (≤7 ngày)",
               value: stats.expiringSoon,
               icon: "⚠️",
-              color: "bg-orange-50 text-orange-600",
+              color: "bg-amber-50 text-amber-600",
             },
             { label: "Đã hết hàng", value: stats.depleted, icon: "❌", color: "bg-red-50 text-red-600" },
           ].map((s) => (
-            <div key={s.label} className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-3">
+            <div key={s.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-4 flex items-center gap-3">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0 ${s.color}`}>
                 {s.icon}
               </div>
               <div>
-                <p className="text-xs text-gray-400">{s.label}</p>
-                <p className="text-base font-bold text-gray-800">{s.value}</p>
+                <p className="text-xs text-gray-500">{s.label}</p>
+                <p className="text-lg font-bold text-gray-800">{s.value}</p>
               </div>
             </div>
           ))}
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap gap-3 items-end">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-wrap gap-3 items-end">
           <div>
             <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">Tìm kiếm</label>
             <input
               type="text"
               value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
+              onChange={(e) => setFilterAndResetPage(setKeyword, e.target.value)}
               placeholder="Mã lô, tên biến thể, nhà cung cấp..."
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-green-300 min-w-60"
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-dark min-w-60"
             />
           </div>
           <div>
             <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">Trạng thái</label>
             <select
               value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-green-300 bg-white"
+              onChange={(e) => setFilterAndResetPage(setFilterStatus, e.target.value)}
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-dark bg-white"
             >
               <option value="all">Tất cả</option>
               <option value="active">Còn hàng</option>
@@ -241,14 +254,14 @@ export default function InventoryPage() {
           </div>
           <button
             onClick={load}
-            className="bg-green-500 hover:bg-green-600 text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+            className="bg-brand hover:bg-brand-secondary text-gray-900 text-sm font-semibold px-4 py-2 rounded-lg transition"
           >
             Làm mới
           </button>
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -278,7 +291,7 @@ export default function InventoryPage() {
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((b) => {
+                  paginatedBatches.map((b) => {
                     const st = STATUS_STYLE[b.status?.toLowerCase()] || STATUS_STYLE.active;
                     const days = daysUntil(b.expiredAt);
                     const expiringSoon =
@@ -345,6 +358,35 @@ export default function InventoryPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination — 10 lô/trang */}
+          {totalPages > 1 && (
+            <div className="px-5 py-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-gray-500">
+                Hiển thị {paginatedBatches.length} / {totalFiltered} lô hàng
+                <span className="ml-2 text-gray-400">· Trang {currentPage}/{totalPages}</span>
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  disabled={currentPage <= 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-brand-bg hover:border-brand/50 transition disabled:opacity-40 disabled:pointer-events-none"
+                >
+                  ‹
+                </button>
+                <span className="text-sm font-medium text-gray-700 min-w-16 text-center">
+                  {currentPage} / {totalPages}
+                </span>
+                <button
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-brand-bg hover:border-brand/50 transition disabled:opacity-40 disabled:pointer-events-none"
+                >
+                  ›
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -399,7 +441,7 @@ export default function InventoryPage() {
               <div className="grid grid-cols-2 gap-3">
                 {/* Cost Price */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Giá vốn (đ) *</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Giá vốn (đồng) *</label>
                   <input
                     type="number"
                     min={0}
@@ -497,7 +539,7 @@ export default function InventoryPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 text-sm font-semibold bg-green-500 hover:bg-green-600 text-white rounded-lg transition disabled:opacity-60"
+                  className="px-5 py-2 text-sm font-semibold bg-brand hover:bg-brand-secondary text-gray-900 rounded-lg transition disabled:opacity-60"
                 >
                   {submitting ? "Đang lưu..." : "Nhập kho"}
                 </button>

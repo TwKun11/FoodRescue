@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GoogleLogin } from "@react-oauth/google";
 import toast from "react-hot-toast";
+import { getApiBaseUrl, getGoogleClientId } from "@/lib/runtime-config";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+const API_URL = getApiBaseUrl();
+const GOOGLE_CLIENT_ID = getGoogleClientId();
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -26,10 +28,30 @@ function validatePassword(value) {
 
 export default function LoginPage() {
   const router = useRouter();
+  const linksPlaceholderRef = useRef(null);
+  const [linkBoxRect, setLinkBoxRect] = useState(null);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({ email: "", password: "" });
   const [googleLoading, setGoogleLoading] = useState(false);
+
+  useEffect(() => {
+    const measure = () => {
+      if (linksPlaceholderRef.current && typeof window !== "undefined") {
+        const rect = linksPlaceholderRef.current.getBoundingClientRect();
+        setLinkBoxRect({ top: rect.top, left: rect.left, width: rect.width, height: rect.height });
+      }
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    window.addEventListener("scroll", measure, true);
+    const t = requestAnimationFrame(measure);
+    return () => {
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("scroll", measure, true);
+      cancelAnimationFrame(t);
+    };
+  }, []);
 
   const handleGoogleSuccess = async (credentialResponse) => {
     const idToken = credentialResponse?.credential;
@@ -217,15 +239,15 @@ export default function LoginPage() {
             </button>
 
             {GOOGLE_CLIENT_ID && (
-              <>
+              <div className="relative z-0 isolate">
                 <div className="relative my-2">
                   <hr className="border-gray-200" />
                   <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-3 text-xs text-gray-400">
                     hoặc
                   </span>
                 </div>
-                <div className="relative flex justify-center w-full max-w-[320px] h-11 mx-auto">
-                  <div className="absolute inset-0 z-0 flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm font-medium shadow-sm hover:bg-gray-50 transition">
+                <div className="relative flex justify-center w-full max-w-[320px] h-11 mx-auto overflow-hidden shrink-0">
+                  <div className="absolute inset-0 z-0 flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm font-medium shadow-sm hover:bg-gray-50 transition pointer-events-none">
                     <svg className="w-5 h-5" viewBox="0 0 24 24">
                       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                       <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
@@ -234,7 +256,7 @@ export default function LoginPage() {
                     </svg>
                     Đăng nhập với Google
                   </div>
-                  <div className="absolute inset-0 z-10 opacity-0 [&_iframe]:w-full! [&_iframe]:h-full! [&_div]:min-w-0! [&_div]:min-h-0!">
+                  <div className="absolute inset-0 z-10 opacity-0 [&_iframe]:w-full! [&_iframe]:h-full! [&_div]:min-w-0! [&_div]:min-h-0! overflow-hidden">
                     <GoogleLogin
                       onSuccess={handleGoogleSuccess}
                       onError={() => toast.error("Đăng nhập Google không thành công.")}
@@ -249,24 +271,64 @@ export default function LoginPage() {
                   </div>
                 </div>
                 {googleLoading && <p className="text-center text-sm text-gray-400">Đang xử lý đăng nhập Google...</p>}
-              </>
+              </div>
             )}
           </form>
 
-          <p className="mt-6 text-center text-sm text-gray-500">
-            Chưa có tài khoản?{" "}
-            <Link href="/register" className="text-brand-dark font-semibold hover:underline">
-              Đăng ký ngay
-            </Link>
-          </p>
-
-          <p className="text-center mt-3">
-            <Link href="/" className="text-xs text-gray-400 hover:text-brand-dark transition">
-              ← Về trang chủ
-            </Link>
-          </p>
+          <div
+            ref={linksPlaceholderRef}
+            className="relative mt-6 pt-2 min-h-16"
+            style={{ visibility: linkBoxRect ? "hidden" : "visible" }}
+          >
+            <p className="text-center text-sm text-gray-500">
+              Chưa có tài khoản? Đăng ký ngay
+            </p>
+            <p className="text-center mt-3 text-xs text-gray-400">← Về trang chủ</p>
+          </div>
         </div>
       </div>
+
+      {typeof document !== "undefined" &&
+        linkBoxRect &&
+        createPortal(
+          <div
+            className="bg-background"
+            style={{
+              position: "fixed",
+              top: linkBoxRect.top,
+              left: linkBoxRect.left,
+              width: linkBoxRect.width,
+              height: linkBoxRect.height,
+              zIndex: 2147483647,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              paddingTop: "0.5rem",
+            }}
+          >
+            <p className="text-center text-sm text-gray-500">
+              Chưa có tài khoản?{" "}
+              <button
+                type="button"
+                onClick={() => router.push("/register")}
+                className="text-brand-dark font-semibold hover:underline cursor-pointer bg-transparent border-none p-0 align-baseline focus:outline-none focus:ring-0"
+              >
+                Đăng ký ngay
+              </button>
+            </p>
+            <p className="text-center mt-3">
+              <button
+                type="button"
+                onClick={() => router.push("/")}
+                className="text-xs text-gray-400 hover:text-brand-dark transition bg-transparent border-none p-0 cursor-pointer focus:outline-none"
+              >
+                ← Về trang chủ
+              </button>
+            </p>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

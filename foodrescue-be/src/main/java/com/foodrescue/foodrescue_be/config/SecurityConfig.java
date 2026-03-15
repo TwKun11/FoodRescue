@@ -2,6 +2,7 @@ package com.foodrescue.foodrescue_be.config;
 
 import com.foodrescue.foodrescue_be.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -16,6 +17,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -25,13 +27,20 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    @Value("${app.cors.allowed-origins:http://localhost:3000,http://127.0.0.1:3000}")
+    private String allowedOrigins;
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:3000", "http://127.0.0.1:3000"));
+        config.setAllowedOriginPatterns(Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isEmpty())
+                .toList());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
@@ -42,10 +51,9 @@ public class SecurityConfig {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // ── Public auth endpoints ──────────────────────────
+                        .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers(
                                 "/api/auth/register",
                                 "/api/auth/login",
@@ -55,19 +63,17 @@ public class SecurityConfig {
                                 "/api/auth/forgot-password",
                                 "/api/auth/reset-password"
                         ).permitAll()
-                        // ── Public marketplace read-only ───────────────────
-                        .requestMatchers(org.springframework.http.HttpMethod.GET,
-                                "/api/products", "/api/products/**", "/api/categories", "/api/brands"
+                        .requestMatchers(
+                                org.springframework.http.HttpMethod.GET,
+                                "/api/products",
+                                "/api/products/**",
+                                "/api/categories",
+                                "/api/brands"
                         ).permitAll()
-                        // ── Authenticated user profile ─────────────────────
                         .requestMatchers("/api/auth/me", "/api/auth/update", "/api/auth/change-password").authenticated()
-                        // ── Customer: place & view own orders ─────────────
                         .requestMatchers("/api/orders/**").hasAnyRole("CUSTOMER", "ADMIN")
-                        // ── Seller: manage own products, inventory, orders ─
                         .requestMatchers("/api/seller/**").hasAnyRole("SELLER", "ADMIN")
-                        // ── Admin only ────────────────────────────────────
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        // ── Anything else requires login ──────────────────
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

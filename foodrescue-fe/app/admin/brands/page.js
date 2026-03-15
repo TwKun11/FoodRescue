@@ -8,6 +8,7 @@ import {
   apiAdminRestoreBrand,
 } from "@/lib/api";
 
+const PAGE_SIZE = 10;
 const EMPTY_FORM = { name: "", slug: "", description: "", isActive: true };
 
 function slugify(str) {
@@ -30,6 +31,9 @@ export default function AdminBrandsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [flashMsg, setFlashMsg] = useState("");
+  const [page, setPage] = useState(0);
+  const [search, setSearch] = useState("");
+  const [filterActive, setFilterActive] = useState(""); // "" | "active" | "inactive"
 
   const load = async () => {
     setLoading(true);
@@ -108,17 +112,25 @@ export default function AdminBrandsPage() {
     }
   };
 
+  const searchLower = (search || "").trim().toLowerCase();
+  const filteredBrands = brands.filter((b) => {
+    const matchSearch = !searchLower || (b.name && b.name.toLowerCase().includes(searchLower)) || (b.slug && b.slug.toLowerCase().includes(searchLower));
+    const matchActive = filterActive === "" || (filterActive === "active" && b.isActive !== false) || (filterActive === "inactive" && b.isActive === false);
+    return matchSearch && matchActive;
+  });
+  const total = filteredBrands.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const currentPage = Math.max(0, Math.min(page, totalPages - 1));
+  const paginatedBrands = filteredBrands.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">🏷️ Thương hiệu</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Quản lý danh sách thương hiệu sản phẩm</p>
-        </div>
+        
         <button
           onClick={openCreate}
-          className="bg-green-500 hover:bg-green-600 text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+          className="bg-brand hover:bg-brand-secondary text-gray-900 text-sm font-semibold px-4 py-2 rounded-lg transition"
         >
           + Thêm thương hiệu
         </button>
@@ -126,10 +138,45 @@ export default function AdminBrandsPage() {
 
       {/* Flash */}
       {flashMsg && (
-        <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg px-4 py-3">
+        <div className="bg-brand-bg border border-brand/30 text-brand-dark text-sm rounded-lg px-4 py-3">
           ✓ {flashMsg}
         </div>
       )}
+
+      {/* Tìm kiếm & Bộ lọc */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-wrap items-center gap-3">
+        <div className="flex-1 min-w-[200px] flex items-center gap-2">
+          <span className="text-gray-500 text-sm shrink-0">Tìm kiếm</span>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+            placeholder="Tên thương hiệu, slug..."
+            className="flex-1 min-w-0 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark focus:border-transparent"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-gray-500 text-sm shrink-0">Trạng thái</span>
+          <select
+            value={filterActive}
+            onChange={(e) => { setFilterActive(e.target.value); setPage(0); }}
+            className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark focus:outline-none"
+          >
+            <option value="">Tất cả</option>
+            <option value="active">Đang hoạt động</option>
+            <option value="inactive">Đã ẩn</option>
+          </select>
+        </div>
+        {(search || filterActive) && (
+          <button
+            type="button"
+            onClick={() => { setSearch(""); setFilterActive(""); setPage(0); }}
+            className="text-sm text-gray-500 hover:text-gray-700 underline"
+          >
+            Xóa bộ lọc
+          </button>
+        )}
+      </div>
 
       {/* Modal Form */}
       {showForm && (
@@ -151,7 +198,7 @@ export default function AdminBrandsPage() {
                   value={form.name}
                   onChange={setField("name")}
                   placeholder="VD: TH True Milk"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
                   autoFocus
                 />
               </div>
@@ -162,7 +209,7 @@ export default function AdminBrandsPage() {
                   value={form.slug}
                   onChange={setField("slug")}
                   placeholder="th-true-milk"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
                 />
               </div>
               <div>
@@ -172,7 +219,7 @@ export default function AdminBrandsPage() {
                   value={form.description}
                   onChange={setField("description")}
                   placeholder="Mô tả ngắn về thương hiệu..."
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 resize-none"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark resize-none"
                 />
               </div>
               <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
@@ -180,7 +227,7 @@ export default function AdminBrandsPage() {
                   type="checkbox"
                   checked={form.isActive}
                   onChange={setField("isActive")}
-                  className="w-4 h-4 accent-green-500"
+                  className="w-4 h-4 accent-brand-dark"
                 />
                 Kích hoạt
               </label>
@@ -195,7 +242,7 @@ export default function AdminBrandsPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-lg transition disabled:opacity-60"
+                  className="px-5 py-2 bg-brand hover:bg-brand-secondary text-gray-900 text-sm font-semibold rounded-lg transition disabled:opacity-60"
                 >
                   {saving ? "Đang lưu..." : editing ? "Lưu thay đổi" : "Thêm mới"}
                 </button>
@@ -214,7 +261,7 @@ export default function AdminBrandsPage() {
           <p>Chưa có thương hiệu nào</p>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-gray-500 uppercase text-xs tracking-wide">
               <tr>
@@ -226,7 +273,7 @@ export default function AdminBrandsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {brands.map((brand) => (
+              {paginatedBrands.map((brand) => (
                 <tr key={brand.id} className={`hover:bg-gray-50 transition ${!brand.isActive ? "opacity-50" : ""}`}>
                   <td className="px-4 py-3 font-medium text-gray-800">{brand.name}</td>
                   <td className="px-4 py-3 text-gray-500 font-mono text-xs">{brand.slug}</td>
@@ -247,7 +294,7 @@ export default function AdminBrandsPage() {
                       </button>
                       <button
                         onClick={() => handleToggle(brand)}
-                        className={`text-xs hover:underline ${brand.isActive ? "text-red-500" : "text-green-600"}`}
+                        className={`text-xs hover:underline ${brand.isActive ? "text-red-500" : "text-brand-dark"}`}
                       >
                         {brand.isActive ? "Vô hiệu" : "Kích hoạt"}
                       </button>
@@ -257,6 +304,34 @@ export default function AdminBrandsPage() {
               ))}
             </tbody>
           </table>
+          {total > 0 && (
+            <div className="px-5 py-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-gray-500">
+                Trang {currentPage + 1} / {totalPages} · {total} thương hiệu (10/trang)
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  disabled={currentPage === 0}
+                  onClick={() => setPage((p) => p - 1)}
+                  className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-brand-bg hover:border-brand/50 transition disabled:opacity-40 disabled:pointer-events-none"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <span className="text-sm font-medium text-gray-700 min-w-16 text-center">{currentPage + 1} / {totalPages}</span>
+                <button
+                  disabled={currentPage >= totalPages - 1}
+                  onClick={() => setPage((p) => p + 1)}
+                  className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-brand-bg hover:border-brand/50 transition disabled:opacity-40 disabled:pointer-events-none"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

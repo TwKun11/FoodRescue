@@ -76,8 +76,8 @@ export default function CartItem({ item, onRemove, onQtyChange }) {
           {expiryLabel && <p className="text-xs text-red-500 mt-0.5 font-medium">⏰ {expiryLabel}</p>}
         </div>
         <div className="flex items-center gap-2 mt-2">
-          <span className="text-brand-dark font-bold">{discountPrice.toLocaleString("vi-VN")}đ</span>
-          <span className="text-gray-400 line-through text-xs">{originalPrice.toLocaleString("vi-VN")}đ</span>
+          <span className="text-brand-dark font-bold">{discountPrice.toLocaleString("vi-VN")} đồng</span>
+          <span className="text-gray-400 line-through text-xs">{originalPrice.toLocaleString("vi-VN")} đồng</span>
         </div>
       </div>
 
@@ -115,7 +115,7 @@ export default function CartItem({ item, onRemove, onQtyChange }) {
           </button>
         </div>
         {atLimit && <p className="text-xs text-red-500 font-medium mt-1">Đã đạt giới hạn tồn kho</p>}
-        <p className="text-sm font-bold text-gray-800 mt-2">{(discountPrice * qty).toLocaleString("vi-VN")}đ</p>
+        <p className="text-sm font-bold text-gray-800 mt-2">{(discountPrice * qty).toLocaleString("vi-VN")} đồng</p>
         <button
           type="button"
           onClick={() => onRemove?.(item.id)}

@@ -1,4 +1,6 @@
-const BASE = () => process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+import { getApiBaseUrl } from "@/lib/runtime-config";
+
+const BASE = () => getApiBaseUrl();
 
 function getToken() {
   if (typeof window === "undefined") return null;
@@ -188,16 +190,23 @@ export async function apiSellerUpdateOrderStatus(sellerOrderId, status) {
 // ============================================================
 // ADMIN
 // ============================================================
-export async function apiAdminGetUsers({ page = 0, size = 20 } = {}) {
-  return request(`/api/admin/users?page=${page}&size=${size}`);
+export async function apiAdminGetUsers({ page = 0, size = 20, search = "", role = "", status = "" } = {}) {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  if (search && search.trim()) params.set("search", search.trim());
+  if (role) params.set("role", role);
+  if (status) params.set("status", status);
+  return request(`/api/admin/users?${params.toString()}`);
 }
 
 export async function apiAdminUpdateUserStatus(userId, status) {
   return request(`/api/admin/users/${userId}/status?status=${encodeURIComponent(status)}`, { method: "PUT" });
 }
 
-export async function apiAdminGetSellers({ page = 0, size = 20 } = {}) {
-  return request(`/api/admin/sellers?page=${page}&size=${size}`);
+export async function apiAdminGetSellers({ page = 0, size = 20, search = "", status = "" } = {}) {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  if (search && search.trim()) params.set("search", search.trim());
+  if (status) params.set("status", status);
+  return request(`/api/admin/sellers?${params.toString()}`);
 }
 
 export async function apiAdminCreateSeller(body) {
@@ -279,6 +288,11 @@ export async function apiAdminDeleteBrand(id) {
 
 export async function apiAdminRestoreBrand(id) {
   return request(`/api/admin/brands/${id}/restore`, { method: "PUT" });
+}
+
+/** Tổng hợp thống kê admin (doanh thu toàn nền tảng). Backend có thể chưa có endpoint. */
+export async function apiAdminGetStats() {
+  return request("/api/admin/stats");
 }
 
 // ============================================================
