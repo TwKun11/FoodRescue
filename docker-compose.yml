@@ -13,7 +13,6 @@ services:
     restart: always
     mem_limit: 64m
     depends_on:
-      - frontend
       - backend
     ports:
       - "80:80"
@@ -25,28 +24,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
-    networks:
-      - foodrescue-net
-    logging: *default-logging
-
-  frontend:
-    image: ${FRONTEND_IMAGE:-your-dockerhub-username/foodrescue-fe:latest}
-    container_name: foodrescue-frontend
-    restart: always
-    init: true
-    mem_limit: 160m
-    env_file:
-      - ./frontend.env
-    environment:
-      NODE_OPTIONS: --max-old-space-size=128
-    expose:
-      - "3000"
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000 || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 20s
     networks:
       - foodrescue-net
     logging: *default-logging
