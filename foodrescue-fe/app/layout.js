@@ -1,6 +1,7 @@
 import "./globals.css";
 import GoogleAuthProvider from "@/components/GoogleAuthProvider";
 import { Toaster } from "react-hot-toast";
+import { normalizeApiBaseUrl } from "@/lib/normalize-runtime-config";
 
 export const metadata = {
   title: "FoodRescue - Giai cuu thuc pham cuoi ngay",
@@ -9,11 +10,12 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   const runtimeConfig = {
-    apiBaseUrl:
+    apiBaseUrl: normalizeApiBaseUrl(
       process.env.FRONTEND_API_BASE_URL ||
-      process.env.NEXT_PUBLIC_API_BASE_URL ||
-      process.env.NEXT_PUBLIC_API_URL ||
-      "/api",
+        process.env.NEXT_PUBLIC_API_BASE_URL ||
+        process.env.NEXT_PUBLIC_API_URL ||
+        "/api"
+    ),
     googleClientId:
       process.env.GOOGLE_CLIENT_ID ||
       process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
