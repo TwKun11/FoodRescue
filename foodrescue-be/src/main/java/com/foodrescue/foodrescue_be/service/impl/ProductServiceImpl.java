@@ -34,6 +34,7 @@ public class ProductServiceImpl implements ProductService {
     private final InventoryBatchRepository batchRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public Page<ProductResponse> getPublicProducts(Long categoryId, String keyword, String sort, Pageable pageable) {
         Pageable unsortedPageable = org.springframework.data.domain.PageRequest.of(
                 pageable.getPageNumber(),
@@ -49,6 +50,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ProductResponse getProductDetail(Long productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại"));
@@ -56,6 +58,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<ProductResponse> getSellerProducts(Long sellerId, String keyword, Pageable pageable) {
         return productRepository.findBySeller(sellerId, keyword, pageable)
                 .map(this::toResponse);
@@ -211,6 +214,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<InventoryBatchResponse> getSellerBatches(Long sellerId) {
         return batchRepository.findBySellerIdOrderByCreatedAtDesc(sellerId).stream()
                 .map(InventoryBatchResponse::fromEntity)
@@ -218,6 +222,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public java.math.BigDecimal getVariantStock(Long variantId) {
         java.math.BigDecimal stock = batchRepository.sumAvailableByVariantId(variantId);
         return stock != null ? stock : java.math.BigDecimal.ZERO;
@@ -226,6 +231,7 @@ public class ProductServiceImpl implements ProductService {
     // ── Image management ──────────────────────────────────────────────────
 
     @Override
+    @Transactional(readOnly = true)
     public List<ProductImageResponse> getProductImages(Long sellerId, Long productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại"));

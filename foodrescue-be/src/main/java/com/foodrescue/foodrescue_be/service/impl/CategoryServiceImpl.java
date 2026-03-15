@@ -7,6 +7,7 @@ import com.foodrescue.foodrescue_be.repository.CategoryRepository;
 import com.foodrescue.foodrescue_be.service.CategoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -18,6 +19,7 @@ public class CategoryServiceImpl implements CategoryService {
     private final CategoryRepository categoryRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public List<CategoryResponse> getAllWithChildren() {
         List<Category> roots = categoryRepository.findByParentIsNullAndIsActiveTrueOrderBySortOrderAsc();
         return roots.stream()
@@ -26,6 +28,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<CategoryResponse> getAllForAdmin() {
         List<Category> roots = categoryRepository.findByParentIsNullOrderBySortOrderAsc();
         return roots.stream()
