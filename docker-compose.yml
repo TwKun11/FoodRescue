@@ -11,6 +11,7 @@ services:
     image: nginx:1.27-alpine
     container_name: foodrescue-nginx
     restart: always
+    mem_limit: 64m
     depends_on:
       - frontend
       - backend
@@ -33,8 +34,11 @@ services:
     container_name: foodrescue-frontend
     restart: always
     init: true
+    mem_limit: 160m
     env_file:
       - ./frontend.env
+    environment:
+      NODE_OPTIONS: --max-old-space-size=128
     expose:
       - "3000"
     healthcheck:
@@ -52,11 +56,12 @@ services:
     container_name: foodrescue-backend
     restart: always
     init: true
+    mem_limit: 320m
     stop_grace_period: 30s
     env_file:
       - ./backend.env
     environment:
-      JAVA_OPTS: -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=25.0 -Djava.security.egd=file:/dev/./urandom
+      JAVA_OPTS: -Xms128m -Xmx256m -XX:MaxMetaspaceSize=128m -Djava.security.egd=file:/dev/./urandom
     depends_on:
       mysql:
         condition: service_healthy
@@ -70,11 +75,12 @@ services:
     image: mysql:8.4
     container_name: foodrescue-mysql
     restart: always
+    mem_limit: 256m
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
       - --skip-name-resolve
-      - --innodb-buffer-pool-size=128M
+      - --innodb-buffer-pool-size=64M
     env_file:
       - ./backend.env
     expose:
