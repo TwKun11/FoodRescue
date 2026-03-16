@@ -1,4 +1,4 @@
-name: FoodRescue CD
+name: FoodRescue CD Tests
 
 on:
   push:

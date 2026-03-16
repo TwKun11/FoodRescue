@@ -1,4 +1,4 @@
-name: FoodRescue CI
+name: FoodRescue CI Tests
 
 on:
   push:
