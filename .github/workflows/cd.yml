@@ -3,7 +3,7 @@ name: FoodRescue CD Tests
 on:
   push:
     branches:
-      - master
+      - cd-test
 
 jobs:
   build-and-push:
