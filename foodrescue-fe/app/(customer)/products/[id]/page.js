@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import CountdownTimer from "@/components/customer/CountdownTimer";
 import ProductCardListing from "@/components/customer/ProductCardListing";
 import { apiGetProduct, apiGetProducts } from "@/lib/api";
+import { addItemToCart } from "@/lib/cart";
 
 function ImageGallery({ images, name, discountPercent }) {
   const [active, setActive] = useState(0);
