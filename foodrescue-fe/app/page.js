@@ -148,24 +148,23 @@ export default function HomePage() {
                 {/* Badge */}
                 <div className="hero-badge inline-flex items-center gap-2 bg-brand/20 backdrop-blur-sm border border-brand/35 text-brand rounded-full px-4 py-1.5 text-sm font-semibold mb-6">
                   <span className="w-2 h-2 rounded-full bg-brand animate-pulse inline-block" />
-                  Giải pháp chống lãng phí thực phẩm #1 Việt Nam
+                  Mua đồ ngon giá mềm, đỡ phí đồ ăn
                 </div>
 
                 {/* Heading */}
                 <h1 className="text-4xl sm:text-5xl lg:text-[3.4rem] font-extrabold text-white leading-[1.1] tracking-tight mb-5">
-                  Giải cứu thực phẩm —{" "}
+                  Món ngon cuối ngày —{" "}
                   <span className="relative inline-block">
-                    <span className="text-brand">Chung tay</span>
+                    <span className="text-brand">mua dễ</span>
                   </span>
                   <br />
-                  bảo vệ hành tinh
+                  ăn ngon, tiết kiệm hơn
                 </h1>
 
                 {/* Subtext */}
                 <p className="text-gray-300 text-base sm:text-lg leading-relaxed mb-8 max-w-xl">
-                  Kết nối bạn với hàng trăm cửa hàng có thực phẩm cuối ngày chất lượng với giá giảm đến{" "}
-                  <strong className="text-white">50%</strong>. Mỗi đơn hàng là một hành động thiết thực bảo vệ môi
-                  trường.
+                  Tụi mình gom các món còn ngon ở cửa hàng gần bạn và để lại mức giá dễ mua hơn, giảm đến{" "}
+                  <strong className="text-white">50%</strong>. Bạn mua được đồ tốt, cửa hàng bớt phải bỏ đi.
                 </p>
 
                 {/* CTA Buttons */}
@@ -182,13 +181,13 @@ export default function HomePage() {
                         d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
                       />
                     </svg>
-                    Mua ngay — Tiết kiệm 50%
+                    Xem món đang giảm giá
                   </Link>
                   <Link
                     href="/store/login"
                     className="inline-flex items-center gap-2 bg-gray-900/50 backdrop-blur-sm hover:bg-gray-900/65 text-white font-semibold px-7 py-3.5 rounded-2xl text-sm border border-white/30 transition-all duration-200 hover:scale-105"
                   >
-                    Đăng ký cửa hàng →
+                    Tôi là cửa hàng →
                   </Link>
                 </div>
 
@@ -233,10 +232,10 @@ export default function HomePage() {
                     <div className="flex items-center gap-2 mb-2">
                       <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                       <span className="text-xs font-bold text-red-500 uppercase tracking-wide">
-                        Ưu đãi nóng hôm nay
+                        Món đang được mua nhiều
                       </span>
                     </div>
-                    <p className="font-bold text-gray-800 text-sm">🥦 Rau củ hữu cơ</p>
+                    <p className="font-bold text-gray-800 text-sm">🥦 Rau củ cuối ngày</p>
                     <div className="flex items-center justify-between mt-1.5">
                       <span className="text-brand-dark font-extrabold text-xl">-50%</span>
                       <span className="text-xs bg-orange-50 border border-orange-200 text-orange-600 px-2 py-0.5 rounded-full font-medium">
@@ -246,14 +245,14 @@ export default function HomePage() {
                     <div className="mt-2.5 h-1.5 rounded-full bg-gray-100 overflow-hidden">
                       <div className="h-full bg-brand-dark rounded-full" style={{ width: "68%" }} />
                     </div>
-                    <p className="text-[10px] text-gray-400 mt-1">68 / 100 phần còn lại</p>
+                    <p className="text-[10px] text-gray-400 mt-1">Càng gần cuối ngày càng nhanh hết</p>
                   </div>
 
                   {/* Eco badge — bottom-right */}
                   <div className="absolute bottom-6 right-0 translate-x-1/4 bg-brand-dark text-white rounded-2xl px-4 py-3 shadow-xl">
-                    <p className="text-xs font-medium opacity-80">Đã cứu được</p>
+                    <p className="text-xs font-medium opacity-80">Đã bán lại được</p>
                     <p className="text-2xl font-extrabold leading-none">5 tấn 🌿</p>
-                    <p className="text-xs opacity-70 mt-0.5">thực phẩm tháng này</p>
+                    <p className="text-xs opacity-70 mt-0.5">thực phẩm trong tháng</p>
                   </div>
                 </div>
               </ScrollReveal>
@@ -278,12 +277,12 @@ export default function HomePage() {
               <div key={i} className="ticker-content flex items-center gap-0 shrink-0">
                 {[
                   "🏪 500+ Cửa hàng đối tác",
-                  "🥗 Thực phẩm tươi mỗi ngày",
-                  "💚 Giảm lãng phí thực phẩm",
-                  "⚡ Ưu đãi cập nhật liên tục",
-                  "🌍 Vì tương lai xanh",
-                  "🛒 10.000+ sản phẩm giải cứu",
-                  "⭐ Chất lượng đảm bảo 100%",
+                  "🥗 Đồ ăn còn ngon, giá dễ mua",
+                  "💚 Mua được rẻ, bớt phải bỏ đi",
+                  "⚡ Ưu đãi lên mới mỗi ngày",
+                  "🌍 Ăn ngon mà đỡ phí",
+                  "🛒 10.000+ món đang chờ được mua",
+                  "⭐ Chọn từ cửa hàng đối tác",
                   "🔒 Thanh toán an toàn",
                 ].map((item) => (
                   <span key={item} className="text-white font-semibold text-sm px-8">
@@ -329,12 +328,12 @@ export default function HomePage() {
             {/* Content side */}
             <ScrollReveal direction="right" delay={120}>
               <span className="inline-block text-brand-dark font-bold text-sm tracking-widest uppercase mb-3">
-                Sứ mệnh của chúng tôi
+                Vì sao có FoodRescue
               </span>
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-tight mb-5">
-                Không để thực phẩm{" "}
+                Đồ ăn còn ngon{" "}
                 <span className="text-brand-dark relative">
-                  tốt
+                  không nên
                   <svg
                     className="absolute -bottom-1 left-0 w-full"
                     viewBox="0 0 100 8"
@@ -344,28 +343,28 @@ export default function HomePage() {
                     <path d="M0,5 Q50,0 100,5" stroke="#33ff99" strokeWidth="3" fill="none" strokeLinecap="round" />
                   </svg>
                 </span>{" "}
-                bị lãng phí
+                bị bỏ phí
               </h2>
               <p className="text-gray-500 text-base leading-relaxed mb-8">
-                Mỗi ngày, hàng tấn thực phẩm tươi ngon bị bỏ đi vì không được bán kịp. FoodRescue kết nối cửa hàng với
-                người tiêu dùng, tạo ra giá trị cho cả hai phía trong khi bảo vệ hành tinh.
+                Nhiều món ở cửa hàng vẫn ngon nhưng khó bán kịp trong ngày. FoodRescue giúp bạn mua lại những món đó
+                với giá tốt hơn, còn cửa hàng thì đỡ tồn hàng.
               </p>
               <ul className="space-y-4">
                 {[
                   {
                     icon: "💰",
-                    title: "Tiết kiệm thực sự",
-                    desc: "Giảm đến 50% so với giá niêm yết trên kệ siêu thị.",
+                    title: "Dễ mua hơn",
+                    desc: "Nhiều món giảm sâu, hợp túi tiền hơn so với giá gốc.",
                   },
                   {
                     icon: "🥗",
-                    title: "Chất lượng đảm bảo",
-                    desc: "Thực phẩm còn hạn sử dụng, được kiểm soát bởi cửa hàng uy tín.",
+                    title: "Vẫn còn ngon",
+                    desc: "Sản phẩm còn hạn dùng và đến từ các cửa hàng đang bán thật.",
                   },
                   {
                     icon: "🌿",
-                    title: "Tác động môi trường",
-                    desc: "Giảm khí CO₂ từ rác thải thực phẩm, vì tương lai xanh hơn.",
+                    title: "Đỡ lãng phí",
+                    desc: "Mỗi đơn là thêm một món được dùng thay vì bị bỏ đi.",
                   },
                 ].map((item) => (
                   <li key={item.title} className="flex items-start gap-4">
@@ -383,7 +382,7 @@ export default function HomePage() {
                 href="/products"
                 className="inline-flex items-center gap-2 mt-8 bg-brand-dark hover:bg-brand-secondary text-white font-semibold px-6 py-3 rounded-xl transition-all hover:scale-105 text-sm"
               >
-                Khám phá sản phẩm ngay
+                Xem món đang bán
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
@@ -398,8 +397,8 @@ export default function HomePage() {
         <section className="bg-brand-bg py-20 lg:py-24 overflow-hidden">
           <div className="max-w-6xl mx-auto px-4 sm:px-6">
             <ScrollReveal className="text-center mb-12">
-              <span className="text-brand-dark font-bold text-sm tracking-widest uppercase">Tươi ngon mỗi ngày</span>
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-2">Chất lượng nói lên tất cả</h2>
+              <span className="text-brand-dark font-bold text-sm tracking-widest uppercase">Món nào cũng dễ chọn</span>
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-2">Nhìn là biết mình muốn mua gì</h2>
             </ScrollReveal>
 
             {/* 3-column image cards */}
@@ -416,8 +415,8 @@ export default function HomePage() {
                   <span className="inline-block bg-brand text-gray-900 text-xs font-bold px-3 py-1 rounded-full mb-2">
                     Rau củ
                   </span>
-                  <h3 className="text-white font-bold text-xl leading-tight">Rau sạch hữu cơ tươi mỗi ngày</h3>
-                  <p className="text-white/70 text-sm mt-1">Đảm bảo nguồn gốc, không hóa chất</p>
+                  <h3 className="text-white font-bold text-xl leading-tight">Rau củ tươi, dễ nấu cho bữa hôm nay</h3>
+                  <p className="text-white/70 text-sm mt-1">Chọn nhanh, giá rõ ràng</p>
                 </div>
               </ScrollReveal>
 
@@ -435,15 +434,15 @@ export default function HomePage() {
                 <div className="absolute inset-0 pointer-events-none bg-linear-to-t from-gray-900/80 via-gray-900/20 to-transparent" />
                 {/* Floating badge */}
                 <div className="absolute top-5 right-5 bg-white/95 backdrop-blur-sm rounded-2xl px-4 py-2.5 shadow-lg border border-brand/20">
-                  <p className="text-xs text-gray-500 font-medium">Tiết kiệm tới</p>
+                  <p className="text-xs text-gray-500 font-medium">Có thể giảm tới</p>
                   <p className="text-2xl font-extrabold text-brand-dark leading-none">50%</p>
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 p-6">
                   <span className="inline-block bg-brand text-gray-900 text-xs font-bold px-3 py-1 rounded-full mb-2">
                     Hôm nay
                   </span>
-                  <h3 className="text-white font-bold text-xl leading-tight">Thực phẩm cuối ngày giá tốt nhất</h3>
-                  <p className="text-white/70 text-sm mt-1">Cập nhật liên tục theo giờ</p>
+                  <h3 className="text-white font-bold text-xl leading-tight">Món cuối ngày, giá mềm hơn hẳn</h3>
+                  <p className="text-white/70 text-sm mt-1">Thấy hợp là chốt ngay</p>
                 </div>
               </ScrollReveal>
 
@@ -459,8 +458,8 @@ export default function HomePage() {
                   <span className="inline-block bg-brand text-gray-900 text-xs font-bold px-3 py-1 rounded-full mb-2">
                     Sức khoẻ
                   </span>
-                  <h3 className="text-white font-bold text-xl leading-tight">Ăn đúng — Sống khoẻ mỗi ngày</h3>
-                  <p className="text-white/70 text-sm mt-1">Đa dạng dinh dưỡng, giá phải chăng</p>
+                  <h3 className="text-white font-bold text-xl leading-tight">Ăn gọn, ăn ngon, đỡ tốn hơn</h3>
+                  <p className="text-white/70 text-sm mt-1">Nhiều lựa chọn cho bữa hằng ngày</p>
                 </div>
               </ScrollReveal>
             </div>
@@ -548,10 +547,10 @@ export default function HomePage() {
             <ScrollReveal className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end justify-between">
               <div>
                 <span className="text-brand-dark font-bold text-sm tracking-widest uppercase">
-                  Giải cứu ngay hôm nay
+                  Món đang giảm hôm nay
                 </span>
-                <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-2">Ưu đãi sắp hết hạn ⚡</h2>
-                <p className="text-gray-500 mt-2 text-sm">Nhanh tay kẻo hết — cập nhật theo giờ</p>
+                <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-2">Mua nhanh kẻo hết ⚡</h2>
+                <p className="text-gray-500 mt-2 text-sm">Món lên theo giờ, thấy hợp thì chốt luôn</p>
               </div>
               <Link
                 href="/products"
@@ -575,7 +574,7 @@ export default function HomePage() {
                 href="/products"
                 className="inline-flex items-center gap-2 border-2 border-brand-dark text-brand-dark hover:bg-brand-dark hover:text-white font-semibold px-8 py-3 rounded-2xl text-sm transition-all duration-200"
               >
-                Xem thêm ưu đãi
+                Xem thêm món đang giảm
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
@@ -595,8 +594,8 @@ export default function HomePage() {
           </div>
 
           <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-20 lg:py-24 text-center">
-            <span className="text-brand font-bold text-sm tracking-widest uppercase">Con số biết nói</span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-white mt-2 mb-14">Tác động thực sự của chúng ta</h2>
+            <span className="text-brand font-bold text-sm tracking-widest uppercase">FoodRescue hôm nay</span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-white mt-2 mb-14">Nhiều người đã mua theo cách này</h2>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
               {IMPACT_STATS.map((stat, index) => (
                 <ScrollReveal
@@ -622,21 +621,21 @@ export default function HomePage() {
             {/* Content */}
             <ScrollReveal className="p-10 lg:p-14 flex flex-col justify-center" direction="left">
               <span className="inline-block bg-brand/20 text-brand text-xs font-bold px-3 py-1.5 rounded-full mb-5 uppercase tracking-wider w-fit">
-                Dành cho cửa hàng
+                Dành cho đối tác bán hàng
               </span>
               <h2 className="text-3xl lg:text-4xl font-extrabold text-white leading-tight mb-5">
-                Biến hàng tồn thành <span className="text-brand">doanh thu</span>
+                Đồ còn bán được thì nên đổi thành <span className="text-brand">đơn hàng</span>
               </h2>
               <p className="text-gray-400 text-base leading-relaxed mb-8">
-                Đừng để thực phẩm cuối ngày trở thành rác. Đăng ký làm đối tác FoodRescue, tiếp cận hàng nghìn khách
-                hàng quanh bạn và tăng doanh thu thêm 20% mỗi tháng.
+                Cuối ngày còn món nào chưa bán kịp, cứ đưa lên FoodRescue. Khách quanh bạn thấy giá hợp sẽ chốt nhanh,
+                còn cửa hàng thì bớt tồn và có thêm doanh thu.
               </p>
               <ul className="space-y-3 mb-8">
                 {[
-                  "✅ Đăng ký miễn phí, không phí hoa hồng ban đầu",
-                  "✅ Tiếp cận 50.000+ khách hàng tiềm năng",
-                  "✅ Dashboard quản lý đơn hàng trực quan",
-                  "✅ Hỗ trợ kỹ thuật 24/7",
+                  "✅ Lên món nhanh, không rườm rà",
+                  "✅ Chạm đúng khách hàng gần cửa hàng",
+                  "✅ Theo dõi đơn ngay trên dashboard",
+                  "✅ Có hỗ trợ khi cần",
                 ].map((item) => (
                   <li key={item} className="text-gray-300 text-sm">
                     {item}
@@ -648,13 +647,13 @@ export default function HomePage() {
                   href="/store/login"
                   className="inline-flex items-center gap-2 bg-brand hover:bg-brand-secondary text-gray-900 font-bold px-6 py-3 rounded-xl text-sm transition-all hover:scale-105"
                 >
-                  Đăng ký ngay — Miễn phí
+                  Bắt đầu bán cùng FoodRescue
                 </Link>
                 <Link
                   href="/store/login"
                   className="inline-flex items-center gap-2 text-gray-300 hover:text-white text-sm font-medium px-4 py-3 transition-colors"
                 >
-                  Tìm hiểu thêm →
+                  Xem cách hoạt động →
                 </Link>
               </div>
             </ScrollReveal>
@@ -669,9 +668,9 @@ export default function HomePage() {
               <div className="absolute inset-0 pointer-events-none bg-linear-to-r from-gray-900/60 to-transparent" />
               {/* Floating success card */}
               <div className="absolute bottom-10 right-8 pointer-events-none bg-white rounded-2xl shadow-xl p-4 w-48">
-                <p className="text-xs text-gray-500 mb-1">Doanh thu thêm mỗi tháng</p>
+                <p className="text-xs text-gray-500 mb-1">Doanh thu tăng thêm</p>
                 <p className="text-2xl font-extrabold text-brand-dark">+23%</p>
-                <p className="text-xs text-gray-400 mt-0.5">trung bình các đối tác</p>
+                <p className="text-xs text-gray-400 mt-0.5">mức trung bình đối tác</p>
                 <div className="mt-2 flex gap-0.5">
                   {[60, 80, 70, 90, 85, 95].map((h, i) => (
                     <div key={i} className="flex-1 rounded-sm bg-brand" style={{ height: `${h * 0.28}px` }} />
@@ -688,8 +687,8 @@ export default function HomePage() {
         <section className="bg-brand-bg py-20 lg:py-24">
           <div className="max-w-6xl mx-auto px-4 sm:px-6">
             <ScrollReveal className="text-center mb-12">
-              <span className="text-brand-dark font-bold text-sm tracking-widest uppercase">Khách hàng nói gì</span>
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-2">Hàng nghìn người đã tin dùng</h2>
+              <span className="text-brand-dark font-bold text-sm tracking-widest uppercase">Khách hàng chia sẻ</span>
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-2">Người mua thấy gì sau khi dùng</h2>
               <div className="flex justify-center items-center gap-1 mt-3">
                 {[...Array(5)].map((_, i) => (
                   <svg key={i} className="w-5 h-5 text-yellow-400 fill-current" viewBox="0 0 20 20">
@@ -745,28 +744,28 @@ export default function HomePage() {
           <ScrollReveal className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 py-20 lg:py-24 text-center">
             <div className="inline-flex items-center gap-2 bg-brand/20 border border-brand/30 text-brand rounded-full px-4 py-1.5 text-sm font-semibold mb-6">
               <span className="w-2 h-2 rounded-full bg-brand animate-pulse inline-block" />
-              Bắt đầu tiết kiệm ngay hôm nay
+              Bắt đầu từ bữa ăn hôm nay
             </div>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-5 leading-tight">
-              Hãy cùng chúng tôi <span className="text-brand">giải cứu</span>
+              Chọn món bạn cần, <span className="text-brand">mua giá tốt</span>
               <br />
-              thực phẩm Việt Nam
+              và đỡ phí đồ ăn ngon
             </h2>
             <p className="text-white/70 text-base mb-10 max-w-xl mx-auto">
-              Tham gia cộng đồng 50.000+ người đang hành động vì môi trường và ví tiền của mình.
+              Không cần nói chuyện quá lớn lao. Chỉ cần bạn mua đúng món mình cần với giá hợp lý là đã đủ ý nghĩa rồi.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Link
                 href="/products"
                 className="inline-flex items-center gap-2 bg-brand hover:bg-brand-secondary text-gray-900 font-bold px-8 py-4 rounded-2xl text-base transition-all hover:scale-105 hover:shadow-xl hover:shadow-brand/30"
               >
-                🛒 Mua ngay — Giảm đến 50%
+                🛒 Xem món đang giảm giá
               </Link>
               <Link
                 href="/register"
                 className="inline-flex items-center gap-2 bg-gray-900/50 hover:bg-gray-900/65 text-white font-semibold px-8 py-4 rounded-2xl text-base border border-white/30 transition-all hover:scale-105"
               >
-                Đăng ký miễn phí →
+                Tạo tài khoản miễn phí →
               </Link>
             </div>
           </ScrollReveal>

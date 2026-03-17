@@ -10,6 +10,7 @@ public interface OrderService {
     Page<OrderResponse> getCustomerOrders(Long customerId, Pageable pageable);
     OrderResponse getOrderDetail(Long customerId, Long orderId);
     void handlePayOSWebhook(String payload);
+    int reconcilePendingPayments();
     int expirePendingPayments();
 
     // Seller

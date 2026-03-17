@@ -14,6 +14,10 @@ import java.util.Optional;
 public interface OrderPaymentRepository extends JpaRepository<OrderPayment, Long> {
     Optional<OrderPayment> findByOrderId(Long orderId);
     Optional<OrderPayment> findByProviderOrderCode(Long providerOrderCode);
+    List<OrderPayment> findByProviderAndStatusOrderByCreatedAtAsc(
+            OrderPayment.PaymentProvider provider,
+            OrderPayment.PaymentTransactionStatus status
+    );
 
     @Query("""
         SELECT p FROM OrderPayment p

@@ -10,11 +10,14 @@ import com.foodrescue.foodrescue_be.dto.response.ProductResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public interface ProductService {
 
-    Page<ProductResponse> getPublicProducts(Long categoryId, String keyword, String sort, Pageable pageable);
+    Page<ProductResponse> getPublicProducts(Long categoryId, String keyword, String sort,
+                                            BigDecimal minPrice, BigDecimal maxPrice, String province,
+                                            Pageable pageable);
 
     ProductResponse getProductDetail(Long productId);
 

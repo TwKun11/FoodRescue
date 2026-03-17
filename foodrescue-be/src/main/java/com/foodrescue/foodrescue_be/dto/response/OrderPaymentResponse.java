@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDateTime;
 
 @Getter
@@ -20,6 +21,7 @@ public class OrderPaymentResponse {
     private String currency;
     private String description;
     private LocalDateTime expiresAt;
+    private Long remainingSeconds;
     private LocalDateTime paidAt;
     private LocalDateTime cancelledAt;
     private String failureReason;
@@ -39,9 +41,19 @@ public class OrderPaymentResponse {
                 .currency(payment.getCurrency())
                 .description(payment.getDescription())
                 .expiresAt(payment.getExpiresAt())
+                .remainingSeconds(calculateRemainingSeconds(payment))
                 .paidAt(payment.getPaidAt())
                 .cancelledAt(payment.getCancelledAt())
                 .failureReason(payment.getFailureReason())
                 .build();
+    }
+
+    private static Long calculateRemainingSeconds(OrderPayment payment) {
+        if (payment.getStatus() != OrderPayment.PaymentTransactionStatus.pending || payment.getExpiresAt() == null) {
+            return null;
+        }
+
+        long seconds = Duration.between(LocalDateTime.now(), payment.getExpiresAt()).getSeconds();
+        return Math.max(0L, seconds);
     }
 }

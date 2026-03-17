@@ -1,9 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiGetOrderDetail } from "@/lib/api";
+
+function formatRemaining(seconds) {
+  if (seconds == null) return null;
+
+  const total = Math.max(0, Number(seconds));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const secs = total % 60;
+
+  if (hours > 0) return `Con lai khoang ${hours} gio ${minutes} phut`;
+  if (minutes > 0) return `Con lai khoang ${minutes} phut`;
+  if (secs > 0) return `Con lai khoang ${secs} giay`;
+  return "Da den han xu ly";
+}
 
 export default function PayOSReturnPage() {
   const router = useRouter();
@@ -12,6 +26,31 @@ export default function PayOSReturnPage() {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(() => Boolean(orderId));
 
+  const loadOrder = useCallback(
+    async ({ silent = false } = {}) => {
+      if (!orderId) {
+        setLoading(false);
+        return;
+      }
+
+      if (!silent) {
+        setLoading(true);
+      }
+
+      try {
+        const res = await apiGetOrderDetail(orderId);
+        if (res.ok && res.data?.data) {
+          setOrder(res.data.data);
+        }
+      } finally {
+        if (!silent) {
+          setLoading(false);
+        }
+      }
+    },
+    [orderId],
+  );
+
   useEffect(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
     if (!token) {
@@ -19,16 +58,8 @@ export default function PayOSReturnPage() {
       return;
     }
 
-    if (!orderId) return;
-
-    apiGetOrderDetail(orderId)
-      .then((res) => {
-        if (res.ok && res.data?.data) {
-          setOrder(res.data.data);
-        }
-      })
-      .finally(() => setLoading(false));
-  }, [orderId, router]);
+    void loadOrder();
+  }, [loadOrder, router]);
 
   return (
     <div className="min-h-screen bg-brand-bg px-4 py-12">
@@ -41,6 +72,9 @@ export default function PayOSReturnPage() {
           Hệ thống sẽ cập nhật đơn hàng sau khi webhook PayOS được xác minh. Nếu payment thành công, đơn sẽ chuyển sang
           trạng thái chờ xác nhận.
         </p>
+        {order?.paymentMethod?.toLowerCase() === "payos" && order?.paymentStatus?.toLowerCase() === "pending" && (
+          <p className="text-xs text-amber-700 mt-2">Backend se tu dong dong bo trang thai thanh toan tu DB va PayOS.</p>
+        )}
 
         <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
           {loading ? (
@@ -52,6 +86,7 @@ export default function PayOSReturnPage() {
               </p>
               <p>Trạng thái đơn: {order.status || "-"}</p>
               <p>Trạng thái payment: {order.paymentStatus || "-"}</p>
+              {order.payment?.remainingSeconds != null && <p>Thoi gian con lai: {formatRemaining(order.payment.remainingSeconds)}</p>}
             </div>
           ) : (
             <p>Không đọc được thông tin đơn hàng. Bạn có thể mở lại trong mục đơn hàng của tôi.</p>
