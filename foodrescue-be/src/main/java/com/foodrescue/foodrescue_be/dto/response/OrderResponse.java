@@ -2,6 +2,7 @@ package com.foodrescue.foodrescue_be.dto.response;
 
 import com.foodrescue.foodrescue_be.model.Order;
 import com.foodrescue.foodrescue_be.model.OrderSellerOrder;
+import com.foodrescue.foodrescue_be.model.User;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -29,6 +30,9 @@ public class OrderResponse {
     private LocalDateTime paidAt;
     private OrderPaymentResponse payment;
     private List<OrderItemResponse> items;
+    private String customerName;
+    private String customerEmail;
+    private String customerPhone;
 
     public static OrderResponse fromEntity(Order order, List<OrderItemResponse> items, OrderPaymentResponse payment) {
         return OrderResponse.builder()
@@ -54,6 +58,7 @@ public class OrderResponse {
 
     public static OrderResponse fromSellerOrder(OrderSellerOrder so, List<OrderItemResponse> items, OrderPaymentResponse payment) {
         Order order = so.getOrder();
+        User customer = order != null ? order.getUser() : null;
         return OrderResponse.builder()
                 .id(so.getId())
                 .orderCode(so.getSellerOrderCode())
@@ -72,6 +77,9 @@ public class OrderResponse {
                 .paidAt(order.getPaidAt())
                 .payment(payment)
                 .items(items)
+                .customerName(customer != null ? customer.getFullName() : null)
+                .customerEmail(customer != null ? customer.getEmail() : null)
+                .customerPhone(customer != null ? customer.getPhone() : null)
                 .build();
     }
 }
