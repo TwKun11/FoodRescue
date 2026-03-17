@@ -146,6 +146,14 @@ export function writeCheckoutCart(items) {
   return normalized;
 }
 
+export function startDirectCheckout(item) {
+  if (!isBrowser()) return [];
+  const normalized = normalizeCartItem({ ...item, selected: true });
+  if (!normalized) return [];
+  localStorage.setItem(CHECKOUT_STORAGE_KEY, JSON.stringify([normalized]));
+  return [normalized];
+}
+
 export function readCheckoutCart() {
   if (!isBrowser()) return [];
   try {

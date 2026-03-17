@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Badge from "@/components/common/Badge";
@@ -9,16 +10,28 @@ import { clearCheckoutCart, getCheckoutItems, removeCheckoutItemsFromCart } from
 
 const PAYMENT_METHODS = [
   {
-    id: "cod",
-    label: "Thanh toán khi nhận hàng",
-    description: "Đặt chỗ tại cửa hàng. Thanh toán khi đến nhận hoặc khi shop hoàn tất quy trình giao.",
-    icon: "💵",
+    id: "payos",
+    label: "PayOS",
+    subtitle: "QR / Chuyển khoản",
+    helper: "Đang hoạt động",
+    enabled: true,
+    tileClass: "border border-emerald-200 bg-emerald-100 text-emerald-700",
   },
   {
-    id: "payos",
-    label: "Thanh toán qua PayOS",
-    description: "Tạo link QR/chuyển khoản ngay sau khi tạo đơn và chờ webhook xác nhận thành công.",
-    icon: "🏦",
+    id: "momo",
+    label: "MoMo",
+    subtitle: "Ví điện tử",
+    helper: "Sắp hỗ trợ",
+    enabled: false,
+    logoSrc: "/images/banking/momo.jpg",
+  },
+  {
+    id: "vnpay",
+    label: "VNPay",
+    subtitle: "QR / Ngân hàng",
+    helper: "Sắp hỗ trợ",
+    enabled: false,
+    logoSrc: "/images/banking/vnpay.jpg",
   },
 ];
 
@@ -26,18 +39,49 @@ function formatCurrency(value) {
   return Number(value || 0).toLocaleString("vi-VN") + " đồng";
 }
 
+function subscribeClientSnapshot() {
+  return () => {};
+}
+
+function PaymentLogo({ method, compact = false }) {
+  const sizeClass = compact ? "h-12 w-14 rounded-xl" : "h-14 w-24 rounded-2xl";
+
+  if (method.logoSrc) {
+    return (
+      <div className={`relative overflow-hidden border border-gray-200 bg-white ${sizeClass}`}>
+        <Image
+          src={method.logoSrc}
+          alt={method.label}
+          fill
+          sizes={compact ? "44px" : "(max-width: 1024px) 160px, 220px"}
+          className="object-contain p-2"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className={`flex items-center justify-center ${sizeClass} ${method.tileClass}`}>
+      <div className="text-center">
+        <p className={`${compact ? "text-sm" : "text-lg"} font-black tracking-[0.2em]`}>PO</p>
+        {!compact ? <p className="text-[10px] font-semibold uppercase tracking-[0.24em]">PayOS</p> : null}
+      </div>
+    </div>
+  );
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
-  const [cartItems] = useState(() => getCheckoutItems());
   const [addresses, setAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState("");
   const [addressesLoading, setAddressesLoading] = useState(true);
-  const [paymentMethod, setPaymentMethod] = useState("cod");
+  const [paymentMethod, setPaymentMethod] = useState("payos");
   const [note, setNote] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [placed, setPlaced] = useState(false);
   const [orderId, setOrderId] = useState(null);
   const [placing, setPlacing] = useState(false);
+  const isClient = useSyncExternalStore(subscribeClientSnapshot, () => true, () => false);
 
   useEffect(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
@@ -69,27 +113,33 @@ export default function CheckoutPage() {
       .finally(() => setAddressesLoading(false));
   }, [router]);
 
-  const subtotal = cartItems.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0), 0);
-  const originalTotal = cartItems.reduce(
+  const items = isClient ? getCheckoutItems() : [];
+  const subtotal = items.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0), 0);
+  const originalTotal = items.reduce(
     (sum, item) => sum + Number(item.originalPrice || item.price || 0) * Number(item.quantity || 0),
     0,
   );
   const savings = Math.max(0, originalTotal - subtotal);
-  const lineCount = cartItems.length;
-  const qtyCount = cartItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+  const lineCount = items.length;
+  const qtyCount = items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+  const selectedPayment = PAYMENT_METHODS.find((method) => method.id === paymentMethod) ?? PAYMENT_METHODS[0];
 
   const handlePlaceOrder = () => {
+    if (!selectedPayment?.enabled) {
+      window.alert("Phương thức thanh toán này chưa khả dụng.");
+      return;
+    }
     if (!agreed) {
       window.alert("Vui lòng đồng ý điều khoản trước khi đặt hàng.");
       return;
     }
-    if (cartItems.length === 0) {
+    if (items.length === 0) {
       window.alert("Không có sản phẩm nào được chọn để thanh toán.");
       return;
     }
 
     setPlacing(true);
-    const orderLines = cartItems.map((item) => ({
+    const orderLines = items.map((item) => ({
       variantId: item.variantId,
       quantity: item.quantity,
     }));
@@ -105,7 +155,7 @@ export default function CheckoutPage() {
         if (res.ok && order) {
           if (order.paymentMethod === "payos") {
             if (order.payment?.checkoutUrl) {
-              removeCheckoutItemsFromCart(cartItems);
+              removeCheckoutItemsFromCart(items);
               window.location.assign(order.payment.checkoutUrl);
               return;
             }
@@ -113,7 +163,7 @@ export default function CheckoutPage() {
             return;
           }
 
-          removeCheckoutItemsFromCart(cartItems);
+          removeCheckoutItemsFromCart(items);
           setOrderId(order.orderCode || order.id || "");
           setPlaced(true);
           return;
@@ -130,6 +180,16 @@ export default function CheckoutPage() {
         setPlacing(false);
       });
   };
+
+  if (!isClient) {
+    return (
+      <div className="min-h-screen bg-brand-bg px-4 py-12">
+        <div className="mx-auto max-w-3xl rounded-2xl border border-gray-100 bg-white p-8 shadow-sm">
+          <p className="text-sm font-medium text-gray-700">Đang tải thông tin thanh toán...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (placed) {
     return (
@@ -162,7 +222,7 @@ export default function CheckoutPage() {
     );
   }
 
-  if (cartItems.length === 0) {
+  if (items.length === 0) {
     return (
       <div className="min-h-screen bg-brand-bg px-4 py-12">
         <div className="mx-auto max-w-xl rounded-2xl border border-gray-100 bg-white p-8 text-center shadow-sm">
@@ -204,16 +264,25 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-screen bg-brand-bg">
       <div className="mx-auto max-w-6xl px-4 py-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Thanh toán</h1>
-          <p className="mt-1 text-sm text-gray-500">Chỉ nhận phần sản phẩm được chọn trong giỏ hàng. Các món khác vẫn giữ nguyên.</p>
+        <div className="mb-6 flex flex-col gap-3 rounded-3xl border border-white/70 bg-white p-6 shadow-sm sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-dark">Checkout</p>
+            <h1 className="mt-2 text-3xl font-bold text-gray-900">Thanh toán</h1>
+            <p className="mt-1 text-sm text-gray-500">Chọn cổng thanh toán và xác nhận đơn.</p>
+          </div>
+          <Badge variant="default" className="w-fit bg-emerald-100 px-3 py-1 text-emerald-700">
+            PayOS đang hoạt động
+          </Badge>
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
           <div className="space-y-5">
             <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
               <div className="mb-3 flex items-center justify-between gap-3">
-                <h2 className="font-semibold text-gray-800">Địa chỉ liên hệ</h2>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-dark">Bước 1</p>
+                  <h2 className="font-semibold text-gray-800">Địa chỉ liên hệ</h2>
+                </div>
                 <Link href="/profile/addresses" className="text-xs font-medium text-brand-dark hover:underline">
                   Quản lý địa chỉ
                 </Link>
@@ -270,7 +339,10 @@ export default function CheckoutPage() {
             </div>
 
             <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-              <h2 className="mb-3 font-semibold text-gray-800">Nhận hàng</h2>
+              <div className="mb-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-dark">Bước 2</p>
+                <h2 className="font-semibold text-gray-800">Nhận hàng</h2>
+              </div>
               <div className="rounded-xl border border-brand/20 bg-brand-bg p-4 text-sm">
                 <p className="font-semibold text-gray-800">FoodRescue - Click and Collect</p>
                 <p className="mt-1 text-xs text-gray-600">Đơn được shop xác nhận và chuẩn bị để nhận tại điểm bán.</p>
@@ -278,13 +350,29 @@ export default function CheckoutPage() {
             </div>
 
             <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-              <h2 className="mb-4 font-semibold text-gray-800">Phương thức thanh toán</h2>
-              <div className="space-y-3">
+              <div className="flex flex-col gap-3 border-b border-gray-100 pb-4 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-dark">Bước 3</p>
+                  <h2 className="text-base font-semibold text-gray-800">Phương thức thanh toán</h2>
+                  <p className="mt-1 text-sm text-gray-500">PayOS dùng được. MoMo và VNPay chỉ hiển thị.</p>
+                </div>
+                <Badge variant="default" className="w-fit bg-slate-100 text-slate-600">
+                  1 cổng đang mở
+                </Badge>
+              </div>
+
+              <div className="mt-4 space-y-3">
                 {PAYMENT_METHODS.map((method) => (
                   <label
                     key={method.id}
-                    className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 p-4 transition ${
-                      paymentMethod === method.id ? "border-brand bg-brand-bg" : "border-gray-200 bg-white hover:border-gray-300"
+                    className={`relative flex items-center gap-4 rounded-2xl border p-4 transition ${
+                      method.enabled ? "cursor-pointer" : "cursor-not-allowed opacity-75"
+                    } ${
+                      paymentMethod === method.id
+                        ? "border-brand bg-brand-bg shadow-[0_0_0_1px_rgba(193,154,107,0.15)]"
+                        : method.enabled
+                          ? "border-gray-200 bg-white hover:border-gray-300"
+                          : "border-gray-200 bg-gray-50"
                     }`}
                   >
                     <input
@@ -292,32 +380,47 @@ export default function CheckoutPage() {
                       name="payment"
                       value={method.id}
                       checked={paymentMethod === method.id}
-                      onChange={() => setPaymentMethod(method.id)}
-                      className="accent-brand-dark"
+                      onChange={() => {
+                        if (method.enabled) {
+                          setPaymentMethod(method.id);
+                        }
+                      }}
+                      disabled={!method.enabled}
+                      className="sr-only"
                     />
-                    <span className="w-10 shrink-0 text-center text-xl">{method.icon}</span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-gray-700">{method.label}</p>
-                      <p className="mt-0.5 text-xs text-gray-500">{method.description}</p>
+
+                    <div className="shrink-0">
+                      <PaymentLogo method={method} />
                     </div>
-                    {paymentMethod === method.id ? (
-                      <Badge variant="discount" className="shrink-0">
-                        Đã chọn
-                      </Badge>
-                    ) : null}
+
+                    <div className="min-w-0 flex-1">
+                      <p className="text-base font-semibold text-gray-800">{method.label}</p>
+                      <p className="mt-1 text-sm text-gray-500">{method.subtitle}</p>
+                    </div>
+
+                    <div className="flex shrink-0 items-center">
+                      {paymentMethod === method.id ? (
+                        <Badge variant="discount" className="shrink-0">
+                          Đang được chọn
+                        </Badge>
+                      ) : (
+                        <Badge variant="default" className={method.enabled ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}>
+                          {method.helper}
+                        </Badge>
+                      )}
+                    </div>
                   </label>
                 ))}
               </div>
 
-              {paymentMethod === "payos" ? (
-                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
-                  Hệ thống tạo đơn ở trạng thái chờ thanh toán và đợi webhook PayOS để chuyển đơn sang chờ xác nhận.
-                </div>
-              ) : null}
+              <p className="mt-4 text-xs text-gray-400">MoMo và VNPay sẽ được mở khi backend có luồng thanh toán thật.</p>
             </div>
 
             <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-              <h2 className="mb-3 font-semibold text-gray-800">Ghi chú đơn hàng</h2>
+              <div className="mb-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-dark">Bước 4</p>
+                <h2 className="font-semibold text-gray-800">Ghi chú đơn hàng</h2>
+              </div>
               <textarea
                 rows={3}
                 value={note}
@@ -331,8 +434,19 @@ export default function CheckoutPage() {
           <aside className="h-fit rounded-2xl border border-gray-100 bg-white p-6 shadow-sm xl:sticky xl:top-24">
             <h2 className="border-b border-gray-100 pb-3 text-lg font-bold text-gray-800">Tóm tắt đơn hàng</h2>
 
+            <div className="mt-4 rounded-2xl border border-brand/20 bg-brand-bg p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-dark">Thanh toán đang chọn</p>
+              <div className="mt-3 flex items-start gap-3">
+                <PaymentLogo method={selectedPayment} compact />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-gray-800">{selectedPayment.label}</p>
+                  <p className="mt-1 text-xs leading-5 text-gray-600">{selectedPayment.subtitle}</p>
+                </div>
+              </div>
+            </div>
+
             <div className="mt-4 space-y-3">
-              {cartItems.map((item) => (
+              {items.map((item) => (
                 <div key={item.variantId} className="flex justify-between gap-3 text-sm">
                   <div className="min-w-0">
                     <p className="truncate font-medium text-gray-700">{item.name}</p>
@@ -388,10 +502,10 @@ export default function CheckoutPage() {
             <button
               type="button"
               onClick={handlePlaceOrder}
-              disabled={!agreed || placing || cartItems.length === 0}
+              disabled={!agreed || placing || items.length === 0 || !selectedPayment?.enabled}
               className="mt-5 flex w-full items-center justify-center rounded-xl bg-brand px-6 py-3 text-sm font-semibold text-gray-900 transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {placing ? (paymentMethod === "payos" ? "Đang tạo link PayOS..." : "Đang đặt hàng...") : paymentMethod === "payos" ? "Đặt hàng và thanh toán PayOS" : "Đặt hàng ngay"}
+              {placing ? "Đang tạo đơn và mở PayOS..." : "Tạo đơn và chuyển sang PayOS"}
             </button>
 
             <Link href="/cart" className="mt-3 block text-center text-sm text-gray-600 transition hover:text-brand-dark">

@@ -2,13 +2,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import CountdownTimer from "@/components/customer/CountdownTimer";
 import ProductCardListing from "@/components/customer/ProductCardListing";
 import { apiGetProduct, apiGetProducts } from "@/lib/api";
-import { addItemToCart } from "@/lib/cart";
+import { addItemToCart, startDirectCheckout } from "@/lib/cart";
 
 function ImageGallery({ images, name, discountPercent }) {
   const [active, setActive] = useState(0);
@@ -118,6 +118,7 @@ const STORAGE_LABELS = {
 
 export default function ProductDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params?.id;
   const [product, setProduct] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
@@ -127,16 +128,11 @@ export default function ProductDetailPage() {
   const [selectedSku, setSelectedSku] = useState(null);
   const [qty, setQty] = useState(1);
   const [addedToCart, setAddedToCart] = useState(false);
+  const [buyingNow, setBuyingNow] = useState(false);
   const [detailTab, setDetailTab] = useState("description");
 
   useEffect(() => {
-    setQty(1);
-  }, [selectedSku]);
-
-  useEffect(() => {
     if (!id) return;
-    setLoading(true);
-    setError("");
     apiGetProduct(id)
       .then((res) => {
         if (!res.ok || !res.data?.data) {
@@ -165,31 +161,31 @@ export default function ProductDetailPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  const handleAddToCart = () => {
-    if (!product || !selectedSku) return;
+  const buildCheckoutItem = () => {
+    if (!product || !selectedSku) return null;
     const remaining = selectedSku.stockAvailable ?? selectedSku.stockQuantity ?? product.remaining ?? 0;
-    if (remaining <= 0) return;
+    if (remaining <= 0) return null;
+
+    return {
+      variantId: selectedSku.id,
+      productId: product.id,
+      name: product.name,
+      variantName: selectedSku.name || selectedSku.unit || "",
+      image: product.primaryImageUrl,
+      price: selectedSku.salePrice || selectedSku.listPrice || 0,
+      originalPrice: selectedSku.listPrice || 0,
+      unit: selectedSku.unit || "",
+      storeName: product.sellerName || "",
+      quantity: Math.min(remaining, qty),
+      maxQty: remaining,
+    };
+  };
+
+  const handleAddToCart = () => {
+    const checkoutItem = buildCheckoutItem();
+    if (!checkoutItem) return;
     try {
-      const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-      const existing = cart.find((i) => i.variantId === selectedSku.id);
-      if (existing) {
-        existing.quantity = Math.min(remaining, existing.quantity + qty);
-      } else {
-        cart.push({
-          variantId: selectedSku.id,
-          productId: product.id,
-          name: product.name,
-          variantName: selectedSku.name || selectedSku.unit || "",
-          image: product.primaryImageUrl,
-          price: selectedSku.salePrice || selectedSku.listPrice || 0,
-          originalPrice: selectedSku.listPrice || 0,
-          unit: selectedSku.unit || "",
-          storeName: product.sellerName || "",
-          quantity: Math.min(remaining, qty),
-          maxQty: remaining,
-        });
-      }
-      localStorage.setItem("cart", JSON.stringify(cart));
+      addItemToCart(checkoutItem);
       setAddedToCart(true);
       toast.success(`Đã thêm "${product.name}" vào giỏ hàng`, {
         style: { border: "2px solid #059669", background: "#ecfdf5" },
@@ -198,6 +194,20 @@ export default function ProductDetailPage() {
       setTimeout(() => setAddedToCart(false), 2000);
     } catch (e) {
       toast.error("Không thêm được vào giỏ. Vui lòng thử lại.");
+    }
+  };
+
+  const handleBuyNow = () => {
+    const checkoutItem = buildCheckoutItem();
+    if (!checkoutItem) return;
+
+    try {
+      setBuyingNow(true);
+      startDirectCheckout(checkoutItem);
+      router.push("/checkout");
+    } catch (e) {
+      setBuyingNow(false);
+      toast.error("Không chuyển được sang thanh toán. Vui lòng thử lại.");
     }
   };
 
@@ -338,7 +348,10 @@ export default function ProductDetailPage() {
                     return (
                       <button
                         key={variant.id}
-                        onClick={() => setSelectedSku(variant)}
+                        onClick={() => {
+                          setSelectedSku(variant);
+                          setQty(1);
+                        }}
                         className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
                           isActive ? "bg-green-600 text-white" : "bg-white border border-gray-300 text-gray-700 hover:border-green-300"
                         }`}
@@ -358,10 +371,24 @@ export default function ProductDetailPage() {
                 <button onClick={() => setQty((q) => Math.min(remaining || 99, q + 1))} disabled={qty >= (remaining || 99)} className="w-11 h-full flex items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-40 text-lg font-medium">+</button>
               </div>
               <button
-                onClick={handleAddToCart}
+                onClick={handleBuyNow}
                 disabled={remaining === 0}
                 className={`flex-1 min-w-[200px] h-14 rounded-xl flex items-center justify-center gap-3 font-bold text-white transition-colors ${
-                  addedToCart ? "bg-green-600" : remaining === 0 ? "bg-gray-200 text-gray-500 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
+                  remaining === 0 ? "bg-gray-200 text-gray-500 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
+                }`}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v14m7-7H5" /></svg>
+                {buyingNow ? "Đang chuyển sang thanh toán..." : remaining === 0 ? "Hết hàng" : "Mua ngay"}
+              </button>
+              <button
+                onClick={handleAddToCart}
+                disabled={remaining === 0 || buyingNow}
+                className={`flex-1 min-w-[200px] h-14 rounded-xl flex items-center justify-center gap-3 font-bold transition-colors ${
+                  remaining === 0
+                    ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                    : addedToCart
+                      ? "border border-green-600 bg-green-50 text-green-700"
+                      : "border border-slate-300 bg-white text-slate-800 hover:border-green-300 hover:text-green-700"
                 }`}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>

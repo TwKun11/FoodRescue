@@ -76,12 +76,6 @@ export default function CartItem({ item, onToggle, onRemove, onQtyChange }) {
             }}
           />
         </div>
-        <div className="flex items-center gap-2 mt-2">
-          <span className="text-brand-dark font-bold">{discountPrice.toLocaleString("vi-VN")} đồng</span>
-          <span className="text-red-500 line-through text-xs">{originalPrice.toLocaleString("vi-VN")} đồng</span>
-        </div>
-      </div>
-
         <div className="min-w-0 flex-1">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">

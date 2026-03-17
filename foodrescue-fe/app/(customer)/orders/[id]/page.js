@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { apiGetOrderDetail } from "@/lib/api";
@@ -53,12 +53,53 @@ function fmtDate(iso) {
   });
 }
 
+function formatRemaining(seconds) {
+  if (seconds == null) return null;
+
+  const total = Math.max(0, Number(seconds));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const secs = total % 60;
+
+  if (hours > 0) return `Con lai khoang ${hours} gio ${minutes} phut`;
+  if (minutes > 0) return `Con lai khoang ${minutes} phut`;
+  if (secs > 0) return `Con lai khoang ${secs} giay`;
+  return "Da den han xu ly";
+}
+
 export default function OrderDetailPage() {
   const router = useRouter();
   const { id } = useParams();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const loadOrder = useCallback(
+    async ({ silent = false } = {}) => {
+      if (!id) return;
+
+      if (!silent) {
+        setLoading(true);
+      }
+
+      try {
+        const res = await apiGetOrderDetail(id);
+        if (res.ok && res.data?.data) {
+          setOrder(res.data.data);
+          setError("");
+        } else if (res.status === 401) {
+          router.replace("/login");
+        } else if (!silent) {
+          setError("Khong tim thay don hang.");
+        }
+      } finally {
+        if (!silent) {
+          setLoading(false);
+        }
+      }
+    },
+    [id, router],
+  );
 
   useEffect(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
@@ -68,18 +109,8 @@ export default function OrderDetailPage() {
     }
     if (!id) return;
 
-    apiGetOrderDetail(id)
-      .then((res) => {
-        if (res.ok && res.data?.data) {
-          setOrder(res.data.data);
-        } else if (res.status === 401) {
-          router.replace("/login");
-        } else {
-          setError("Không tìm thấy đơn hàng.");
-        }
-      })
-      .finally(() => setLoading(false));
-  }, [id, router]);
+    void loadOrder();
+  }, [id, loadOrder, router]);
 
   if (loading) return <div className="text-center py-20 text-gray-400">Đang tải...</div>;
   if (error)
@@ -172,6 +203,10 @@ export default function OrderDetailPage() {
             <p className="text-sm text-amber-700 mt-1">
               Thanh toán xong, hệ thống sẽ đợi webhook và chuyển đơn sang trạng thái chờ xác nhận.
             </p>
+            <p className="text-xs text-amber-700 mt-2">Backend se tu dong dong bo trang thai thanh toan tu DB va PayOS.</p>
+            {order.payment?.remainingSeconds != null && (
+              <p className="text-xs text-amber-700 mt-2">Thoi gian con lai: {formatRemaining(order.payment.remainingSeconds)}</p>
+            )}
             {order.payment?.expiresAt && (
               <p className="text-xs text-amber-700 mt-2">Hết hạn lúc: {fmtDate(order.payment.expiresAt)}</p>
             )}

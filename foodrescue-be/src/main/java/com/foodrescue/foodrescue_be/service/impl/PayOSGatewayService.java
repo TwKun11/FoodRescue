@@ -13,6 +13,8 @@ import vn.payos.PayOS;
 import vn.payos.model.webhooks.WebhookData;
 import vn.payos.model.v2.paymentRequests.CreatePaymentLinkRequest;
 import vn.payos.model.v2.paymentRequests.CreatePaymentLinkResponse;
+import vn.payos.model.v2.paymentRequests.PaymentLink;
+import vn.payos.model.v2.paymentRequests.PaymentLinkStatus;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -66,6 +68,19 @@ public class PayOSGatewayService {
                     .build();
         } catch (Exception e) {
             throw new IllegalArgumentException("Webhook PayOS khong hop le: " + e.getMessage());
+        }
+    }
+
+    public PaymentLinkStatusResult getPaymentLinkStatus(Long providerOrderCode) {
+        ensureConfigured();
+        try {
+            PaymentLink paymentLink = getClient().paymentRequests().get(providerOrderCode);
+            return PaymentLinkStatusResult.builder()
+                    .status(paymentLink.getStatus())
+                    .cancellationReason(paymentLink.getCancellationReason())
+                    .build();
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Khong the lay trang thai PayOS: " + e.getMessage());
         }
     }
 
@@ -176,5 +191,12 @@ public class PayOSGatewayService {
         private boolean success;
         private String description;
         private WebhookData data;
+    }
+
+    @Getter
+    @Builder
+    public static class PaymentLinkStatusResult {
+        private PaymentLinkStatus status;
+        private String cancellationReason;
     }
 }

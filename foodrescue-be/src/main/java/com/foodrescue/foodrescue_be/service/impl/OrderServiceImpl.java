@@ -7,20 +7,26 @@ import com.foodrescue.foodrescue_be.dto.response.OrderPaymentResponse;
 import com.foodrescue.foodrescue_be.dto.response.OrderResponse;
 import com.foodrescue.foodrescue_be.model.*;
 import com.foodrescue.foodrescue_be.repository.*;
+import lombok.extern.slf4j.Slf4j;
 import com.foodrescue.foodrescue_be.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import vn.payos.model.v2.paymentRequests.PaymentLinkStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
+
+    private static final Set<Order.PaymentMethod> SUPPORTED_PAYMENT_METHODS =
+            EnumSet.of(Order.PaymentMethod.cod, Order.PaymentMethod.payos);
 
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
@@ -126,26 +132,32 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional
     public Page<OrderResponse> getCustomerOrders(Long customerId, Pageable pageable) {
         return orderRepository.findByUserIdOrderByCreatedAtDesc(customerId, pageable)
-                .map(order -> toCustomerResponse(
-                        order,
-                        orderItemRepository.findByOrderId(order.getId()),
-                        findPayment(order.getId()).orElse(null)
-                ));
+                .map(order -> {
+                    OrderPayment payment = reconcilePayOSPayment(order);
+                    return toCustomerResponse(
+                            order,
+                            orderItemRepository.findByOrderId(order.getId()),
+                            payment
+                    );
+                });
     }
 
     @Override
+    @Transactional
     public OrderResponse getOrderDetail(Long customerId, Long orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Don hang khong ton tai"));
         if (order.getUser() == null || !order.getUser().getId().equals(customerId)) {
             throw new IllegalArgumentException("Ban khong co quyen xem don hang nay");
         }
+        OrderPayment payment = reconcilePayOSPayment(order);
         return toCustomerResponse(
                 order,
                 orderItemRepository.findByOrderId(orderId),
-                findPayment(orderId).orElse(null)
+                payment
         );
     }
 
@@ -176,6 +188,33 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
+    public int reconcilePendingPayments() {
+        int updatedCount = 0;
+        List<OrderPayment> pendingPayments = orderPaymentRepository.findByProviderAndStatusOrderByCreatedAtAsc(
+                OrderPayment.PaymentProvider.payos,
+                OrderPayment.PaymentTransactionStatus.pending
+        );
+
+        for (OrderPayment payment : pendingPayments) {
+            OrderPayment.PaymentTransactionStatus beforePaymentStatus = payment.getStatus();
+            Order.OrderStatus beforeOrderStatus = payment.getOrder().getOrderStatus();
+            Order.PaymentStatus beforeMasterPaymentStatus = payment.getOrder().getPaymentStatus();
+
+            OrderPayment refreshed = reconcilePayOSPayment(payment);
+            if (refreshed != null && (
+                    refreshed.getStatus() != beforePaymentStatus
+                            || payment.getOrder().getOrderStatus() != beforeOrderStatus
+                            || payment.getOrder().getPaymentStatus() != beforeMasterPaymentStatus
+            )) {
+                updatedCount++;
+            }
+        }
+
+        return updatedCount;
+    }
+
+    @Override
+    @Transactional
     public int expirePendingPayments() {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime fallbackDeadline = now.minusMinutes(orderLifecycleProperties.getPendingPaymentTimeoutMinutes());
@@ -196,6 +235,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional
     public Page<OrderResponse> getSellerOrders(Long sellerId, String status, Pageable pageable) {
         Page<OrderSellerOrder> page;
         if (status != null && !status.isBlank()) {
@@ -209,11 +249,14 @@ public class OrderServiceImpl implements OrderService {
             page = sellerOrderRepository.findBySellerIdOrderByCreatedAtDesc(sellerId, pageable);
         }
 
-        return page.map(sellerOrder -> OrderResponse.fromSellerOrder(
-                sellerOrder,
-                orderItemRepository.findBySellerOrderId(sellerOrder.getId()).stream().map(OrderItemResponse::fromEntity).toList(),
-                findPaymentResponse(sellerOrder.getOrder().getId())
-        ));
+        return page.map(sellerOrder -> {
+            OrderPayment payment = reconcilePayOSPayment(sellerOrder.getOrder());
+            return OrderResponse.fromSellerOrder(
+                    sellerOrder,
+                    orderItemRepository.findBySellerOrderId(sellerOrder.getId()).stream().map(OrderItemResponse::fromEntity).toList(),
+                    OrderPaymentResponse.fromEntity(payment)
+            );
+        });
     }
 
     @Override
@@ -370,6 +413,57 @@ public class OrderServiceImpl implements OrderService {
         payment.setQrCode(gatewayResult.getQrCode());
         payment.setExpiresAt(expiresAt);
         return orderPaymentRepository.save(payment);
+    }
+
+    private OrderPayment reconcilePayOSPayment(Order order) {
+        return findPayment(order.getId()).map(this::reconcilePayOSPayment).orElse(null);
+    }
+
+    private OrderPayment reconcilePayOSPayment(OrderPayment payment) {
+        if (payment == null) {
+            return null;
+        }
+
+        Order order = payment.getOrder();
+        if (!isPayOS(order.getPaymentMethod())
+                || payment.getStatus() != OrderPayment.PaymentTransactionStatus.pending) {
+            return payment;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+
+        if (payment.getProviderOrderCode() != null && payOSGatewayService.isConfigured()) {
+            try {
+                PayOSGatewayService.PaymentLinkStatusResult gatewayStatus =
+                        payOSGatewayService.getPaymentLinkStatus(payment.getProviderOrderCode());
+
+                if (gatewayStatus != null && gatewayStatus.getStatus() != null) {
+                    switch (gatewayStatus.getStatus()) {
+                        case PAID -> markPaymentPaid(payment);
+                        case CANCELLED, EXPIRED, FAILED -> markPaymentFailed(
+                                payment,
+                                buildGatewayFailureReason(gatewayStatus)
+                        );
+                        case PENDING, PROCESSING, UNDERPAID -> {
+                            // Keep pending and fall through to DB-based expiry checks below.
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.warn(
+                        "Unable to reconcile PayOS payment for order {} (providerOrderCode={}): {}",
+                        order.getId(),
+                        payment.getProviderOrderCode(),
+                        e.getMessage()
+                );
+            }
+        }
+
+        if (payment.getStatus() == OrderPayment.PaymentTransactionStatus.pending && shouldExpirePendingPayment(payment, now)) {
+            markPaymentExpired(payment, now);
+        }
+
+        return orderPaymentRepository.findById(payment.getId()).orElse(payment);
     }
 
     private void markPaymentPaid(OrderPayment payment) {
@@ -605,8 +699,17 @@ public class OrderServiceImpl implements OrderService {
             throw new IllegalArgumentException("Phuong thuc thanh toan khong hop le");
         }
         try {
-            return Order.PaymentMethod.valueOf(value.trim().toLowerCase());
+            Order.PaymentMethod paymentMethod = Order.PaymentMethod.valueOf(value.trim().toLowerCase());
+            if (!SUPPORTED_PAYMENT_METHODS.contains(paymentMethod)) {
+                throw new IllegalArgumentException(
+                        "Phuong thuc thanh toan chua duoc ho tro: " + value + ". Hien chi ho tro cod va payos"
+                );
+            }
+            return paymentMethod;
         } catch (Exception e) {
+            if (e instanceof IllegalArgumentException) {
+                throw (IllegalArgumentException) e;
+            }
             throw new IllegalArgumentException("Phuong thuc thanh toan khong duoc ho tro: " + value);
         }
     }
@@ -675,6 +778,27 @@ public class OrderServiceImpl implements OrderService {
             case paid -> Order.PaymentStatus.paid;
             case pending -> Order.PaymentStatus.pending;
         };
+    }
+
+    private String buildGatewayFailureReason(PayOSGatewayService.PaymentLinkStatusResult gatewayStatus) {
+        PaymentLinkStatus status = gatewayStatus.getStatus();
+        String reason = gatewayStatus.getCancellationReason();
+        if (reason != null && !reason.isBlank()) {
+            return "PayOS status " + status + ": " + reason;
+        }
+        return "PayOS status " + status;
+    }
+
+    private boolean shouldExpirePendingPayment(OrderPayment payment, LocalDateTime now) {
+        if (payment.getStatus() != OrderPayment.PaymentTransactionStatus.pending) {
+            return false;
+        }
+        if (payment.getExpiresAt() != null) {
+            return !payment.getExpiresAt().isAfter(now);
+        }
+
+        LocalDateTime fallbackDeadline = now.minusMinutes(orderLifecycleProperties.getPendingPaymentTimeoutMinutes());
+        return !payment.getCreatedAt().isAfter(fallbackDeadline);
     }
 
 }
