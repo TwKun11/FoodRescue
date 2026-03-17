@@ -152,7 +152,7 @@ export default function CartPage() {
                       Phí dịch vụ
                       <span className="ml-1 text-gray-400">(3%)</span>
                     </span>
-                    <span>{serviceFee.toLocaleString("vi-VN")}đ</span>
+                    <span>{serviceFee.toLocaleString("vi-VN")} đồng</span>
                   </div>
                   <div className="border-t border-gray-100 pt-4 mt-4 flex justify-between items-center">
                     <span className="font-bold text-gray-900">Tổng cộng</span>

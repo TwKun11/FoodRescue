@@ -302,7 +302,7 @@ export default function CheckoutPage() {
               <div className="border-t border-gray-100 pt-3 space-y-2 text-sm">
                 <div className="flex justify-between text-gray-600">
                   <span>Tạm tính</span>
-                  <span>{subtotal.toLocaleString("vi-VN")}đ</span>
+                  <span>{subtotal.toLocaleString("vi-VN")} đồng</span>
                 </div>
                 <div className="flex justify-between font-bold text-gray-900 pt-2">
                   <span>Tổng cộng</span>

@@ -25,6 +25,14 @@ export default function RootLayout({ children }) {
 
   return (
     <html lang="vi">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body className="antialiased">
         <script dangerouslySetInnerHTML={{ __html: runtimeConfigScript }} />
         <GoogleAuthProvider>{children}</GoogleAuthProvider>
@@ -33,8 +41,24 @@ export default function RootLayout({ children }) {
           toastOptions={{
             duration: 3000,
             style: { background: "#f7fdf9", color: "#163125", fontSize: "14px" },
-            success: { iconTheme: { primary: "#22c55e", secondary: "#fff" } },
-            error: { iconTheme: { primary: "#ef4444", secondary: "#fff" } },
+            success: {
+              style: {
+                background: "#ecfdf5",
+                color: "#065f46",
+                borderLeft: "4px solid #059669",
+                fontWeight: 500,
+              },
+              iconTheme: { primary: "#059669", secondary: "#ecfdf5" },
+            },
+            error: {
+              style: {
+                background: "#fef2f2",
+                color: "#991b1b",
+                borderLeft: "4px solid #dc2626",
+                fontWeight: 500,
+              },
+              iconTheme: { primary: "#dc2626", secondary: "#fef2f2" },
+            },
           }}
         />
       </body>
