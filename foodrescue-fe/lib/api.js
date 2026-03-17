@@ -81,11 +81,14 @@ export async function apiGetCategories() {
 // ============================================================
 // PRODUCTS (public)
 // ============================================================
-export async function apiGetProducts({ categoryId, keyword, sort, page = 0, size = 12 } = {}) {
+export async function apiGetProducts({ categoryId, keyword, sort, minPrice, maxPrice, province, page = 0, size = 12 } = {}) {
   const params = new URLSearchParams({ page, size });
   if (categoryId) params.set("categoryId", categoryId);
   if (keyword) params.set("keyword", keyword);
   if (sort) params.set("sort", sort);
+  if (minPrice != null && minPrice !== "") params.set("minPrice", minPrice);
+  if (maxPrice != null && maxPrice !== "") params.set("maxPrice", maxPrice);
+  if (province) params.set("province", province);
   return request(`/api/products?${params}`);
 }
 
