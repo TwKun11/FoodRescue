@@ -1,0 +1,16 @@
+ALTER TABLE sellers
+    ADD COLUMN admin_note TEXT NULL,
+    ADD COLUMN terms_accepted_at DATETIME NULL,
+    ADD COLUMN terms_version VARCHAR(50) NULL,
+    ADD COLUMN reviewed_at DATETIME NULL,
+    ADD COLUMN business_type VARCHAR(100) NULL,
+    ADD COLUMN pickup_address TEXT NULL,
+    ADD COLUMN tax_code VARCHAR(50) NULL,
+    ADD COLUMN business_license_number VARCHAR(100) NULL,
+    ADD COLUMN identity_number VARCHAR(50) NULL,
+    ADD COLUMN storefront_image_url VARCHAR(1000) NULL,
+    ADD COLUMN business_license_image_url VARCHAR(1000) NULL,
+    ADD COLUMN identity_card_image_url VARCHAR(1000) NULL,
+    ADD COLUMN bank_name VARCHAR(150) NULL,
+    ADD COLUMN bank_account_name VARCHAR(255) NULL,
+    ADD COLUMN bank_account_number VARCHAR(100) NULL;

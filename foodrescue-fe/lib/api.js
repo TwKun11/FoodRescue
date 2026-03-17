@@ -116,6 +116,30 @@ export async function apiGetOrderDetail(orderId) {
 }
 
 // ============================================================
+// SELLER APPLICATIONS
+// ============================================================
+export async function apiGetMySellerApplication() {
+  return request("/api/seller-applications/me");
+}
+
+export async function apiSubmitSellerApplication(body) {
+  return request("/api/seller-applications/me", { method: "POST", body: JSON.stringify(body) });
+}
+
+export async function apiUploadSellerApplicationImage(file) {
+  const token = getToken();
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch(`${BASE()}/api/seller-applications/upload`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: formData,
+  });
+  const data = await res.json().catch(() => null);
+  return { ok: res.ok, status: res.status, data };
+}
+
+// ============================================================
 // SELLER – SHOP
 // ============================================================
 export async function apiGetMyShop() {
@@ -124,6 +148,19 @@ export async function apiGetMyShop() {
 
 export async function apiUpdateMyShop(body) {
   return request("/api/seller/shop", { method: "PUT", body: JSON.stringify(body) });
+}
+
+export async function apiSellerUploadShopImage(file) {
+  const token = getToken();
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch(`${BASE()}/api/seller/shop/upload`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: formData,
+  });
+  const data = await res.json().catch(() => null);
+  return { ok: res.ok, status: res.status, data };
 }
 
 // ============================================================
@@ -222,6 +259,24 @@ export async function apiAdminUpdateSellerStatus(sellerId, status) {
 
 export async function apiAdminVerifySeller(sellerId) {
   return request(`/api/admin/sellers/${sellerId}/verify`, { method: "PUT" });
+}
+
+export async function apiAdminGetSellerApplications({ page = 0, size = 20, search = "", status = "" } = {}) {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  if (search && search.trim()) params.set("search", search.trim());
+  if (status) params.set("status", status);
+  return request(`/api/admin/seller-applications?${params.toString()}`);
+}
+
+export async function apiAdminApproveSellerApplication(id) {
+  return request(`/api/admin/seller-applications/${id}/approve`, { method: "PUT" });
+}
+
+export async function apiAdminRejectSellerApplication(id, adminNote) {
+  return request(`/api/admin/seller-applications/${id}/reject`, {
+    method: "PUT",
+    body: JSON.stringify({ adminNote: adminNote || null }),
+  });
 }
 
 // ============================================================
