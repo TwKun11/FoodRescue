@@ -41,6 +41,7 @@ export default function Header() {
   const isHome = pathname === "/";
   const transparent = isHome && !scrolled;
   const displayName = user?.fullName?.trim() || user?.email || "Bạn";
+  const canAccessStore = user?.role === "SELLER" || user?.role === "ADMIN";
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -120,17 +121,35 @@ export default function Header() {
         </Link>
 
         <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`transition-colors duration-200 ${
-                transparent ? "text-white/85 hover:text-white" : "text-gray-600 hover:text-brand-dark"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
+          {NAV_ITEMS.map((item) => {
+            const isStoreLink = item.href === "/store";
+            if (isStoreLink && !canAccessStore) {
+              return (
+                <span
+                  key={item.href}
+                  aria-disabled="true"
+                  title="Chỉ khả dụng cho tài khoản nhà bán hàng hoặc quản trị viên"
+                  className={`cursor-not-allowed transition-colors duration-200 ${
+                    transparent ? "text-white/35" : "text-gray-300"
+                  }`}
+                >
+                  {item.label}
+                </span>
+              );
+            }
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`transition-colors duration-200 ${
+                  transparent ? "text-white/85 hover:text-white" : "text-gray-600 hover:text-brand-dark"
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="relative z-20 flex shrink-0 items-center gap-3">
@@ -151,7 +170,7 @@ export default function Header() {
               onClick={handleLoginNavigation}
               className={`relative z-20 hidden rounded-full px-4 py-1.5 text-sm font-semibold transition-all duration-200 sm:block ${
                 transparent
-                  ? "border border-white/30 bg-white/15 text-white backdrop-blur-sm hover:bg-white/25"
+                  ? "border border-white/30 bg-white/15  backdrop-blur-sm hover:bg-white/25"
                   : "bg-brand text-gray-900 hover:opacity-90"
               }`}
             >
@@ -199,6 +218,15 @@ export default function Header() {
                   >
                     Địa chỉ giao hàng
                   </Link>
+                  {user?.role === "CUSTOMER" && (
+                    <Link
+                      href="/become-seller"
+                      className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                      onClick={() => setDropdownOpen(false)}
+                    >
+                      Trở thành nhà bán hàng
+                    </Link>
+                  )}
                   <Link
                     href="/change-password"
                     className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
@@ -230,11 +258,27 @@ export default function Header() {
 
       {menuOpen && (
         <nav className="flex flex-col gap-3 border-t bg-white px-4 py-3 text-sm font-medium text-gray-600 md:hidden">
-          {NAV_ITEMS.map((item) => (
-            <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)}>
-              {item.label}
-            </Link>
-          ))}
+          {NAV_ITEMS.map((item) => {
+            const isStoreLink = item.href === "/store";
+            if (isStoreLink && !canAccessStore) {
+              return (
+                <span
+                  key={item.href}
+                  aria-disabled="true"
+                  className="cursor-not-allowed text-gray-300"
+                  title="Chỉ khả dụng cho tài khoản nhà bán hàng hoặc quản trị viên"
+                >
+                  {item.label}
+                </span>
+              );
+            }
+
+            return (
+              <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)}>
+                {item.label}
+              </Link>
+            );
+          })}
           <Link href="/cart" onClick={() => setMenuOpen(false)}>
             Giỏ hàng ({cartCount})
           </Link>
@@ -250,6 +294,11 @@ export default function Header() {
               <Link href="/profile/addresses" onClick={() => setMenuOpen(false)}>
                 Địa chỉ giao hàng
               </Link>
+              {user?.role === "CUSTOMER" && (
+                <Link href="/become-seller" onClick={() => setMenuOpen(false)}>
+                  Trở thành nhà bán hàng
+                </Link>
+              )}
               <Link href="/change-password" onClick={() => setMenuOpen(false)}>
                 Đổi mật khẩu
               </Link>
