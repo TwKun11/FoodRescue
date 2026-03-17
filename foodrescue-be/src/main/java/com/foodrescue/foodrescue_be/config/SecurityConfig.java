@@ -73,6 +73,7 @@ public class SecurityConfig {
                                 "/api/categories",
                                 "/api/brands"
                         ).permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/public/**").permitAll()
                         .requestMatchers("/api/auth/me", "/api/auth/update", "/api/auth/change-password").authenticated()
                         .requestMatchers("/api/orders/**").hasAnyRole("CUSTOMER", "ADMIN")
                         .requestMatchers("/api/seller/**").hasAnyRole("SELLER", "ADMIN")

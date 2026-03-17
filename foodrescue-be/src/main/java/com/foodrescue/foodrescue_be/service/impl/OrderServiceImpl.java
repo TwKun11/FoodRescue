@@ -101,6 +101,7 @@ public class OrderServiceImpl implements OrderService {
                     .variantCode(variant.getVariantCode())
                     .unit(variant.getUnit() != null ? variant.getUnit().name() : "piece")
                     .quantity(line.getQuantity())
+                    .listPrice(variant.getListPrice())
                     .unitPrice(unitPrice)
                     .discountAmount(BigDecimal.ZERO)
                     .lineTotal(lineTotal)
@@ -556,6 +557,11 @@ public class OrderServiceImpl implements OrderService {
             throw new IllegalArgumentException("Don hang da o trang thai cuoi");
         }
         if (newStatus == OrderSellerOrder.SellerOrderStatus.cancelled) {
+            return;
+        }
+        // Cho phép pending -> completed (một bước xác nhận = hoàn thành)
+        if (currentStatus == OrderSellerOrder.SellerOrderStatus.pending
+                && newStatus == OrderSellerOrder.SellerOrderStatus.completed) {
             return;
         }
 

@@ -191,6 +191,47 @@ export async function apiSellerUpdateOrderStatus(sellerOrderId, status) {
 }
 
 // ============================================================
+// SELLER – BANNER ADS
+// ============================================================
+export async function apiSellerCreateBannerAd(body) {
+  return request("/api/seller/ads/create", { method: "POST", body: JSON.stringify(body) });
+}
+
+export async function apiSellerGetMyBannerAds() {
+  return request("/api/seller/ads/my-ads");
+}
+
+// ============================================================
+// ADMIN – BANNER ADS
+// ============================================================
+export async function apiAdminGetPendingBannerAds() {
+  return request("/api/admin/ads/pending");
+}
+
+/** Admin: lấy danh sách banner theo trạng thái (pending | approved | rejected) */
+export async function apiAdminGetBannerAdsByStatus(status = "pending") {
+  return request(`/api/admin/ads?status=${encodeURIComponent(status)}`);
+}
+
+export async function apiAdminApproveBannerAd(id) {
+  return request(`/api/admin/ads/${id}/approve`, { method: "PUT" });
+}
+
+export async function apiAdminRejectBannerAd(id, rejectReason) {
+  return request(`/api/admin/ads/${id}/reject`, {
+    method: "PUT",
+    body: JSON.stringify({ rejectReason: rejectReason || "" }),
+  });
+}
+
+// ============================================================
+// PUBLIC – BANNER ADS (active banners for /products page)
+// ============================================================
+export async function apiGetActiveBannerAds() {
+  return request("/api/public/ads/active-banners");
+}
+
+// ============================================================
 // ADMIN
 // ============================================================
 export async function apiAdminGetUsers({ page = 0, size = 20, search = "", role = "", status = "" } = {}) {

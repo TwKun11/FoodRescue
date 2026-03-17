@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import ProductCardListing from "@/components/customer/ProductCardListing";
 import BannerCarousel from "@/components/customer/BannerCarousel";
-import { apiGetProducts, apiGetCategories } from "@/lib/api";
+import { apiGetProducts, apiGetCategories, apiGetActiveBannerAds } from "@/lib/api";
 import { fetchProvinces, fetchDistricts, fetchWards } from "@/lib/vn-locations";
 
 const PAGE_SIZE = 12;
@@ -154,6 +154,22 @@ export default function ProductsPage() {
     apiGetCategories().then(({ ok, data }) => {
       if (ok && data?.data) setCategories(data.data);
     });
+  }, []);
+
+  useEffect(() => {
+    apiGetActiveBannerAds().then((res) => {
+      if (res.ok && res.data?.data && Array.isArray(res.data.data) && res.data.data.length > 0) {
+        setBanners(
+          res.data.data.map((b) => ({
+            id: b.id,
+            image: b.imageUrl,
+            title: b.title || "",
+            link: b.linkUrl || "#",
+            storeName: "",
+          }))
+        );
+      }
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {

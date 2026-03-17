@@ -115,7 +115,7 @@ export default function OrderDetailPage() {
   if (loading) return <div className="text-center py-20 text-gray-400">Đang tải...</div>;
   if (error)
     return (
-      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
+      <div className="max-w-3xl mx-auto px-6 py-16 text-center">
         <p className="text-4xl mb-3">😕</p>
         <p className="font-semibold text-gray-600">{error}</p>
         <Link href="/orders" className="mt-4 inline-block text-sm text-green-600 hover:underline">
@@ -124,6 +124,22 @@ export default function OrderDetailPage() {
       </div>
     );
   if (!order) return null;
+
+  const items = order.items || [];
+  const { subtotalBeforeDiscount, totalAfterDiscount } = items.reduce(
+    (acc, item) => {
+      const qty = Number(item.quantity) || 0;
+      const unitPrice = Number(item.unitPrice) || 0;
+      const listPrice = item.listPrice != null ? Number(item.listPrice) : null;
+      const originalUnitPrice = listPrice != null && listPrice > 0 ? listPrice : unitPrice;
+      const lineTotal = Number(item.lineTotal) || unitPrice * qty;
+      acc.subtotalBeforeDiscount += originalUnitPrice * qty;
+      acc.totalAfterDiscount += lineTotal;
+      return acc;
+    },
+    { subtotalBeforeDiscount: 0, totalAfterDiscount: 0 }
+  );
+  const discountAmountDisplay = Math.max(0, subtotalBeforeDiscount - totalAfterDiscount);
 
   const status = order.status?.toLowerCase();
   const paymentStatus = order.paymentStatus?.toLowerCase();
@@ -136,7 +152,7 @@ export default function OrderDetailPage() {
     order.payment?.checkoutUrl;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
+    <div className="max-w-5xl mx-auto px-6 sm:px-8 py-10">
       <Link href="/orders" className="inline-flex items-center gap-1 text-sm text-green-600 hover:underline mb-6">
         ← Đơn hàng của tôi
       </Link>
@@ -154,7 +170,7 @@ export default function OrderDetailPage() {
       </div>
 
       {!isCancelled ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-5 mb-5">
+        <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
           <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-4">Tiến trình đơn hàng</p>
           <div className="flex items-center gap-0 overflow-x-auto">
             {STATUS_STEPS.map((step, index) => {
@@ -220,40 +236,72 @@ export default function OrderDetailPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-xl border border-gray-200 mb-5 overflow-hidden">
-        <div className="px-5 py-3 border-b border-gray-100 bg-gray-50">
+      <div className="bg-white rounded-xl border border-gray-200 mb-6 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
           <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Sản phẩm</p>
         </div>
-        <div className="divide-y divide-gray-50">
-          {(order.items || []).map((item) => (
-            <div key={item.id} className="px-5 py-4 flex items-center justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-800 truncate">{item.productName}</p>
-                {item.variantName && (
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {item.variantName} · {item.unit}
-                  </p>
-                )}
-              </div>
-              <div className="text-right shrink-0">
-                <p className="text-sm text-gray-500">
-                  x{item.quantity} × {fmt(item.unitPrice)}
-                </p>
-                <p className="text-sm font-bold text-gray-800">{fmt(item.lineTotal)}</p>
-              </div>
-            </div>
-          ))}
+        <div className="overflow-x-auto px-4 pb-4">
+          <table className="w-full text-sm min-w-[520px]">
+            <thead>
+              <tr className="border-b border-gray-200 text-gray-500 text-xs uppercase tracking-wide">
+                <th className="text-left py-2 pr-2 w-[38%]">Sản phẩm</th>
+                <th className="text-center py-2 px-2 w-[8%]">SL</th>
+                <th className="text-right py-2 px-2 w-[14%]">Giá gốc</th>
+                <th className="text-right py-2 px-2 w-[14%]">Giá ưu đãi</th>
+                <th className="text-right py-2 pl-2 pr-5 w-[26%] min-w-[110px]">Thành tiền</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(order.items || []).map((item) => {
+                const qty = Number(item.quantity) || 0;
+                const unitPrice = Number(item.unitPrice) || 0;
+                const listPrice = item.listPrice != null ? Number(item.listPrice) : null;
+                const originalUnitPrice = listPrice != null && listPrice > 0 ? listPrice : unitPrice;
+                const hasDiscount = listPrice != null && listPrice > 0 && unitPrice > 0 && unitPrice < listPrice;
+                const lineTotal = Number(item.lineTotal) || unitPrice * qty;
+                return (
+                  <tr key={item.id} className="border-b border-gray-100">
+                    <td className="py-4 pr-3 text-gray-800 align-top break-words">
+                      <p className="font-medium">{item.productName || item.variantName || "—"}</p>
+                      {item.variantName && item.variantName !== (item.productName || "") && (
+                        <p className="text-xs text-gray-400 mt-0.5">{item.variantName}</p>
+                      )}
+                    </td>
+                    <td className="py-3 px-2 text-center text-gray-600">{qty}</td>
+                    <td className="py-3 px-2 text-right text-gray-500">
+                      {hasDiscount ? (
+                        <span className="line-through">{originalUnitPrice.toLocaleString("vi-VN")}₫</span>
+                      ) : (
+                        <span>{originalUnitPrice.toLocaleString("vi-VN")}₫</span>
+                      )}
+                    </td>
+                    <td className="py-4 px-2 text-right">
+                      {hasDiscount ? (
+                        <span className="text-green-600 font-semibold">{unitPrice.toLocaleString("vi-VN")}₫</span>
+                      ) : (
+                        <span className="text-gray-400 text-xs">—</span>
+                      )}
+                    </td>
+                    <td className="py-4 pl-2 pr-5 text-right font-semibold text-gray-800">
+                      {lineTotal.toLocaleString("vi-VN")}₫
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-5 mb-5">
-        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Tóm tắt thanh toán</p>
+      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-4">Tóm tắt thanh toán</p>
         <div className="space-y-2 text-sm">
-          <Row label="Tạm tính" value={fmt(order.subtotal)} />
-          <Row label="Phí giao hàng" value={fmt(order.shippingFee)} />
-          {order.discountAmount > 0 && <Row label="Giảm giá" value={`-${fmt(order.discountAmount)}`} valueClass="text-green-600" />}
+          <Row label="Tổng tiền (trước giảm)" value={fmt(order.subtotal)} />
+          {(Number(order.discountAmount) || 0) > 0 && (
+            <Row label="Tiền được giảm" value={`−${(Number(order.discountAmount) || 0).toLocaleString("vi-VN")}₫`} valueClass="text-green-600" />
+          )}
           <div className="border-t border-gray-100 pt-2 mt-2">
-            <Row label="Tổng cộng" value={fmt(order.totalAmount)} bold />
+            <Row label="Tổng sau giảm" value={fmt(order.totalAmount)} bold />
           </div>
           <Row
             label="Phương thức thanh toán"
