@@ -26,9 +26,11 @@ public class OrderResponse {
     private LocalDateTime confirmedAt;
     private LocalDateTime completedAt;
     private LocalDateTime cancelledAt;
+    private LocalDateTime paidAt;
+    private OrderPaymentResponse payment;
     private List<OrderItemResponse> items;
 
-    public static OrderResponse fromEntity(Order order, List<OrderItemResponse> items) {
+    public static OrderResponse fromEntity(Order order, List<OrderItemResponse> items, OrderPaymentResponse payment) {
         return OrderResponse.builder()
                 .id(order.getId())
                 .orderCode(order.getOrderCode())
@@ -44,11 +46,13 @@ public class OrderResponse {
                 .confirmedAt(order.getConfirmedAt())
                 .completedAt(order.getCompletedAt())
                 .cancelledAt(order.getCancelledAt())
+                .paidAt(order.getPaidAt())
+                .payment(payment)
                 .items(items)
                 .build();
     }
 
-    public static OrderResponse fromSellerOrder(OrderSellerOrder so, List<OrderItemResponse> items) {
+    public static OrderResponse fromSellerOrder(OrderSellerOrder so, List<OrderItemResponse> items, OrderPaymentResponse payment) {
         Order order = so.getOrder();
         return OrderResponse.builder()
                 .id(so.getId())
@@ -65,6 +69,8 @@ public class OrderResponse {
                 .confirmedAt(so.getConfirmedAt())
                 .completedAt(so.getCompletedAt())
                 .cancelledAt(so.getCancelledAt())
+                .paidAt(order.getPaidAt())
+                .payment(payment)
                 .items(items)
                 .build();
     }

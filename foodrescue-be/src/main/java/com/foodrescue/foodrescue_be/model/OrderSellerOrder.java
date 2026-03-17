@@ -2,6 +2,8 @@ package com.foodrescue.foodrescue_be.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -15,7 +17,7 @@ import java.time.LocalDateTime;
 @Builder
 public class OrderSellerOrder {
 
-    public enum SellerOrderStatus { pending, confirmed, packing, shipping, completed, cancelled, refunded }
+    public enum SellerOrderStatus { pending_payment, pending, confirmed, packing, shipping, completed, cancelled, refunded }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,6 +35,7 @@ public class OrderSellerOrder {
     private String sellerOrderCode;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "order_status", nullable = false)
     private SellerOrderStatus orderStatus = SellerOrderStatus.pending;
 

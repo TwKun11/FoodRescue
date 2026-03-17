@@ -16,6 +16,7 @@ import java.util.List;
 public interface OrderSellerOrderRepository extends JpaRepository<OrderSellerOrder, Long> {
     Page<OrderSellerOrder> findBySellerIdOrderByCreatedAtDesc(Long sellerId, Pageable pageable);
     Page<OrderSellerOrder> findBySellerIdAndOrderStatusOrderByCreatedAtDesc(Long sellerId, OrderSellerOrder.SellerOrderStatus orderStatus, Pageable pageable);
+    List<OrderSellerOrder> findByOrderIdOrderByIdAsc(Long orderId);
 
     @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM OrderSellerOrder o WHERE o.seller.id = :sellerId AND o.orderStatus = 'completed'")
     BigDecimal sumTotalRevenueBySellerId(@Param("sellerId") Long sellerId);

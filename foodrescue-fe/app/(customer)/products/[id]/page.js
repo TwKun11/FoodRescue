@@ -6,6 +6,7 @@ import Link from "next/link";
 import CountdownTimer from "@/components/customer/CountdownTimer";
 import ProductCardListing from "@/components/customer/ProductCardListing";
 import { apiGetProduct, apiGetProducts } from "@/lib/api";
+import { addItemToCart } from "@/lib/cart";
 
 function ProductImageGallery({ images, name, countdownSlot }) {
   const [active, setActive] = useState(0);
@@ -164,30 +165,21 @@ export default function ProductDetailPage() {
         ? selectedSku.stockAvailable ?? selectedSku.stockQuantity
         : product.remaining;
     if (remaining <= 0) return;
-    try {
-      const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-      const existing = cart.find((i) => i.variantId === selectedSku.id);
-      if (existing) {
-        existing.quantity = Math.min(remaining, existing.quantity + qty);
-      } else {
-        cart.push({
-          variantId: selectedSku.id,
-          productId: product.id,
-          name: product.name,
-          variantName: selectedSku.name || selectedSku.unit || "",
-          image: product.image,
-          price: selectedSku.salePrice || selectedSku.listPrice || 0,
-          originalPrice: selectedSku.listPrice || 0,
-          unit: selectedSku.unit || "",
-          storeName: product.seller?.shopName || "",
-          quantity: Math.min(remaining, qty),
-          maxQty: remaining,
-        });
-      }
-      localStorage.setItem("cart", JSON.stringify(cart));
-      setAddedToCart(true);
-      setTimeout(() => setAddedToCart(false), 2000);
-    } catch (e) {}
+    addItemToCart({
+      variantId: selectedSku.id,
+      productId: product.id,
+      name: product.name,
+      variantName: selectedSku.name || selectedSku.unit || "",
+      image: product.image,
+      price: selectedSku.salePrice || selectedSku.listPrice || 0,
+      originalPrice: selectedSku.listPrice || 0,
+      unit: selectedSku.unit || "",
+      storeName: product.seller?.shopName || "",
+      quantity: Math.min(remaining, qty),
+      maxQty: remaining,
+    });
+    setAddedToCart(true);
+    setTimeout(() => setAddedToCart(false), 2000);
   };
 
   if (loading) {

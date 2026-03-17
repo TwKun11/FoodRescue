@@ -4,8 +4,8 @@ import { Toaster } from "react-hot-toast";
 import { normalizeApiBaseUrl } from "@/lib/normalize-runtime-config";
 
 export const metadata = {
-  title: "FoodRescue - Giai cuu thuc pham cuoi ngay",
-  description: "Mua thuc pham tuoi giam gia cuoi ngay, giam lang phi va tiet kiem chi phi.",
+  title: "FoodRescue - Giải cứu thực phẩm cuối ngày",
+  description: "Mua thực phẩm tươi giảm giá cuối ngày, giảm lãng phí và tiết kiệm chi phí.",
 };
 
 export default function RootLayout({ children }) {

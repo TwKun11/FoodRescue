@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { CART_UPDATED_EVENT, getCartQuantityCount, readCart } from "@/lib/cart";
 
 function readUserFromStorage() {
   if (typeof window === "undefined") return null;
@@ -26,36 +27,47 @@ const NAV_ITEMS = [
 export default function Header() {
   const router = useRouter();
   const pathname = usePathname();
-  const [scrolled, setScrolled] = useState(false);
+  const [scrolled, setScrolled] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.scrollY > 60;
+  });
   const [menuOpen, setMenuOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [mounted, setMounted] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
   const dropdownRef = useRef(null);
 
   const isHome = pathname === "/";
   const transparent = isHome && !scrolled;
-  const cartCount = 3;
   const displayName = user?.fullName?.trim() || user?.email || "Bạn";
 
   useEffect(() => {
     queueMicrotask(() => {
       setMounted(true);
       setUser(readUserFromStorage());
+      setCartCount(getCartQuantityCount(readCart()));
     });
 
-    const handleStorage = () => {
+    const syncHeaderState = () => {
       setUser(readUserFromStorage());
+      setCartCount(getCartQuantityCount(readCart()));
     };
 
-    window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
+    window.addEventListener("storage", syncHeaderState);
+    window.addEventListener(CART_UPDATED_EVENT, syncHeaderState);
+    return () => {
+      window.removeEventListener("storage", syncHeaderState);
+      window.removeEventListener(CART_UPDATED_EVENT, syncHeaderState);
+    };
   }, []);
 
   useEffect(() => {
     if (!isHome) return;
+
     const onScroll = () => setScrolled(window.scrollY > 60);
     window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, [isHome]);
 
   useEffect(() => {
@@ -122,13 +134,13 @@ export default function Header() {
         </nav>
 
         <div className="relative z-20 flex shrink-0 items-center gap-3">
-          <Link href="/cart" className="relative p-1">
+          <Link href="/cart" className="relative p-1" aria-label="Giỏ hàng">
             <span className={`text-2xl transition-all duration-200 ${transparent ? "filter brightness-0 invert" : ""}`}>
               🛒
             </span>
             {cartCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-brand text-xs font-bold text-gray-900">
-                {cartCount}
+              <span className="absolute -top-0.5 -right-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-xs font-bold text-gray-900">
+                {cartCount > 99 ? "99+" : cartCount}
               </span>
             )}
           </Link>
@@ -137,7 +149,11 @@ export default function Header() {
             <button
               type="button"
               onClick={handleLoginNavigation}
-              className={`relative z-20 hidden rounded-full px-4 py-1.5 text-sm font-semibold transition-all duration-200 sm:block bg-brand text-gray-900 hover:opacity-90`}
+              className={`relative z-20 hidden rounded-full px-4 py-1.5 text-sm font-semibold transition-all duration-200 sm:block ${
+                transparent
+                  ? "border border-white/30 bg-white/15 text-white backdrop-blur-sm hover:bg-white/25"
+                  : "bg-brand text-gray-900 hover:opacity-90"
+              }`}
             >
               Đăng nhập
             </button>
