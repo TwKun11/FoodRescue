@@ -1,540 +1,529 @@
-// FE03-005 – UI Quản lý Cửa hàng (API-connected)
 "use client";
-import { useState, useEffect } from "react";
-import { apiGetMyShop, apiUpdateMyShop } from "@/lib/api";
+/* eslint-disable @next/next/no-img-element */
 
-const TABS = [
-  { id: "info", label: "Thông tin cửa hàng" },
-  { id: "decoration", label: "Trang trí shop" },
-  { id: "rating", label: "Đánh giá", count: 24 },
-  { id: "violation", label: "Vi phạm", count: 0 },
-  { id: "policy", label: "Chính sách" },
+import { useEffect, useMemo, useState } from "react";
+import { apiGetMyShop, apiSellerUploadShopImage, apiUpdateMyShop } from "@/lib/api";
+
+const STATUS_META = {
+  pending: {
+    label: "Cho duyet",
+    className: "bg-amber-50 text-amber-800 border-amber-200",
+    description: "Ho so cua hang dang cho admin kiem tra. Ban co the cap nhat them thong tin neu can.",
+  },
+  active: {
+    label: "Dang hoat dong",
+    className: "bg-green-50 text-green-800 border-green-200",
+    description: "Cua hang da duoc duyet va co the dang san pham, xu ly don hang.",
+  },
+  suspended: {
+    label: "Tam khoa",
+    className: "bg-red-50 text-red-700 border-red-200",
+    description: "Cua hang dang tam khoa. Hay lien he admin neu can ho tro.",
+  },
+  closed: {
+    label: "Da dong",
+    className: "bg-gray-100 text-gray-700 border-gray-200",
+    description: "Ho so seller dang o trang thai da dong.",
+  },
+};
+
+const IMAGE_FIELDS = [
+  {
+    key: "avatarUrl",
+    label: "Logo cua hang",
+    hint: "Anh dai dien xuat hien tren shop va san pham.",
+  },
+  {
+    key: "coverUrl",
+    label: "Banner cua hang",
+    hint: "Anh ngang de lam hero cho trang shop.",
+  },
+  {
+    key: "storefrontImageUrl",
+    label: "Anh mat tien / quay ban",
+    hint: "Dung de admin doi chieu diem ban thuc te.",
+  },
+  {
+    key: "businessLicenseImageUrl",
+    label: "Anh giay phep kinh doanh",
+    hint: "Ban scan/chup ro thong tin doanh nghiep hoac ho kinh doanh.",
+  },
+  {
+    key: "identityCardImageUrl",
+    label: "Anh CCCD/CMND dai dien",
+    hint: "Giay to cua nguoi dai dien dang ky seller.",
+  },
 ];
 
 const EMPTY_SHOP = {
-  name: "",
-  description: "",
-  address: "",
-  phone: "",
+  shopName: "",
+  shopSlug: "",
   legalName: "",
+  businessType: "",
   contactName: "",
-  email: "",
-  openTime: "",
-  closeTime: "",
+  phone: "",
+  pickupAddress: "",
+  description: "",
+  taxCode: "",
+  businessLicenseNumber: "",
+  identityNumber: "",
+  bankName: "",
+  bankAccountName: "",
+  bankAccountNumber: "",
   avatarUrl: "",
   coverUrl: "",
-  taxCode: "",
-  bankName: "",
-  bankAccount: "",
-  bankOwner: "",
-  shopSlug: "",
+  storefrontImageUrl: "",
+  businessLicenseImageUrl: "",
+  identityCardImageUrl: "",
+  email: "",
+  status: "",
   isVerified: false,
+  code: "",
+  termsVersion: "",
+  termsAcceptedAt: "",
+  reviewedAt: "",
+  adminNote: "",
   ratingAvg: null,
   commissionRate: null,
+  createdAt: "",
+  updatedAt: "",
 };
 
-const RECENT_REVIEWS = [
-  {
-    id: 1,
-    customer: "Nguyễn Văn A",
-    rating: 5,
-    comment: "Hàng tươi ngon, giao nhanh!",
-    date: "24/02/2026",
-    avatar: "N",
-  },
-  {
-    id: 2,
-    customer: "Trần Thị B",
-    rating: 4,
-    comment: "Sản phẩm ok, đóng gói cẩn thận.",
-    date: "23/02/2026",
-    avatar: "T",
-  },
-  {
-    id: 3,
-    customer: "Lê Minh C",
-    rating: 5,
-    comment: "Giá rẻ, chất lượng tốt. Sẽ ủng hộ tiếp!",
-    date: "22/02/2026",
-    avatar: "L",
-  },
-];
+function sanitizeDigits(value, max = 30) {
+  return (value || "").replace(/[^\d]/g, "").slice(0, max);
+}
+
+function formatDateTime(value) {
+  if (!value) return "—";
+  return new Date(value).toLocaleString("vi-VN");
+}
+
+function mapShopResponse(data) {
+  return {
+    shopName: data?.shopName || "",
+    shopSlug: data?.shopSlug || "",
+    legalName: data?.legalName || "",
+    businessType: data?.businessType || "",
+    contactName: data?.contactName || "",
+    phone: data?.phone || "",
+    pickupAddress: data?.pickupAddress || "",
+    description: data?.description || "",
+    taxCode: data?.taxCode || "",
+    businessLicenseNumber: data?.businessLicenseNumber || "",
+    identityNumber: data?.identityNumber || "",
+    bankName: data?.bankName || "",
+    bankAccountName: data?.bankAccountName || "",
+    bankAccountNumber: data?.bankAccountNumber || "",
+    avatarUrl: data?.avatarUrl || "",
+    coverUrl: data?.coverUrl || "",
+    storefrontImageUrl: data?.storefrontImageUrl || "",
+    businessLicenseImageUrl: data?.businessLicenseImageUrl || "",
+    identityCardImageUrl: data?.identityCardImageUrl || "",
+    email: data?.email || "",
+    status: data?.status || "",
+    isVerified: Boolean(data?.isVerified),
+    code: data?.code || "",
+    termsVersion: data?.termsVersion || "",
+    termsAcceptedAt: data?.termsAcceptedAt || "",
+    reviewedAt: data?.reviewedAt || "",
+    adminNote: data?.adminNote || "",
+    ratingAvg: data?.ratingAvg ?? null,
+    commissionRate: data?.commissionRate ?? null,
+    createdAt: data?.createdAt || "",
+    updatedAt: data?.updatedAt || "",
+  };
+}
 
 export default function ShopPage() {
-  const [activeTab, setActiveTab] = useState("info");
-  const [shop, setShop] = useState(EMPTY_SHOP);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [editing, setEditing] = useState(false);
+  const [uploadingField, setUploadingField] = useState("");
+  const [message, setMessage] = useState({ type: null, text: "" });
+  const [shop, setShop] = useState(EMPTY_SHOP);
   const [form, setForm] = useState(EMPTY_SHOP);
-  const [saveMsg, setSaveMsg] = useState("");
 
-  useEffect(function () {
-    setLoading(true);
-    apiGetMyShop()
-      .then(function (res) {
-        if (res.ok && res.data && res.data.data) {
-          var d = res.data.data;
-          var mapped = {
-            name: d.shopName || "",
-            description: d.description || "",
-            address: d.address || "",
-            phone: d.phone || "",
-            legalName: d.legalName || "",
-            contactName: d.contactName || "",
-            email: d.email || "",
-            openTime: d.openTime || "",
-            closeTime: d.closeTime || "",
-            avatarUrl: d.avatarUrl || "",
-            coverUrl: d.coverUrl || "",
-            taxCode: d.taxCode || "",
-            bankName: d.bankName || "",
-            bankAccount: d.bankAccount || "",
-            bankOwner: d.bankOwner || "",
-            shopSlug: d.shopSlug || "",
-            isVerified: d.isVerified || false,
-            ratingAvg: d.ratingAvg || null,
-            commissionRate: d.commissionRate != null ? d.commissionRate : null,
-          };
+  const statusMeta = useMemo(() => {
+    return STATUS_META[shop.status] || STATUS_META.pending;
+  }, [shop.status]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadShop() {
+      setLoading(true);
+      const res = await apiGetMyShop();
+      if (!cancelled) {
+        if (res.ok && res.data?.data) {
+          const mapped = mapShopResponse(res.data.data);
           setShop(mapped);
           setForm(mapped);
+        } else {
+          setMessage({ type: "error", text: res.data?.message || "Khong tai duoc thong tin cua hang." });
         }
-      })
-      .finally(function () {
         setLoading(false);
-      });
+      }
+    }
+
+    loadShop();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const handleSave = () => {
-    setSaving(true);
-    setSaveMsg("");
-    apiUpdateMyShop({
-      shopName: form.name,
-      legalName: form.legalName || null,
-      description: form.description,
-      phone: form.phone,
-      contactName: form.contactName || null,
-      avatarUrl: form.avatarUrl || null,
-      coverUrl: form.coverUrl || null,
-    })
-      .then(function (res) {
-        if (res.ok) {
-          setShop(form);
-          setEditing(false);
-          setSaveMsg("Đã lưu thay đổi");
-          setTimeout(() => setSaveMsg(""), 3000);
-        } else {
-          alert(res.data?.message || "Lưu thất bại.");
-        }
-      })
-      .finally(function () {
-        setSaving(false);
-      });
+  const setField = (field) => (e) => {
+    const raw = e.target.value;
+    setMessage({ type: null, text: "" });
+    setForm((prev) => ({
+      ...prev,
+      [field]:
+        field === "phone"
+          ? sanitizeDigits(raw, 11)
+          : field === "taxCode"
+            ? sanitizeDigits(raw, 20)
+            : field === "identityNumber"
+              ? sanitizeDigits(raw, 20)
+              : field === "bankAccountNumber"
+                ? sanitizeDigits(raw, 30)
+                : raw,
+    }));
   };
 
-  const handleCancel = () => {
-    setForm(shop);
-    setEditing(false);
+  const handleUpload = (field) => async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingField(field);
+    setMessage({ type: null, text: "" });
+    try {
+      const res = await apiSellerUploadShopImage(file);
+      if (!res.ok) {
+        setMessage({ type: "error", text: res.data?.message || "Tai anh that bai." });
+        return;
+      }
+      const url = res.data?.data || "";
+      setForm((prev) => ({ ...prev, [field]: url }));
+      setMessage({ type: "success", text: "Da tai anh len thanh cong." });
+    } finally {
+      setUploadingField("");
+      e.target.value = "";
+    }
   };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setMessage({ type: null, text: "" });
+    try {
+      const res = await apiUpdateMyShop({
+        shopName: form.shopName,
+        legalName: form.legalName || null,
+        businessType: form.businessType || null,
+        contactName: form.contactName || null,
+        phone: form.phone || null,
+        pickupAddress: form.pickupAddress || null,
+        description: form.description || null,
+        taxCode: form.taxCode || null,
+        businessLicenseNumber: form.businessLicenseNumber || null,
+        identityNumber: form.identityNumber || null,
+        bankName: form.bankName || null,
+        bankAccountName: form.bankAccountName || null,
+        bankAccountNumber: form.bankAccountNumber || null,
+        avatarUrl: form.avatarUrl || null,
+        coverUrl: form.coverUrl || null,
+        storefrontImageUrl: form.storefrontImageUrl || null,
+        businessLicenseImageUrl: form.businessLicenseImageUrl || null,
+        identityCardImageUrl: form.identityCardImageUrl || null,
+      });
+
+      if (!res.ok) {
+        const text =
+          typeof res.data?.data === "object" && res.data?.data
+            ? Object.values(res.data.data)[0]
+            : res.data?.message || "Cap nhat cua hang that bai.";
+        setMessage({ type: "error", text });
+        return;
+      }
+
+      const mapped = mapShopResponse(res.data?.data);
+      setShop(mapped);
+      setForm(mapped);
+      setMessage({ type: "success", text: "Da cap nhat ho so cua hang thanh cong." });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-2 border-brand border-t-transparent animate-spin" />
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col min-h-full">
-      <div className="flex-1 p-6 space-y-4">
-        {/* ── Header ── */}
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-800">Quản lý cửa hàng</h1>
-          {!editing && (
-            <button
-              onClick={() => setEditing(true)}
-              className="flex items-center gap-2 border border-gray-300 text-gray-600 text-sm px-3 py-2 rounded-lg hover:bg-gray-50 transition"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                />
-              </svg>
-              Chỉnh sửa
-            </button>
-          )}
-        </div>
-        {saveMsg && (
-          <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg px-4 py-3">
-            {saveMsg}
-          </div>
-        )}
-
-        {/* ── Stats Row ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[
-            { label: "Tổng sản phẩm", value: "—", icon: "📦", color: "bg-green-50 text-green-600" },
-            { label: "Đơn hàng tháng này", value: "—", icon: "🛒", color: "bg-blue-50 text-blue-600" },
-            {
-              label: "Đánh giá trung bình",
-              value: shop.ratingAvg != null ? Number(shop.ratingAvg).toFixed(1) : "—",
-              icon: "⭐",
-              color: "bg-yellow-50 text-yellow-600",
-            },
-            {
-              label: "Hoa hồng nền tảng",
-              value: shop.commissionRate != null ? Number(shop.commissionRate).toFixed(1) + "%" : "—",
-              icon: "💼",
-              color: "bg-purple-50 text-purple-600",
-            },
-          ].map((s) => (
-            <div key={s.label} className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0 ${s.color}`}>
-                {s.icon}
-              </div>
-              <div>
-                <p className="text-xs text-gray-400">{s.label}</p>
-                <p className="text-base font-bold text-gray-800">{s.value}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* ── Main Card ── */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          {/* Tabs */}
-          <div className="flex border-b border-gray-200 overflow-x-auto">
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-3 text-sm font-medium whitespace-nowrap transition border-b-2 -mb-px ${
-                  activeTab === tab.id
-                    ? "border-green-500 text-green-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                {tab.label}
-                {tab.count !== undefined && (
-                  <span className={`ml-1.5 text-xs ${activeTab === tab.id ? "text-green-600" : "text-gray-400"}`}>
-                    ({tab.count})
-                  </span>
+    <div className="space-y-6 p-4 sm:p-6">
+      <section className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
+        <div className="relative h-44 bg-gradient-to-r from-emerald-500 via-green-500 to-lime-400">
+          {shop.coverUrl && <img src={shop.coverUrl} alt="Banner cua hang" className="h-full w-full object-cover opacity-40" />}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/15 to-transparent" />
+          <div className="absolute bottom-5 left-5 right-5 flex flex-wrap items-end justify-between gap-4">
+            <div className="flex items-end gap-4">
+              <div className="h-20 w-20 overflow-hidden rounded-2xl border-4 border-white bg-white shadow-md">
+                {shop.avatarUrl ? (
+                  <img src={shop.avatarUrl} alt={shop.shopName || "Logo cua hang"} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-brand text-2xl font-bold text-gray-900">
+                    {(shop.shopName?.charAt(0) || "S").toUpperCase()}
+                  </div>
                 )}
-              </button>
-            ))}
-          </div>
-
-          {/* ── Tab: Thông tin cửa hàng ── */}
-          {activeTab === "info" && (
-            <div className="p-6">
-              {/* Shop header preview */}
-              <div className="relative mb-6 rounded-xl overflow-hidden border border-gray-200">
-                <div className="h-32 bg-gradient-to-r from-green-400 to-green-600 relative">
-                  <img
-                    src={shop.coverUrl}
-                    alt="Banner"
-                    className="w-full h-full object-cover opacity-40"
-                    onError={(e) => {
-                      e.target.style.display = "none";
-                    }}
-                  />
-                  {editing && (
-                    <button className="absolute bottom-2 right-2 bg-white/80 text-gray-700 text-xs px-2 py-1 rounded-lg flex items-center gap-1 hover:bg-white transition">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-                        />
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-                        />
-                      </svg>
-                      Đổi banner
-                    </button>
+              </div>
+              <div className="pb-1 text-white">
+                <h1 className="text-2xl font-bold">{shop.shopName || "Cua hang cua ban"}</h1>
+                <p className="mt-1 text-sm text-white/80">
+                  @{shop.shopSlug || "chua-co-slug"} {shop.code ? `· ${shop.code}` : ""}
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${statusMeta.className}`}>
+                    {statusMeta.label}
+                  </span>
+                  {shop.isVerified && (
+                    <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                      Da xac minh
+                    </span>
                   )}
                 </div>
-                <div className="px-5 pb-4 pt-0 flex items-end gap-4 -mt-8">
-                  <div className="relative">
-                    <div className="w-16 h-16 rounded-xl border-4 border-white overflow-hidden bg-white shadow-md shrink-0">
-                      <img
-                        src={shop.avatarUrl}
-                        alt="Logo"
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.target.style.display = "none";
-                          e.target.parentNode.classList.add("bg-green-500");
-                        }}
-                      />
-                    </div>
-                    {editing && (
-                      <button className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow">
-                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                      </button>
-                    )}
-                  </div>
-                  <div className="pb-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-bold text-gray-800">{shop.name}</p>
-                      {shop.isVerified && (
-                        <span className="inline-flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
-                          ✓ Đã xác minh
-                        </span>
-                      )}
-                    </div>
-                    <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                      Đang hoạt động
-                    </span>
-                    {shop.shopSlug && <p className="text-xs text-gray-400 mt-0.5">@{shop.shopSlug}</p>}
-                  </div>
-                </div>
-              </div>
-
-              {/* Form fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {/* Left column */}
-                <div className="space-y-4">
-                  <Field
-                    label="Tên cửa hàng"
-                    value={editing ? form.name : shop.name}
-                    editing={editing}
-                    onChange={(v) => setForm({ ...form, name: v })}
-                  />
-                  <Field
-                    label="Tên pháp lý (công ty/hộ kinh doanh)"
-                    value={editing ? form.legalName : shop.legalName}
-                    editing={editing}
-                    onChange={(v) => setForm({ ...form, legalName: v })}
-                  />
-                  <Field
-                    label="Tên liên hệ"
-                    value={editing ? form.contactName : shop.contactName}
-                    editing={editing}
-                    onChange={(v) => setForm({ ...form, contactName: v })}
-                  />
-                  <Field
-                    label="Danh mục"
-                    value={editing ? form.category : shop.category}
-                    editing={editing}
-                    type="select"
-                    options={["Cửa hàng tiện lợi", "Siêu thị mini", "Nhà hàng", "Bakery", "Hải sản"]}
-                    onChange={(v) => setForm({ ...form, category: v })}
-                  />
-                  <Field
-                    label="Số điện thoại"
-                    value={editing ? form.phone : shop.phone}
-                    editing={editing}
-                    onChange={(v) => setForm({ ...form, phone: v })}
-                  />
-                  <Field
-                    label="Email"
-                    value={editing ? form.email : shop.email}
-                    editing={editing}
-                    onChange={(v) => setForm({ ...form, email: v })}
-                  />
-                  <div className="grid grid-cols-2 gap-3">
-                    <Field
-                      label="Giờ mở cửa"
-                      value={editing ? form.openTime : shop.openTime}
-                      editing={editing}
-                      type="time"
-                      onChange={(v) => setForm({ ...form, openTime: v })}
-                    />
-                    <Field
-                      label="Giờ đóng cửa"
-                      value={editing ? form.closeTime : shop.closeTime}
-                      editing={editing}
-                      type="time"
-                      onChange={(v) => setForm({ ...form, closeTime: v })}
-                    />
-                  </div>
-                </div>
-
-                {/* Right column */}
-                <div className="space-y-4">
-                  <Field
-                    label="Địa chỉ"
-                    value={editing ? form.address : shop.address}
-                    editing={editing}
-                    onChange={(v) => setForm({ ...form, address: v })}
-                  />
-                  <Field
-                    label="Mô tả cửa hàng"
-                    value={editing ? form.description : shop.description}
-                    editing={editing}
-                    type="textarea"
-                    onChange={(v) => setForm({ ...form, description: v })}
-                  />
-                  <Field
-                    label="Mã số thuế"
-                    value={editing ? form.taxCode : shop.taxCode}
-                    editing={editing}
-                    onChange={(v) => setForm({ ...form, taxCode: v })}
-                  />
-                </div>
-              </div>
-
-              {/* Bank Info */}
-              <div className="mt-5 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Thông tin thanh toán</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Field
-                    label="Ngân hàng"
-                    value={editing ? form.bankName : shop.bankName}
-                    editing={editing}
-                    onChange={(v) => setForm({ ...form, bankName: v })}
-                  />
-                  <Field
-                    label="Số tài khoản"
-                    value={editing ? form.bankAccount : shop.bankAccount}
-                    editing={editing}
-                    onChange={(v) => setForm({ ...form, bankAccount: v })}
-                  />
-                  <Field
-                    label="Chủ tài khoản"
-                    value={editing ? form.bankOwner : shop.bankOwner}
-                    editing={editing}
-                    onChange={(v) => setForm({ ...form, bankOwner: v })}
-                  />
-                </div>
-              </div>
-
-              {/* Action buttons */}
-              {editing && (
-                <div className="mt-5 flex gap-3 justify-end">
-                  <button
-                    onClick={handleCancel}
-                    className="px-5 py-2 border border-gray-300 text-gray-600 text-sm rounded-lg hover:bg-gray-50 transition"
-                  >
-                    Hủy
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="px-5 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-lg transition disabled:opacity-50"
-                  >
-                    {saving ? "Dang luu..." : "Luu thay doi"}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── Tab: Đánh giá ── */}
-          {activeTab === "rating" && (
-            <div className="p-6 space-y-4">
-              {/* Rating summary */}
-              <div className="flex items-center gap-8 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                <div className="text-center">
-                  <p className="text-5xl font-extrabold text-yellow-500">4.8</p>
-                  <p className="text-yellow-400 text-xl mt-1">★★★★★</p>
-                  <p className="text-xs text-gray-400 mt-1">24 đánh giá</p>
-                </div>
-                <div className="flex-1 space-y-2">
-                  {[5, 4, 3, 2, 1].map((star) => {
-                    const pct = star === 5 ? 70 : star === 4 ? 20 : star === 3 ? 7 : star === 2 ? 2 : 1;
-                    return (
-                      <div key={star} className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500 w-4">{star}</span>
-                        <span className="text-yellow-400 text-xs">★</span>
-                        <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div className="h-full bg-yellow-400 rounded-full" style={{ width: `${pct}%` }} />
-                        </div>
-                        <span className="text-xs text-gray-400 w-6">{pct}%</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Review list */}
-              <div className="divide-y divide-gray-100">
-                {RECENT_REVIEWS.map((r) => (
-                  <div key={r.id} className="py-4 flex gap-3">
-                    <div className="w-9 h-9 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold text-sm shrink-0">
-                      {r.avatar}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-gray-800">{r.customer}</p>
-                        <p className="text-xs text-gray-400">{r.date}</p>
-                      </div>
-                      <p className="text-yellow-400 text-sm mt-0.5">
-                        {"★".repeat(r.rating)}
-                        {"☆".repeat(5 - r.rating)}
-                      </p>
-                      <p className="text-sm text-gray-600 mt-1">{r.comment}</p>
-                    </div>
-                  </div>
-                ))}
               </div>
             </div>
-          )}
 
-          {/* ── Tab: Vi phạm ── */}
-          {activeTab === "violation" && (
-            <div className="p-12 text-center text-gray-400">
-              <p className="text-4xl mb-3">✅</p>
-              <p className="font-semibold text-gray-600">Không có vi phạm nào</p>
-              <p className="text-sm mt-1">Cửa hàng của bạn đang hoạt động tốt.</p>
+            <div className="grid min-w-[220px] grid-cols-2 gap-3">
+              <StatCard label="Danh gia TB" value={shop.ratingAvg != null ? Number(shop.ratingAvg).toFixed(1) : "—"} />
+              <StatCard
+                label="Hoa hong nen tang"
+                value={shop.commissionRate != null ? `${Number(shop.commissionRate).toFixed(1)}%` : "—"}
+              />
             </div>
-          )}
+          </div>
+        </div>
 
-          {/* ── Tab: Trang trí / Chính sách ── */}
-          {(activeTab === "decoration" || activeTab === "policy") && (
-            <div className="p-12 text-center text-gray-400">
-              <p className="text-4xl mb-3">🚧</p>
-              <p className="font-semibold text-gray-600">Tính năng đang phát triển</p>
-              <p className="text-sm mt-1">Sẽ ra mắt trong phiên bản tiếp theo.</p>
+        <div className="grid gap-4 border-t border-gray-100 bg-gray-50/70 p-5 md:grid-cols-4">
+          <MetaItem label="Email tai khoan" value={shop.email || "—"} />
+          <MetaItem label="Dieu khoan da chap nhan" value={shop.termsVersion || "seller-terms-v1"} />
+          <MetaItem label="Ngay gui ho so" value={formatDateTime(shop.termsAcceptedAt || shop.createdAt)} />
+          <MetaItem label="Lan duyet gan nhat" value={formatDateTime(shop.reviewedAt)} />
+        </div>
+      </section>
+
+      {message.text && (
+        <div
+          className={`rounded-2xl border px-4 py-3 text-sm ${
+            message.type === "success"
+              ? "border-green-200 bg-green-50 text-green-800"
+              : "border-red-200 bg-red-50 text-red-700"
+          }`}
+        >
+          {message.text}
+        </div>
+      )}
+
+      {shop.adminNote && (
+        <section className="rounded-3xl border border-red-200 bg-red-50 p-5">
+          <h2 className="text-sm font-semibold text-red-800">Ghi chu tu admin</h2>
+          <p className="mt-2 whitespace-pre-line text-sm text-red-700">{shop.adminNote}</p>
+        </section>
+      )}
+
+      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="space-y-6">
+          <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-900">Thong tin van hanh</h2>
+            <p className="mt-1 text-sm text-gray-500">Cap nhat ten shop, thong tin lien he va dia chi giao nhan.</p>
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <Field label="Ten cua hang *" value={form.shopName} onChange={setField("shopName")} />
+              <ReadOnlyField label="Slug cua hang" value={form.shopSlug || "—"} />
+              <Field label="Ten phap ly / ho kinh doanh *" value={form.legalName} onChange={setField("legalName")} />
+              <Field label="Loai hinh kinh doanh *" value={form.businessType} onChange={setField("businessType")} />
+              <Field label="Nguoi lien he *" value={form.contactName} onChange={setField("contactName")} />
+              <Field label="So dien thoai *" value={form.phone} onChange={setField("phone")} inputMode="numeric" />
             </div>
-          )}
+            <div className="mt-4">
+              <TextArea label="Dia chi lay hang / giao nhan *" value={form.pickupAddress} onChange={setField("pickupAddress")} rows={3} />
+            </div>
+            <div className="mt-4">
+              <TextArea label="Mo ta cua hang" value={form.description} onChange={setField("description")} rows={5} />
+            </div>
+          </section>
+
+          <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-900">Thong tin phap ly</h2>
+            <p className="mt-1 text-sm text-gray-500">Nhung truong nay can khop voi ho so da nop de admin doi chieu khi can.</p>
+            <div className="mt-5 grid gap-4 md:grid-cols-3">
+              <Field label="Ma so thue" value={form.taxCode} onChange={setField("taxCode")} inputMode="numeric" />
+              <Field
+                label="So giay phep kinh doanh *"
+                value={form.businessLicenseNumber}
+                onChange={setField("businessLicenseNumber")}
+              />
+              <Field label="So CCCD/CMND dai dien *" value={form.identityNumber} onChange={setField("identityNumber")} inputMode="numeric" />
+            </div>
+          </section>
+
+          <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-900">Thong tin ngan hang</h2>
+            <p className="mt-1 text-sm text-gray-500">Thong tin doi soat doanh thu va thanh toan cho cua hang.</p>
+            <div className="mt-5 grid gap-4 md:grid-cols-3">
+              <Field label="Ngan hang *" value={form.bankName} onChange={setField("bankName")} />
+              <Field label="Chu tai khoan *" value={form.bankAccountName} onChange={setField("bankAccountName")} />
+              <Field
+                label="So tai khoan *"
+                value={form.bankAccountNumber}
+                onChange={setField("bankAccountNumber")}
+                inputMode="numeric"
+              />
+            </div>
+          </section>
+        </div>
+
+        <div className="space-y-6">
+          <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-900">Anh xac minh va nhan dien</h2>
+            <p className="mt-1 text-sm text-gray-500">Tai lai anh moi bat ky luc nao neu can cap nhat ho so.</p>
+            <div className="mt-5 space-y-4">
+              {IMAGE_FIELDS.map((item) => (
+                <UploadCard
+                  key={item.key}
+                  label={item.label}
+                  hint={item.hint}
+                  value={form[item.key]}
+                  uploading={uploadingField === item.key}
+                  onFileChange={handleUpload(item.key)}
+                />
+              ))}
+            </div>
+          </section>
+
+          <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-900">Luu y van hanh</h2>
+            <div className="mt-4 space-y-3 text-sm text-gray-600">
+              <p>• Ten shop, dia chi va thong tin lien he nen giong voi du lieu cong khai tren san.</p>
+              <p>• Neu doi giay phep hoac CCCD, hay cap nhat lai anh tai day de tranh bi tre duyet san pham.</p>
+              <p>• Tai khoan ngan hang nen trung voi nguoi dai dien hoac phap nhan da dang ky.</p>
+              <p>• Sau khi luu, admin co the doi chieu lai ho so neu cua hang co thay doi lon.</p>
+            </div>
+          </section>
+
+          <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-900">Thong tin cap nhat</h2>
+            <div className="mt-4 space-y-3 text-sm">
+              <MetaStack label="Trang thai hien tai" value={statusMeta.description} />
+              <MetaStack label="Tao ho so luc" value={formatDateTime(shop.createdAt)} />
+              <MetaStack label="Cap nhat lan cuoi" value={formatDateTime(shop.updatedAt)} />
+            </div>
+          </section>
         </div>
       </div>
 
-      {/* ── Footer ── */}
-      <footer className="text-center text-xs text-gray-400 py-4 border-t border-gray-200 bg-white">
-        © 2024 Food Rescue System – Quản lý Cửa Hàng Tiện Lợi v2.1.0
-      </footer>
+      <div className="sticky bottom-0 z-10 rounded-3xl border border-gray-200 bg-white/95 p-4 shadow-lg backdrop-blur">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-gray-500">Luu lai toan bo ho so seller sau khi da cap nhat thong tin va anh xac minh.</p>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving || uploadingField !== ""}
+            className="inline-flex items-center justify-center rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-gray-900 transition hover:bg-brand-dark disabled:opacity-50"
+          >
+            {saving ? "Dang luu..." : "Luu ho so cua hang"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
 
-// ── Helper component ──────────────────────────────────────────────────────
-function Field({ label, value, editing, onChange, type = "text", options = [] }) {
+function StatCard({ label, value }) {
+  return (
+    <div className="rounded-2xl border border-white/20 bg-white/15 px-4 py-3 text-white backdrop-blur-sm">
+      <p className="text-xs uppercase tracking-wide text-white/75">{label}</p>
+      <p className="mt-1 text-xl font-bold">{value}</p>
+    </div>
+  );
+}
+
+function MetaItem({ label, value }) {
   return (
     <div>
-      <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1">{label}</label>
-      {!editing ? (
-        <p className="text-sm text-gray-800 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200 min-h-[38px]">
-          {value || <span className="text-gray-400">—</span>}
-        </p>
-      ) : type === "textarea" ? (
-        <textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          rows={3}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-300 resize-none"
-        />
-      ) : type === "select" ? (
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-300"
-        >
-          {options.map((o) => (
-            <option key={o}>{o}</option>
-          ))}
-        </select>
+      <p className="text-xs font-medium uppercase tracking-wide text-gray-400">{label}</p>
+      <p className="mt-1 text-sm font-medium text-gray-800">{value}</p>
+    </div>
+  );
+}
+
+function MetaStack({ label, value }) {
+  return (
+    <div>
+      <p className="text-xs uppercase tracking-wide text-gray-400">{label}</p>
+      <p className="mt-1 text-sm text-gray-800">{value}</p>
+    </div>
+  );
+}
+
+function Field({ label, ...props }) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-sm font-medium text-gray-700">{label}</label>
+      <input
+        {...props}
+        className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand/40"
+      />
+    </div>
+  );
+}
+
+function ReadOnlyField({ label, value }) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-sm font-medium text-gray-700">{label}</label>
+      <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">{value}</div>
+    </div>
+  );
+}
+
+function TextArea({ label, ...props }) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-sm font-medium text-gray-700">{label}</label>
+      <textarea
+        {...props}
+        className="w-full resize-none rounded-2xl border border-gray-200 px-4 py-3 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand/40"
+      />
+    </div>
+  );
+}
+
+function UploadCard({ label, hint, value, uploading, onFileChange }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-gray-300 p-4">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold text-gray-800">{label}</p>
+          <p className="mt-1 text-xs text-gray-500">{hint}</p>
+        </div>
+        <label className="inline-flex cursor-pointer items-center justify-center rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
+          <input type="file" accept="image/*" className="hidden" onChange={onFileChange} />
+          {uploading ? "Dang tai..." : "Tai anh"}
+        </label>
+      </div>
+
+      {value ? (
+        <div className="mt-4 space-y-2">
+          <div className="overflow-hidden rounded-2xl border border-gray-100 bg-gray-50">
+            <img src={value} alt={label} className="h-40 w-full object-cover" />
+          </div>
+          <a href={value} target="_blank" rel="noreferrer" className="inline-block text-xs font-medium text-brand-dark hover:underline">
+            Xem anh goc
+          </a>
+        </div>
       ) : (
-        <input
-          type={type}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-300"
-        />
+        <p className="mt-4 text-xs text-gray-400">Chua co anh.</p>
       )}
     </div>
   );

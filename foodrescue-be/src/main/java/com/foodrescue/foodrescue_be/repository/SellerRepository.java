@@ -1,6 +1,7 @@
 package com.foodrescue.foodrescue_be.repository;
 
 import com.foodrescue.foodrescue_be.model.Seller;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,10 +20,24 @@ public interface SellerRepository extends JpaRepository<Seller, Long> {
 
     Optional<Seller> findByShopSlug(String shopSlug);
     boolean existsByUserEmail(String email);
+    boolean existsByShopSlug(String shopSlug);
+
+    @Query("SELECT COUNT(s) > 0 FROM Seller s WHERE LOWER(s.shopSlug) = LOWER(:shopSlug) " +
+            "AND (:excludeUserId IS NULL OR s.user.id <> :excludeUserId)")
+    boolean existsByShopSlug(@Param("shopSlug") String shopSlug, @Param("excludeUserId") Long excludeUserId);
 
     @EntityGraph(attributePaths = "user")
     @Query("SELECT s FROM Seller s JOIN s.user u WHERE " +
             "(:search IS NULL OR :search = '' OR LOWER(s.shopName) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(s.code) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(s.contactName) LIKE LOWER(CONCAT('%', :search, '%'))) " +
             "AND (:status IS NULL OR s.status = :status)")
     Page<Seller> findAllWithFilter(@Param("search") String search, @Param("status") Seller.Status status, Pageable pageable);
+
+    @EntityGraph(attributePaths = "user")
+    @Query("SELECT s FROM Seller s JOIN s.user u WHERE s.termsAcceptedAt IS NOT NULL AND " +
+            "(:search IS NULL OR :search = '' OR LOWER(s.shopName) LIKE LOWER(CONCAT('%', :search, '%')) " +
+            "OR LOWER(s.shopSlug) LIKE LOWER(CONCAT('%', :search, '%')) " +
+            "OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')) " +
+            "OR LOWER(COALESCE(s.contactName, '')) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+            "AND (:status IS NULL OR s.status = :status)")
+    Page<Seller> findAllApplicationsWithFilter(@Param("search") String search, @Param("status") Seller.Status status, Pageable pageable);
 }
