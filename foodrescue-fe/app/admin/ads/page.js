@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import toast from "react-hot-toast";
 import {
   apiAdminGetBannerAdsByStatus,
   apiAdminApproveBannerAd,
@@ -8,10 +9,17 @@ import {
 } from "@/lib/api";
 
 const TABS = [
+  { id: "all", label: "Tất cả" },
   { id: "pending", label: "Chờ duyệt" },
   { id: "approved", label: "Đã duyệt" },
   { id: "rejected", label: "Đã từ chối" },
 ];
+
+const STATUS_LABEL = {
+  PENDING: "Chờ duyệt",
+  APPROVED: "Đã duyệt",
+  REJECTED: "Từ chối",
+};
 
 function formatDate(d) {
   if (!d) return "—";
@@ -24,8 +32,8 @@ function formatDate(d) {
   });
 }
 
-function AdCard({ ad, statusTab, onApprove, onReject, acting, rejectingId, rejectReason, setRejectReason, onRejectSubmit, onRejectCancel }) {
-  const isPending = statusTab === "pending";
+function AdCard({ ad, onApprove, onReject, acting }) {
+  const canAct = ad.status === "PENDING";
 
   return (
     <div className="p-5 flex flex-wrap gap-4 items-start border-b border-gray-100 last:border-b-0">
@@ -38,7 +46,12 @@ function AdCard({ ad, statusTab, onApprove, onReject, acting, rejectingId, rejec
         />
       </div>
       <div className="flex-1 min-w-0">
-        <h3 className="font-semibold text-gray-800">{ad.title}</h3>
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="font-semibold text-gray-800">{ad.title}</h3>
+          <span className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-700">
+            {STATUS_LABEL[ad.status] || ad.status}
+          </span>
+        </div>
         <p className="text-xs text-gray-500 mt-0.5">Seller ID: {ad.sellerId}</p>
         {ad.linkUrl && (
           <p className="text-xs text-gray-600 mt-1 truncate">Link: {ad.linkUrl}</p>
@@ -49,52 +62,25 @@ function AdCard({ ad, statusTab, onApprove, onReject, acting, rejectingId, rejec
         {ad.rejectReason && (
           <p className="text-xs text-red-600 mt-1">Lý do từ chối: {ad.rejectReason}</p>
         )}
-        {isPending && (
-          rejectingId === ad.id ? (
-            <div className="mt-3 flex flex-wrap gap-2 items-center">
-              <input
-                type="text"
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                placeholder="Lý do từ chối (tùy chọn)"
-                className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm flex-1 min-w-[200px]"
-              />
-              <button
-                type="button"
-                onClick={() => onRejectSubmit(ad.id)}
-                disabled={acting === ad.id}
-                className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50"
-              >
-                {acting === ad.id ? "..." : "Từ chối"}
-              </button>
-              <button
-                type="button"
-                onClick={onRejectCancel}
-                className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-sm hover:bg-gray-50"
-              >
-                Hủy
-              </button>
-            </div>
-          ) : (
-            <div className="mt-3 flex gap-2">
-              <button
-                type="button"
-                onClick={() => onApprove(ad.id)}
-                disabled={acting === ad.id}
-                className="px-3 py-1.5 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 disabled:opacity-50"
-              >
-                {acting === ad.id ? "..." : "Duyệt"}
-              </button>
-              <button
-                type="button"
-                onClick={() => onReject(ad.id)}
-                disabled={acting === ad.id}
-                className="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-sm font-medium hover:bg-red-100 border border-red-200 disabled:opacity-50"
-              >
-                Từ chối
-              </button>
-            </div>
-          )
+        {canAct && (
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={() => onApprove(ad.id)}
+              disabled={acting === ad.id}
+              className="px-3 py-1.5 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+            >
+              {acting === ad.id ? "..." : "Duyệt"}
+            </button>
+            <button
+              type="button"
+              onClick={() => onReject(ad)}
+              disabled={acting === ad.id}
+              className="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-sm font-medium hover:bg-red-100 border border-red-200 disabled:opacity-50"
+            >
+              Từ chối
+            </button>
+          </div>
         )}
       </div>
     </div>
@@ -102,15 +88,34 @@ function AdCard({ ad, statusTab, onApprove, onReject, acting, rejectingId, rejec
 }
 
 export default function AdminAdsPage() {
-  const [statusTab, setStatusTab] = useState("pending");
+  const [statusTab, setStatusTab] = useState("all");
   const [ads, setAds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(null);
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [rejectAd, setRejectAd] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
-  const [rejectingId, setRejectingId] = useState(null);
 
   const loadByStatus = useCallback((status) => {
     setLoading(true);
+    const fetchOne = (s) =>
+      apiAdminGetBannerAdsByStatus(s).then((res) => (res.ok && Array.isArray(res.data?.data) ? res.data.data : []));
+
+    if (status === "all") {
+      Promise.all([fetchOne("pending"), fetchOne("approved"), fetchOne("rejected")])
+        .then(([p, a, r]) => {
+          const merged = [...p, ...a, ...r];
+          merged.sort((x, y) => {
+            const tx = new Date(x.createdAt || x.startDate || 0).getTime();
+            const ty = new Date(y.createdAt || y.startDate || 0).getTime();
+            return ty - tx;
+          });
+          setAds(merged);
+        })
+        .finally(() => setLoading(false));
+      return;
+    }
+
     apiAdminGetBannerAdsByStatus(status)
       .then((res) => {
         if (res.ok && res.data?.data) setAds(Array.isArray(res.data.data) ? res.data.data : []);
@@ -127,34 +132,46 @@ export default function AdminAdsPage() {
     setActing(id);
     apiAdminApproveBannerAd(id)
       .then((res) => {
-        if (res.ok) loadByStatus(statusTab);
-        else alert(res.data?.message || "Duyệt thất bại.");
+        if (res.ok) {
+          toast.success("Đã duyệt quảng cáo");
+          loadByStatus(statusTab);
+        } else toast.error(res.data?.message || "Duyệt thất bại.");
       })
       .finally(() => setActing(null));
   };
 
-  const handleRejectClick = (id) => {
-    setRejectingId(id);
+  const handleRejectClick = (ad) => {
+    setRejectAd(ad);
     setRejectReason("");
+    setRejectModalOpen(true);
   };
 
-  const handleRejectSubmit = (id) => {
-    setActing(id);
-    apiAdminRejectBannerAd(id, rejectReason)
+  const handleRejectSubmit = () => {
+    if (!rejectAd?.id) return;
+    const reason = rejectReason.trim();
+    if (!reason) {
+      toast.error("Vui lòng nhập lý do từ chối.");
+      return;
+    }
+    setActing(rejectAd.id);
+    apiAdminRejectBannerAd(rejectAd.id, reason)
       .then((res) => {
         if (res.ok) {
-          setRejectingId(null);
+          toast.success("Đã từ chối quảng cáo");
+          setRejectModalOpen(false);
+          setRejectAd(null);
           setRejectReason("");
           loadByStatus(statusTab);
         } else {
-          alert(res.data?.message || "Từ chối thất bại.");
+          toast.error(res.data?.message || "Từ chối thất bại.");
         }
       })
       .finally(() => setActing(null));
   };
 
   const handleRejectCancel = () => {
-    setRejectingId(null);
+    setRejectModalOpen(false);
+    setRejectAd(null);
     setRejectReason("");
   };
 
@@ -200,20 +217,63 @@ export default function AdminAdsPage() {
               <AdCard
                 key={ad.id}
                 ad={ad}
-                statusTab={statusTab}
                 onApprove={handleApprove}
                 onReject={handleRejectClick}
                 acting={acting}
-                rejectingId={rejectingId}
-                rejectReason={rejectReason}
-                setRejectReason={setRejectReason}
-                onRejectSubmit={handleRejectSubmit}
-                onRejectCancel={handleRejectCancel}
               />
             ))}
           </div>
         )}
       </div>
+
+      {rejectModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Nhập lý do từ chối"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) handleRejectCancel();
+          }}
+        >
+          <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl border border-gray-100 overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+              <h3 className="text-sm font-bold text-gray-800">Từ chối quảng cáo</h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Nhập lý do để Seller biết và chỉnh sửa lại.
+              </p>
+            </div>
+            <div className="p-5 space-y-3">
+              <div className="text-sm text-gray-700">
+                <span className="font-semibold">Tiêu đề:</span> {rejectAd?.title || "—"}
+              </div>
+              <textarea
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Ví dụ: Ảnh bị mờ / nội dung không phù hợp / thiếu thông tin..."
+                className="w-full min-h-[110px] border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={handleRejectCancel}
+                  className="px-4 py-2 rounded-xl border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRejectSubmit}
+                  disabled={acting === rejectAd?.id}
+                  className="px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50"
+                >
+                  {acting === rejectAd?.id ? "Đang gửi..." : "Gửi lý do từ chối"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

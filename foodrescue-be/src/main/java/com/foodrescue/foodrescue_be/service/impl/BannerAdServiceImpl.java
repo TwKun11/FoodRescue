@@ -27,6 +27,10 @@ public class BannerAdServiceImpl implements BannerAdService {
         sellerRepository.findById(sellerId)
                 .orElseThrow(() -> new IllegalArgumentException("Seller không tồn tại"));
 
+        LocalDateTime now = LocalDateTime.now();
+        if (request.getStartDate().isBefore(now)) {
+            throw new IllegalArgumentException("Ngày bắt đầu không được trong quá khứ");
+        }
         if (request.getEndDate().isBefore(request.getStartDate())) {
             throw new IllegalArgumentException("Ngày kết thúc phải sau ngày bắt đầu");
         }
