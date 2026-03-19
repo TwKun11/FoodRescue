@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import toast from "react-hot-toast";
 import { apiSellerCreateBannerAd, apiSellerGetMyBannerAds, apiSellerUploadImage } from "@/lib/api";
 
 const STATUS_LABEL = {
@@ -13,6 +14,21 @@ const STATUS_CLASS = {
   APPROVED: "bg-green-50 text-green-700 border border-green-200",
   REJECTED: "bg-red-50 text-red-700 border border-red-200",
 };
+
+function normalizeLocalDateTime(value) {
+  const raw = (value || "").trim();
+  if (!raw) return "";
+  // `datetime-local` often returns `YYYY-MM-DDTHH:mm` (no seconds).
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(raw)) return `${raw}:00`;
+  return raw;
+}
+
+/** Trả về chuỗi min cho datetime-local (không cho chọn ngày/giờ trong quá khứ). */
+function getMinDatetimeLocal() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 function formatDate(d) {
   if (!d) return "—";
@@ -39,6 +55,13 @@ export default function StoreAdsPage() {
     endDate: "",
   });
   const [imageFile, setImageFile] = useState(null);
+  const [localPreviewUrl, setLocalPreviewUrl] = useState("");
+  const [minDatetime, setMinDatetime] = useState(() => getMinDatetimeLocal());
+
+  useEffect(() => {
+    const t = setInterval(() => setMinDatetime(getMinDatetimeLocal()), 60_000);
+    return () => clearInterval(t);
+  }, []);
 
   const loadAds = useCallback(() => {
     setLoading(true);
@@ -55,50 +78,63 @@ export default function StoreAdsPage() {
     }
   }, [showList, loadAds]);
 
+  useEffect(() => {
+    if (!imageFile) return;
+
+    const preview = URL.createObjectURL(imageFile);
+    setLocalPreviewUrl(preview);
+    setForm((f) => ({ ...f, imageUrl: "" }));
+
+    let cancelled = false;
+    (async () => {
+      setUploading(true);
+      try {
+        const res = await apiSellerUploadImage(imageFile);
+        if (cancelled) return;
+        if (res.ok && res.data?.data) {
+          setForm((f) => ({ ...f, imageUrl: res.data.data }));
+          toast.success("Tải ảnh thành công");
+        } else {
+          toast.error(res.data?.message || "Tải ảnh thất bại.");
+        }
+      } catch (_) {
+        if (!cancelled) toast.error("Tải ảnh thất bại.");
+      } finally {
+        if (!cancelled) setUploading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      URL.revokeObjectURL(preview);
+    };
+  }, [imageFile]);
+
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
       setImageFile(file);
-      setForm((f) => ({ ...f, imageUrl: "" }));
-    }
-  };
-
-  const handleUploadImage = async () => {
-    if (!imageFile) return;
-    setUploading(true);
-    try {
-      const res = await apiSellerUploadImage(imageFile);
-      if (res.ok && res.data?.data) {
-        setForm((f) => ({ ...f, imageUrl: res.data.data }));
-        setImageFile(null);
-      } else {
-        alert(res.data?.message || "Tải ảnh thất bại.");
-      }
-    } catch (_) {
-      alert("Tải ảnh thất bại.");
-    } finally {
-      setUploading(false);
     }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!form.title?.trim()) {
-      alert("Vui lòng nhập tiêu đề.");
+      toast.error("Vui lòng nhập tiêu đề.");
       return;
     }
     if (!form.imageUrl?.trim()) {
-      alert("Vui lòng tải ảnh hoặc nhập URL ảnh.");
+      toast.error("Vui lòng tải ảnh hoặc nhập URL ảnh.");
       return;
     }
     const start = form.startDate ? new Date(form.startDate) : null;
     const end = form.endDate ? new Date(form.endDate) : null;
     if (!start || !end) {
-      alert("Vui lòng chọn ngày bắt đầu và kết thúc.");
+      toast.error("Vui lòng chọn ngày bắt đầu và kết thúc.");
       return;
     }
     if (end <= start) {
-      alert("Ngày kết thúc phải sau ngày bắt đầu.");
+      toast.error("Ngày kết thúc phải sau ngày bắt đầu.");
       return;
     }
     setSubmitting(true);
@@ -106,16 +142,19 @@ export default function StoreAdsPage() {
       title: form.title.trim(),
       imageUrl: form.imageUrl.trim(),
       linkUrl: form.linkUrl?.trim() || null,
-      startDate: start.toISOString(),
-      endDate: end.toISOString(),
+      // Backend expects LocalDateTime, so send local ISO without timezone (`Z`).
+      startDate: normalizeLocalDateTime(form.startDate),
+      endDate: normalizeLocalDateTime(form.endDate),
     })
       .then((res) => {
         if (res.ok) {
           setForm({ title: "", imageUrl: "", linkUrl: "", startDate: "", endDate: "" });
           setImageFile(null);
+          setLocalPreviewUrl("");
+          toast.success("Tạo quảng cáo thành công. Quảng cáo đang chờ Admin duyệt.");
           loadAds();
         } else {
-          alert(res.data?.message || "Tạo banner thất bại.");
+          toast.error(res.data?.message || "Tạo banner thất bại.");
         }
       })
       .finally(() => setSubmitting(false));
@@ -150,16 +189,7 @@ export default function StoreAdsPage() {
                 onChange={handleImageChange}
                 className="text-sm text-gray-600"
               />
-              {imageFile && (
-                <button
-                  type="button"
-                  disabled={uploading}
-                  onClick={handleUploadImage}
-                  className="px-3 py-1.5 rounded-lg bg-brand text-gray-900 text-sm font-medium hover:bg-brand-secondary disabled:opacity-50"
-                >
-                  {uploading ? "Đang tải..." : "Tải lên"}
-                </button>
-              )}
+              {uploading && <span className="text-xs text-gray-500 mt-1.5">Đang tải ảnh...</span>}
             </div>
             <p className="text-xs text-gray-500 mt-1">Hoặc nhập URL ảnh:</p>
             <input
@@ -169,9 +199,14 @@ export default function StoreAdsPage() {
               placeholder="https://..."
               className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
             />
-            {form.imageUrl && (
+            {(localPreviewUrl || form.imageUrl) && (
               <div className="mt-2 w-full max-w-xs aspect-[3/1] rounded-lg overflow-hidden bg-gray-100">
-                <img src={form.imageUrl} alt="Preview" className="w-full h-full object-cover" onError={(e) => e.target.style.display = "none"} />
+                <img
+                  src={form.imageUrl || localPreviewUrl}
+                  alt="Preview"
+                  className="w-full h-full object-cover"
+                  onError={(e) => (e.target.style.display = "none")}
+                />
               </div>
             )}
           </div>
@@ -191,6 +226,7 @@ export default function StoreAdsPage() {
               <input
                 type="datetime-local"
                 value={form.startDate}
+                min={minDatetime}
                 onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
               />
@@ -200,6 +236,7 @@ export default function StoreAdsPage() {
               <input
                 type="datetime-local"
                 value={form.endDate}
+                min={form.startDate || minDatetime}
                 onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
               />

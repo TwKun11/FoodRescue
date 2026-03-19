@@ -16,8 +16,7 @@ public interface BannerAdRepository extends JpaRepository<BannerAd, Long> {
 
     List<BannerAd> findByStatusOrderByCreatedAtDesc(BannerAd.Status status);
 
-    /** Chỉ lấy banner APPROVED và nằm trong khoảng thời gian chạy (now >= startDate và now <= endDate). */
-    @Query("SELECT b FROM BannerAd b WHERE b.status = 'APPROVED' " +
-            "AND b.startDate <= :now AND b.endDate >= :now ORDER BY b.createdAt DESC")
+    /** Chỉ lấy banner APPROVED và chưa hết hạn (endDate >= now). Duyệt xong là hiển thị ngay, không cần đợi startDate. */
+    @Query("SELECT b FROM BannerAd b WHERE b.status = 'APPROVED' AND b.endDate >= :now ORDER BY b.createdAt DESC")
     List<BannerAd> findActiveBanners(@Param("now") LocalDateTime now);
 }
