@@ -31,8 +31,8 @@ const EMPTY_VARIANT = {
 const TABS = [
   { id: "all", label: "Tất cả sản phẩm" },
   { id: "active", label: "Đang hoạt động" },
-  { id: "pending_approval", label: "Chờ duyệt" },
-  { id: "inactive", label: "Không hoạt động" },
+  { id: "expiring", label: "Sắp hết hạn" },
+  { id: "expired", label: "Hết hạn" },
 ];
 
 const STATUS_MAP = {
@@ -49,6 +49,17 @@ function mapProduct(p) {
   const totalStock = (p.variants || []).reduce((sum, v) => {
     return sum + (v.stockQuantity ?? v.stockAvailable ?? 0);
   }, 0);
+  
+  // Determine expiry status based on shelfLifeDays
+  let expiryStatus = null;
+  if (p.shelfLifeDays !== null && p.shelfLifeDays !== undefined) {
+    if (p.shelfLifeDays < 0) {
+      expiryStatus = "expired";
+    } else if (p.shelfLifeDays <= 3) {
+      expiryStatus = "expiring";
+    }
+  }
+
   return {
     // UI display fields
     id: String(p.id),
@@ -60,6 +71,8 @@ function mapProduct(p) {
     quantity: totalStock,
     quantityLabel: totalStock === 0 ? "Hết hàng" : totalStock <= 5 ? `Còn ${totalStock}` : null,
     status: p.status || "draft",
+    expiryStatus: expiryStatus,
+    shelfLifeDays: p.shelfLifeDays,
     // Fields needed for edit form
     productCode: p.productCode,
     slug: p.slug,
@@ -253,9 +266,13 @@ export default function StoreProductsPage() {
   var filteredProducts =
     activeTab === "all"
       ? products
-      : products.filter(function (p) {
-          return p.status === activeTab;
-        });
+      : activeTab === "active"
+        ? products.filter((p) => p.status === "active" && !p.expiryStatus)
+        : activeTab === "expiring"
+          ? products.filter((p) => p.expiryStatus === "expiring")
+          : activeTab === "expired"
+            ? products.filter((p) => p.expiryStatus === "expired")
+            : products;
 
   const toggleSelect = (id) =>
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));

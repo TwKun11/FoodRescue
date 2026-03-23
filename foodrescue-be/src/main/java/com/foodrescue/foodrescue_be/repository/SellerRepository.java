@@ -19,6 +19,7 @@ public interface SellerRepository extends JpaRepository<Seller, Long> {
 
     Optional<Seller> findByShopSlug(String shopSlug);
     boolean existsByUserEmail(String email);
+    boolean existsByUserId(Long userId);
 
     @EntityGraph(attributePaths = "user")
     @Query("SELECT s FROM Seller s JOIN s.user u WHERE " +
