@@ -10,9 +10,12 @@ import com.foodrescue.foodrescue_be.model.Seller;
 import com.foodrescue.foodrescue_be.repository.OrderItemRepository;
 import com.foodrescue.foodrescue_be.repository.OrderSellerOrderRepository;
 import com.foodrescue.foodrescue_be.repository.SellerRepository;
+import com.foodrescue.foodrescue_be.service.CloudinaryService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -30,6 +33,7 @@ public class SellerController {
     private final SellerRepository sellerRepository;
     private final OrderSellerOrderRepository sellerOrderRepository;
     private final OrderItemRepository orderItemRepository;
+    private final CloudinaryService cloudinaryService;
 
     @GetMapping("/shop")
     public ResponseData<SellerResponse> getMyShop(Authentication auth) {
@@ -40,17 +44,45 @@ public class SellerController {
     @PutMapping("/shop")
     public ResponseData<SellerResponse> updateShop(
             Authentication auth,
-            @RequestBody UpdateSellerRequest req
+            @Valid @RequestBody UpdateSellerRequest req
     ) {
         Seller seller = resolveByEmail((String) auth.getPrincipal());
-        if (req.getShopName() != null && !req.getShopName().isBlank()) seller.setShopName(req.getShopName());
-        if (req.getLegalName() != null) seller.setLegalName(req.getLegalName());
-        if (req.getContactName() != null) seller.setContactName(req.getContactName());
-        if (req.getPhone() != null) seller.setPhone(req.getPhone());
-        if (req.getDescription() != null) seller.setDescription(req.getDescription());
-        if (req.getAvatarUrl() != null) seller.setAvatarUrl(req.getAvatarUrl());
-        if (req.getCoverUrl() != null) seller.setCoverUrl(req.getCoverUrl());
+        if (req.getShopName() != null && !req.getShopName().isBlank()) {
+            seller.setShopName(req.getShopName().trim());
+        }
+        if (req.getLegalName() != null) seller.setLegalName(cleanNullable(req.getLegalName()));
+        if (req.getBusinessType() != null) seller.setBusinessType(cleanNullable(req.getBusinessType()));
+        if (req.getContactName() != null) seller.setContactName(cleanNullable(req.getContactName()));
+        if (req.getPhone() != null) seller.setPhone(cleanNullable(req.getPhone()));
+        if (req.getPickupAddress() != null) seller.setPickupAddress(cleanNullable(req.getPickupAddress()));
+        if (req.getTaxCode() != null) seller.setTaxCode(cleanNullable(req.getTaxCode()));
+        if (req.getBusinessLicenseNumber() != null) seller.setBusinessLicenseNumber(cleanNullable(req.getBusinessLicenseNumber()));
+        if (req.getIdentityNumber() != null) seller.setIdentityNumber(cleanNullable(req.getIdentityNumber()));
+        if (req.getDescription() != null) seller.setDescription(cleanNullable(req.getDescription()));
+        if (req.getAvatarUrl() != null) seller.setAvatarUrl(cleanNullable(req.getAvatarUrl()));
+        if (req.getCoverUrl() != null) seller.setCoverUrl(cleanNullable(req.getCoverUrl()));
+        if (req.getStorefrontImageUrl() != null) seller.setStorefrontImageUrl(cleanNullable(req.getStorefrontImageUrl()));
+        if (req.getBusinessLicenseImageUrl() != null) seller.setBusinessLicenseImageUrl(cleanNullable(req.getBusinessLicenseImageUrl()));
+        if (req.getIdentityCardImageUrl() != null) seller.setIdentityCardImageUrl(cleanNullable(req.getIdentityCardImageUrl()));
+        if (req.getBankName() != null) seller.setBankName(cleanNullable(req.getBankName()));
+        if (req.getBankAccountName() != null) seller.setBankAccountName(cleanNullable(req.getBankAccountName()));
+        if (req.getBankAccountNumber() != null) seller.setBankAccountNumber(cleanNullable(req.getBankAccountNumber()));
         return ResponseData.ok("Cập nhật cửa hàng thành công", SellerResponse.fromEntity(sellerRepository.save(seller)));
+    }
+
+    @PostMapping("/shop/upload")
+    public ResponseData<String> uploadShopImage(
+            Authentication auth,
+            @RequestParam("file") MultipartFile file
+    ) {
+        resolveByEmail((String) auth.getPrincipal());
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("File không được để trống");
+        }
+        return ResponseData.ok(
+                "Tải ảnh thành công",
+                cloudinaryService.uploadImage(file, "foodrescue/sellers")
+        );
     }
 
     @GetMapping("/stats")
@@ -129,5 +161,13 @@ public class SellerController {
     private Seller resolveByEmail(String email) {
         return sellerRepository.findByUserEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("Tài khoản chưa được liên kết với cửa hàng"));
+    }
+
+    private String cleanNullable(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

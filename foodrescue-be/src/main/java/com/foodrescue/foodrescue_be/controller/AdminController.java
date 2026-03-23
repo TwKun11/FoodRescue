@@ -121,6 +121,11 @@ public class AdminController {
     public ResponseData<SellerResponse> verifySeller(@PathVariable Long id) {
         Seller seller = sellerRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Cửa hàng không tồn tại"));
+        User user = seller.getUser();
+        if (user != null && user.getRole() != Role.SELLER) {
+            user.setRole(Role.SELLER);
+            userRepository.save(user);
+        }
         seller.setIsVerified(true);
         if (seller.getStatus() == Seller.Status.pending) seller.setStatus(Seller.Status.active);
         return ResponseData.ok("Xác minh cửa hàng thành công", SellerResponse.fromEntity(sellerRepository.save(seller)));
