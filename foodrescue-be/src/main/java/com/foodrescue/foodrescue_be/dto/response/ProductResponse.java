@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -34,6 +35,7 @@ public class ProductResponse {
     private Integer shelfLifeDays;
     private Integer minPreparationMinutes;
     private String status;
+    private LocalDateTime createdAt;
     private String primaryImageUrl;
     private List<ProductImageResponse> images;
     private List<ProductVariantResponse> variants;
@@ -64,6 +66,7 @@ public class ProductResponse {
                 .shelfLifeDays(product.getShelfLifeDays())
                 .minPreparationMinutes(product.getMinPreparationMinutes())
                 .status(product.getStatus() != null ? product.getStatus().name() : null)
+                .createdAt(product.getCreatedAt())
                 .primaryImageUrl(primaryImageUrl)
                 .variants(variants)
                 .build();

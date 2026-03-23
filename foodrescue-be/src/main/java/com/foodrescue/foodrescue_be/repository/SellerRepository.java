@@ -19,7 +19,12 @@ public interface SellerRepository extends JpaRepository<Seller, Long> {
     Optional<Seller> findByUserEmail(String email);
 
     Optional<Seller> findByShopSlug(String shopSlug);
+    Optional<Seller> findByUserId(Long userId);
     boolean existsByUserEmail(String email);
+    boolean existsByUserId(Long userId);
+
+    @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END FROM Seller s WHERE s.shopSlug = :shopSlug AND s.user.id != :userId")
+    boolean existsByShopSlug(@Param("shopSlug") String shopSlug, @Param("userId") Long userId);
 
     @EntityGraph(attributePaths = "user")
     @Query("SELECT s FROM Seller s JOIN s.user u WHERE " +
