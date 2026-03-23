@@ -20,11 +20,6 @@ public interface SellerRepository extends JpaRepository<Seller, Long> {
 
     Optional<Seller> findByShopSlug(String shopSlug);
     boolean existsByUserEmail(String email);
-    boolean existsByShopSlug(String shopSlug);
-
-    @Query("SELECT COUNT(s) > 0 FROM Seller s WHERE LOWER(s.shopSlug) = LOWER(:shopSlug) " +
-            "AND (:excludeUserId IS NULL OR s.user.id <> :excludeUserId)")
-    boolean existsByShopSlug(@Param("shopSlug") String shopSlug, @Param("excludeUserId") Long excludeUserId);
 
     @EntityGraph(attributePaths = "user")
     @Query("SELECT s FROM Seller s JOIN s.user u WHERE " +
