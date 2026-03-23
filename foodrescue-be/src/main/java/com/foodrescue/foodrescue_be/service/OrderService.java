@@ -9,6 +9,9 @@ public interface OrderService {
     OrderResponse placeOrder(Long customerId, PlaceOrderRequest request);
     Page<OrderResponse> getCustomerOrders(Long customerId, Pageable pageable);
     OrderResponse getOrderDetail(Long customerId, Long orderId);
+    void handlePayOSWebhook(String payload);
+    int reconcilePendingPayments();
+    int expirePendingPayments();
 
     // Seller
     Page<OrderResponse> getSellerOrders(Long sellerId, String status, Pageable pageable);

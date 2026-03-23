@@ -35,15 +35,17 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<ProductResponse> getPublicProducts(Long categoryId, String keyword, String sort, Pageable pageable) {
+    public Page<ProductResponse> getPublicProducts(Long categoryId, String keyword, String sort,
+                                                    BigDecimal minPrice, BigDecimal maxPrice, String province,
+                                                    Pageable pageable) {
         Pageable unsortedPageable = org.springframework.data.domain.PageRequest.of(
                 pageable.getPageNumber(),
                 pageable.getPageSize()
         );
         Page<Product> page = switch (sort == null ? "" : sort) {
-            case "salePrice_asc" -> productRepository.searchPublicOrderByPriceAsc(categoryId, null, keyword, unsortedPageable);
-            case "salePrice_desc" -> productRepository.searchPublicOrderByPriceDesc(categoryId, null, keyword, unsortedPageable);
-            default -> productRepository.searchPublic(categoryId, null, keyword, pageable);
+            case "salePrice_asc" -> productRepository.searchPublicOrderByPriceAsc(categoryId, null, keyword, minPrice, maxPrice, province, unsortedPageable);
+            case "salePrice_desc" -> productRepository.searchPublicOrderByPriceDesc(categoryId, null, keyword, minPrice, maxPrice, province, unsortedPageable);
+            default -> productRepository.searchPublic(categoryId, null, keyword, minPrice, maxPrice, province, pageable);
         };
         return page
                 .map(this::toResponse);

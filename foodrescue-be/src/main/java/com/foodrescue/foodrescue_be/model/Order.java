@@ -2,6 +2,8 @@ package com.foodrescue.foodrescue_be.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -15,9 +17,9 @@ import java.time.LocalDateTime;
 @Builder
 public class Order {
 
-    public enum OrderStatus { pending, confirmed, packing, shipping, completed, cancelled, refunded }
-    public enum PaymentStatus { unpaid, paid, partially_paid, refunded }
-    public enum PaymentMethod { cod, bank_transfer, momo, zalopay, vnpay, card }
+    public enum OrderStatus { pending_payment, pending, confirmed, packing, shipping, completed, cancelled, refunded }
+    public enum PaymentStatus { unpaid, pending, paid, cancelled, expired, failed, partially_paid, refunded }
+    public enum PaymentMethod { cod, payos, bank_transfer, momo, zalopay, vnpay, card }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -35,14 +37,17 @@ public class Order {
     private String orderCode;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "order_status", nullable = false)
     private OrderStatus orderStatus = OrderStatus.pending;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "payment_status", nullable = false)
     private PaymentStatus paymentStatus = PaymentStatus.unpaid;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "payment_method", nullable = false)
     private PaymentMethod paymentMethod = PaymentMethod.cod;
 
@@ -69,6 +74,9 @@ public class Order {
 
     @Column(name = "cancelled_at")
     private LocalDateTime cancelledAt;
+
+    @Column(name = "paid_at")
+    private LocalDateTime paidAt;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
