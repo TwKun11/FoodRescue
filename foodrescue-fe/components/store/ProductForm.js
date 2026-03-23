@@ -70,6 +70,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({}); // Track errors per field
   // Gallery images (for edit mode)
   const [galleryImages, setGalleryImages] = useState([]);
   const [galleryFileQueue, setGalleryFileQueue] = useState([]); // {file, previewUrl} pending add
@@ -129,6 +130,53 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
       if (k === "name" && !isEdit) next.slug = slugify(val);
       return next;
     });
+    // Realtime validation on change
+    validateFieldRealtime(k, val);
+  };
+
+  // Validation rules for each field
+  const validateFieldRealtime = (fieldName, value) => {
+    let error = null;
+
+    switch (fieldName) {
+      case 'name':
+        if (!value.trim()) error = 'Tên sản phẩm không được để trống';
+        break;
+      case 'categoryId':
+        if (!value) error = 'Vui lòng chọn danh mục';
+        break;
+      case 'sellMode':
+        if (!value) error = 'Vui lòng chọn hình thức bán';
+        break;
+      case 'shelfLifeDays':
+        if (value && (isNaN(value) || Number(value) < 0)) error = 'Hạn sử dụng phải là số không âm';
+        break;
+      case 'minPreparationMinutes':
+        if (value && (isNaN(value) || Number(value) < 0)) error = 'Thời gian chuẩn bị phải là số không âm';
+        break;
+      // Variant validation
+      case 'initVariantName':
+        if (!value.trim()) error = 'Tên biến thể không được để trống';
+        break;
+      case 'initVariantListPrice':
+        if (!value) error = 'Giá niêm yết không được để trống';
+        else if (isNaN(value) || Number(value) <= 0) error = 'Giá phải là số dương';
+        break;
+      case 'initVariantSalePrice':
+        if (value && (isNaN(value) || Number(value) < 0)) error = 'Giá bán phải là số không âm';
+        break;
+      default:
+        break;
+    }
+
+    setFieldErrors((prev) => ({
+      ...prev,
+      [fieldName]: error
+    }));
+  };
+
+  const handleFieldBlur = (fieldName) => (e) => {
+    validateFieldRealtime(fieldName, e.target.value);
   };
 
   const handleCreateImgAdd = (e) => {
@@ -466,9 +514,17 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
             type="text"
             value={form.name}
             onChange={set("name")}
+            onBlur={handleFieldBlur("name")}
             placeholder="VD: Rau cải xanh 500g"
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+            className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition ${
+              fieldErrors.name
+                ? 'border-red-500 focus:ring-red-300 bg-red-50'
+                : 'border-gray-200 focus:ring-green-300'
+            }`}
           />
+          {fieldErrors.name && (
+            <p className="text-xs text-red-500 mt-1 font-medium">✗ {fieldErrors.name}</p>
+          )}
         </div>
         {!isEdit && (
           <div>
@@ -511,7 +567,12 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
           <select
             value={form.categoryId}
             onChange={set("categoryId")}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 bg-white"
+            onBlur={handleFieldBlur("categoryId")}
+            className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition bg-white ${
+              fieldErrors.categoryId
+                ? 'border-red-500 focus:ring-red-300'
+                : 'border-gray-200 focus:ring-green-300'
+            }`}
           >
             <option value="">-- Chọn danh mục --</option>
             {categories.map((c) => (
@@ -520,6 +581,9 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
               </option>
             ))}
           </select>
+          {fieldErrors.categoryId && (
+            <p className="text-xs text-red-500 mt-1 font-medium">✗ {fieldErrors.categoryId}</p>
+          )}
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Thương hiệu</label>
@@ -559,7 +623,12 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
           <select
             value={form.sellMode}
             onChange={set("sellMode")}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-300"
+            onBlur={handleFieldBlur("sellMode")}
+            className={`w-full border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 transition ${
+              fieldErrors.sellMode
+                ? 'border-red-500 focus:ring-red-300'
+                : 'border-gray-200 focus:ring-green-300'
+            }`}
           >
             {SELL_MODES.map((t) => (
               <option key={t.value} value={t.value}>
@@ -567,6 +636,9 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
               </option>
             ))}
           </select>
+          {fieldErrors.sellMode && (
+            <p className="text-xs text-red-500 mt-1 font-medium">✗ {fieldErrors.sellMode}</p>
+          )}
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Bảo quản</label>
@@ -616,10 +688,18 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
             type="number"
             value={form.shelfLifeDays}
             onChange={set("shelfLifeDays")}
+            onBlur={handleFieldBlur("shelfLifeDays")}
             min={0}
             placeholder="VD: 7"
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+            className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition ${
+              fieldErrors.shelfLifeDays
+                ? 'border-red-500 focus:ring-red-300 bg-red-50'
+                : 'border-gray-200 focus:ring-green-300'
+            }`}
           />
+          {fieldErrors.shelfLifeDays && (
+            <p className="text-xs text-red-500 mt-1 font-medium">✗ {fieldErrors.shelfLifeDays}</p>
+          )}
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Thời gian chuẩn bị (phút)</label>
@@ -627,10 +707,18 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
             type="number"
             value={form.minPreparationMinutes}
             onChange={set("minPreparationMinutes")}
+            onBlur={handleFieldBlur("minPreparationMinutes")}
             min={0}
             placeholder="VD: 30"
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+            className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition ${
+              fieldErrors.minPreparationMinutes
+                ? 'border-red-500 focus:ring-red-300 bg-red-50'
+                : 'border-gray-200 focus:ring-green-300'
+            }`}
           />
+          {fieldErrors.minPreparationMinutes && (
+            <p className="text-xs text-red-500 mt-1 font-medium">✗ {fieldErrors.minPreparationMinutes}</p>
+          )}
           <p className="text-xs text-gray-400 mt-1">Thời gian tối thiểu cần để chuẩn bị đơn hàng</p>
         </div>
       </div>
@@ -691,9 +779,20 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
                 type="text"
                 placeholder="VD: Gói 500g"
                 value={initVariant.name}
-                onChange={(e) => setInitVariant((p) => ({ ...p, name: e.target.value }))}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 bg-white"
+                onChange={(e) => {
+                  setInitVariant((p) => ({ ...p, name: e.target.value }));
+                  validateFieldRealtime("initVariantName", e.target.value);
+                }}
+                onBlur={(e) => validateFieldRealtime("initVariantName", e.target.value)}
+                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition bg-white ${
+                  fieldErrors.initVariantName
+                    ? 'border-red-500 focus:ring-red-300'
+                    : 'border-gray-200 focus:ring-green-300'
+                }`}
               />
+              {fieldErrors.initVariantName && (
+                <p className="text-xs text-red-500 mt-1 font-medium">✗ {fieldErrors.initVariantName}</p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Đơn vị *</label>
@@ -718,27 +817,46 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
                 min={0}
                 placeholder="0"
                 value={initVariant.listPrice}
-                onChange={(e) => setInitVariant((p) => ({ ...p, listPrice: e.target.value }))}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 bg-white"
+                onChange={(e) => {
+                  setInitVariant((p) => ({ ...p, listPrice: e.target.value }));
+                  validateFieldRealtime("initVariantListPrice", e.target.value);
+                }}
+                onBlur={(e) => validateFieldRealtime("initVariantListPrice", e.target.value)}
+                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition bg-white ${
+                  fieldErrors.initVariantListPrice
+                    ? 'border-red-500 focus:ring-red-300'
+                    : 'border-gray-200 focus:ring-green-300'
+                }`}
               />
+              {fieldErrors.initVariantListPrice && (
+                <p className="text-xs text-red-500 mt-1 font-medium">✗ {fieldErrors.initVariantListPrice}</p>
+              )}
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                Giá bán (đồng) <span className="text-gray-400 font-normal">(nếu không điền = bằng giá niêm yết)</span>
-              </label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Giá bán (đồng)</label>
               <input
                 type="number"
                 min={0}
                 placeholder="Bằng giá niêm yết"
                 value={initVariant.salePrice}
-                onChange={(e) => setInitVariant((p) => ({ ...p, salePrice: e.target.value }))}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 bg-white"
+                onChange={(e) => {
+                  setInitVariant((p) => ({ ...p, salePrice: e.target.value }));
+                  validateFieldRealtime("initVariantSalePrice", e.target.value);
+                }}
+                onBlur={(e) => validateFieldRealtime("initVariantSalePrice", e.target.value)}
+                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition bg-white ${
+                  fieldErrors.initVariantSalePrice
+                    ? 'border-red-500 focus:ring-red-300'
+                    : 'border-gray-200 focus:ring-green-300'
+                }`}
               />
+              {fieldErrors.initVariantSalePrice && (
+                <p className="text-xs text-red-500 mt-1 font-medium">✗ {fieldErrors.initVariantSalePrice}</p>
+              )}
+              <p className="text-xs text-gray-400 mt-1">Nếu không điền = bằng giá niêm yết</p>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                Tồn kho ban đầu <span className="text-gray-400 font-normal">(tùy chọn)</span>
-              </label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Tồn kho ban đầu</label>
               <input
                 type="number"
                 min={0}
@@ -747,6 +865,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
                 onChange={(e) => setInitVariant((p) => ({ ...p, stockQuantity: e.target.value }))}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 bg-white"
               />
+              <p className="text-xs text-gray-400 mt-1">Tùy chọn</p>
             </div>
           </div>
         </div>
@@ -756,7 +875,10 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
         {onCancel && (
           <button
             type="button"
-            onClick={onCancel}
+            onClick={() => {
+              setFieldErrors({});
+              onCancel();
+            }}
             className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition"
           >
             Hủy

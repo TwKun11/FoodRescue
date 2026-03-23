@@ -527,7 +527,7 @@ export default function ProductsPage() {
         )}
 
         {!error && loading && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {Array.from({ length: 12 }).map((_, i) => (
               <div key={i} className="bg-white rounded-2xl border border-slate-200 overflow-hidden animate-pulse">
                 <div className="aspect-square bg-slate-100" />
@@ -553,7 +553,7 @@ export default function ProductsPage() {
 
         {!error && !loading && products.length > 0 && (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
               {products.map((product) => (
                 <ProductCardListing key={product.id} product={product} onAddToCart={handleAddToCart} />
               ))}

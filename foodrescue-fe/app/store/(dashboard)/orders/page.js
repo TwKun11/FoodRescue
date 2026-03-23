@@ -101,114 +101,7 @@ function normalizeOrders(content) {
   return Array.from(byId.values());
 }
 
-// Mock data để xem giao diện nhanh khi API chưa có dữ liệu
-const MOCK_SELLER_ORDERS = normalizeOrders([
-  {
-    id: 101,
-    orderId: 101,
-    orderCode: "FD000101",
-    status: "pending",
-    paymentStatus: "unpaid",
-    paymentMethod: "cod",
-    createdAt: new Date().toISOString(),
-    customerName: "Nguyễn Văn A",
-    customerEmail: "khach.a@example.com",
-    customerPhone: "0909 111 222",
-    subtotal: 185000,
-    discountAmount: 15000,
-    totalAmount: 170000,
-    productId: 1,
-    productName: "Sữa tươi Vinamilk 1L",
-    variantName: "Chai 1L",
-    quantity: 2,
-    unitPrice: 45000,
-    lineTotal: 90000,
-  },
-  {
-    id: 102,
-    orderId: 101,
-    orderCode: "FD000101",
-    status: "pending",
-    paymentStatus: "unpaid",
-    paymentMethod: "cod",
-    createdAt: new Date().toISOString(),
-    customerName: "Nguyễn Văn A",
-    customerEmail: "khach.a@example.com",
-    customerPhone: "0909 111 222",
-    subtotal: 185000,
-    discountAmount: 15000,
-    totalAmount: 170000,
-    productId: 2,
-    productName: "Bánh mì sandwich nguyên cám",
-    variantName: "Gói 500g",
-    quantity: 1,
-    unitPrice: 55000,
-    lineTotal: 55000,
-  },
-  {
-    id: 201,
-    orderId: 201,
-    orderCode: "FD000202",
-    status: "shipping",
-    paymentStatus: "paid",
-    paymentMethod: "payos",
-    createdAt: new Date(Date.now() - 3600 * 1000 * 5).toISOString(),
-    customerName: "Trần Thị B",
-    customerEmail: "khach.b@example.com",
-    customerPhone: "0912 333 444",
-    subtotal: 320000,
-    discountAmount: 50000,
-    totalAmount: 270000,
-    productId: 3,
-    productName: "Combo rau củ tiết kiệm",
-    variantName: "Gói 3kg",
-    quantity: 1,
-    unitPrice: 120000,
-    lineTotal: 120000,
-  },
-  {
-    id: 202,
-    orderId: 201,
-    orderCode: "FD000202",
-    status: "shipping",
-    paymentStatus: "paid",
-    paymentMethod: "payos",
-    createdAt: new Date(Date.now() - 3600 * 1000 * 5).toISOString(),
-    customerName: "Trần Thị B",
-    customerEmail: "khach.b@example.com",
-    customerPhone: "0912 333 444",
-    subtotal: 320000,
-    discountAmount: 50000,
-    totalAmount: 270000,
-    productId: 4,
-    productName: "Thịt gà phi lê",
-    variantName: "Khay 800g",
-    quantity: 2,
-    unitPrice: 100000,
-    lineTotal: 200000,
-  },
-  {
-    id: 301,
-    orderId: 301,
-    orderCode: "FD000303",
-    status: "completed",
-    paymentStatus: "paid",
-    paymentMethod: "cod",
-    createdAt: new Date(Date.now() - 3600 * 1000 * 24 * 2).toISOString(),
-    customerName: "Lê Văn C",
-    customerEmail: "khach.c@example.com",
-    customerPhone: "0987 555 666",
-    subtotal: 95000,
-    discountAmount: 0,
-    totalAmount: 95000,
-    productId: 5,
-    productName: "Mì gói chay",
-    variantName: "Thùng 30 gói",
-    quantity: 1,
-    unitPrice: 95000,
-    lineTotal: 95000,
-  },
-]);
+// Mockdata đã xóa - chỉ sử dụng dữ liệu thực từ API
 
 function OrderDetailModal({ order, onClose }) {
   if (!order) return null;
@@ -313,28 +206,23 @@ export default function StoreOrdersPage() {
             const data = res.data.data;
             const raw = data.content ?? data;
             const content = Array.isArray(raw) ? normalizeOrders(raw) : [];
-            if (content.length > 0) {
-              setOrders(content);
-              setTotalPages(data.totalPages ?? 1);
-              setTotalElements(data.totalElements ?? content.length);
-            } else {
-              setOrders(MOCK_SELLER_ORDERS);
-              setTotalPages(1);
-              setTotalElements(MOCK_SELLER_ORDERS.length);
-            }
+            setOrders(content);
+            setTotalPages(data.totalPages ?? 1);
+            setTotalElements(data.totalElements ?? content.length);
             setPage(nextPage ?? 0);
           } else {
-            // Khi API lỗi hoặc chưa có, dùng mock để xem layout
-            setOrders(MOCK_SELLER_ORDERS);
+            // Nếu API lỗi, hiển thị rỗng (không dùng mockdata)
+            setOrders([]);
             setTotalPages(1);
-            setTotalElements(MOCK_SELLER_ORDERS.length);
+            setTotalElements(0);
             setPage(0);
           }
         })
         .catch(() => {
-          setOrders(MOCK_SELLER_ORDERS);
+          // Khi API lỗi, hiển thị rỗng
+          setOrders([]);
           setTotalPages(1);
-          setTotalElements(MOCK_SELLER_ORDERS.length);
+          setTotalElements(0);
           setPage(0);
         })
         .finally(() => setLoading(false));

@@ -21,12 +21,68 @@ const EMPTY_BATCH = {
 
 const PAGE_SIZE = 10;
 
-const STATUS_STYLE = {
-  active: { label: "Còn hàng", bg: "bg-brand-bg", text: "text-brand-dark", dot: "bg-brand" },
-  depleted: { label: "Đã hết", bg: "bg-red-50", text: "text-red-700", dot: "bg-red-400" },
-  expired: { label: "Hết hạn", bg: "bg-gray-100", text: "text-gray-500", dot: "bg-gray-400" },
-  blocked: { label: "Bị chặn", bg: "bg-orange-50", text: "text-orange-700", dot: "bg-orange-400" },
-};
+// ── SVG Icons ─────────────────────────────────────────────────────────────
+const IconFire = () => (
+  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+    <path d="M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2zm0 2c-4.418 0-8 3.582-8 8s3.582 8 8 8 8-3.582 8-8-3.582-8-8-8zm0 2a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H8a1 1 0 110-2h3V7a1 1 0 011-1z" />
+  </svg>
+);
+
+const IconAlertTriangle = () => (
+  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+    <path d="M12 2L1 21h22L12 2zm0 3.46L19.65 19H4.35L12 5.46zM11 16h2v2h-2v-2zm0-6h2v4h-2v-4z" />
+  </svg>
+);
+
+const IconClock = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+const IconCheckCircle = () => (
+  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+  </svg>
+);
+
+const IconPackage = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10m0-10l8 4m0 0v10l-8 4m0-10l-8-4" />
+  </svg>
+);
+
+const IconTrendingDown = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M13 17H3v-2h10V7l4 4-4 4v-2z" />
+  </svg>
+);
+
+// ── Urgency Calculation ────────────────────────────────────────────────────
+function getUrgencyLevel(batch) {
+  const daysLeft = daysUntil(batch.expiredAt);
+  const available = Number(batch.quantityAvailable) || 0;
+  const received = Number(batch.quantityReceived) || 0;
+  
+  if (daysLeft === null) return "normal";
+  if (daysLeft < 0) return "expired";
+  if (daysLeft <= 1) return "urgent";
+  if (daysLeft >= 2 && daysLeft <= 3) return "expiring";
+  if (daysLeft >= 4 && daysLeft <= 7) return "soon";
+  
+  // Slow-moving: >7 days và consumption <50%
+  const consumption = received > 0 ? ((received - available) / received) * 100 : 0;
+  if (daysLeft > 7 && consumption < 50) return "slow";
+  
+  return "normal";
+}
+
+function calculateConsumption(batch) {
+  const available = Number(batch.quantityAvailable) || 0;
+  const received = Number(batch.quantityReceived) || 0;
+  if (received <= 0) return 0;
+  return Math.round(((received - available) / received) * 100);
+}
 
 function fmt(n) {
   if (n == null) return "—";
@@ -35,7 +91,7 @@ function fmt(n) {
 
 function fmtMoney(n) {
   if (n == null) return "—";
-  return Number(n).toLocaleString("vi-VN") + " đồng";
+  return Number(n).toLocaleString("vi-VN") + "₫";
 }
 
 function fmtDate(iso) {
@@ -52,30 +108,50 @@ function daysUntil(isoDate) {
   return Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
 }
 
+
 export default function InventoryPage() {
   const router = useRouter();
   const [batches, setBatches] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filterStatus, setFilterStatus] = useState("all");
+  const [selectedTab, setSelectedTab] = useState("all");
   const [keyword, setKeyword] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
   // Add-batch modal
   const [showModal, setShowModal] = useState(false);
   const [batchForm, setBatchForm] = useState(EMPTY_BATCH);
-  const [variants, setVariants] = useState([]); // [{id, label}]
+  const [variants, setVariants] = useState([]);
   const [variantsLoading, setVariantsLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
 
+  // Map variantId -> productName
+  const [variantMap, setVariantMap] = useState({});
+
   const load = useCallback(() => {
     setLoading(true);
-    apiSellerGetBatches()
-      .then((res) => {
-        if (res.ok && res.data?.data) {
-          const d = res.data.data;
+    Promise.all([
+      apiSellerGetBatches(),
+      apiSellerGetProducts({ size: 500 })
+    ])
+      .then(([batchRes, productRes]) => {
+        // Build variant map
+        if (productRes.ok && productRes.data?.data) {
+          const products = productRes.data.data.content ?? productRes.data.data;
+          const map = {};
+          products.forEach((p) => {
+            (p.variants || []).forEach((v) => {
+              map[v.id] = p.name;
+            });
+          });
+          setVariantMap(map);
+        }
+        
+        // Set batches
+        if (batchRes.ok && batchRes.data?.data) {
+          const d = batchRes.data.data;
           setBatches(Array.isArray(d) ? d : d.content || []);
-        } else if (res.status === 401) {
+        } else if (batchRes.status === 401) {
           router.replace("/login");
         }
       })
@@ -153,252 +229,332 @@ export default function InventoryPage() {
     }
   };
 
-  const filtered = batches.filter((b) => {
-    if (filterStatus !== "all" && b.status?.toLowerCase() !== filterStatus) return false;
-    if (keyword) {
-      const kw = keyword.toLowerCase();
-      if (
-        !b.batchCode?.toLowerCase().includes(kw) &&
-        !b.variantName?.toLowerCase().includes(kw) &&
-        !b.supplierName?.toLowerCase().includes(kw)
-      )
-        return false;
-    }
-    return true;
-  });
+  // ── Tab Filtering ──
+  const getFilteredBatches = () => {
+    return batches.filter((b) => {
+      const urgency = getUrgencyLevel(b);
+      
+      // Tab filter
+      if (selectedTab === "urgent") {
+        if (urgency !== "expired" && urgency !== "urgent") return false;
+      } else if (selectedTab === "normal") {
+        if (!["normal", "soon", "expiring"].includes(urgency)) return false;
+      } else if (selectedTab === "depleted") {
+        if (Number(b.quantityAvailable) > 0) return false;
+      }
+      
+      // Keyword filter
+      if (keyword) {
+        const kw = keyword.toLowerCase();
+        const productName = variantMap[b.variantId] || "";
+        if (
+          !b.batchCode?.toLowerCase().includes(kw) &&
+          !productName.toLowerCase().includes(kw) &&
+          !b.variantName?.toLowerCase().includes(kw) &&
+          !b.supplierName?.toLowerCase().includes(kw)
+        )
+          return false;
+      }
+      
+      return true;
+    });
+  };
 
+  const filtered = getFilteredBatches();
   const totalFiltered = filtered.length;
   const totalPages = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE));
   const pageStart = (currentPage - 1) * PAGE_SIZE;
   const paginatedBatches = filtered.slice(pageStart, pageStart + PAGE_SIZE);
 
-  const setFilterAndResetPage = (setter, value) => {
-    setter(value);
+  // ── Stats ──
+  const stats = {
+    total: batches.length,
+    urgent: batches.filter((b) => {
+      const u = getUrgencyLevel(b);
+      return u === "expired" || u === "urgent";
+    }).length,
+    normal: batches.filter((b) => {
+      const u = getUrgencyLevel(b);
+      return ["normal", "soon", "expiring"].includes(u);
+    }).length,
+    depleted: batches.filter((b) => Number(b.quantityAvailable) <= 0).length,
+  };
+
+  // ── Tab Config ──
+  const tabs = [
+    { id: "all", label: "Tất cả", count: stats.total },
+    { id: "urgent", label: "🔴 Cần xử lý ngay", count: stats.urgent, highlight: true },
+    { id: "normal", label: "✅ Ổn định", count: stats.normal },
+    { id: "depleted", label: "❌ Hết hàng", count: stats.depleted },
+  ];
+
+  const setTabAndResetPage = (tab) => {
+    setSelectedTab(tab);
     setCurrentPage(1);
   };
 
-  const stats = {
-    total: batches.length,
-    active: batches.filter((b) => b.status?.toLowerCase() === "active").length,
-    expiringSoon: batches.filter((b) => {
-      if (b.status?.toLowerCase() !== "active") return false;
-      const d = daysUntil(b.expiredAt);
-      return d !== null && d <= 7 && d >= 0;
-    }).length,
-    depleted: batches.filter((b) => b.status?.toLowerCase() === "depleted").length,
+  // ── Urgency UI ──
+  const getUrgencyUI = (batch) => {
+    const urgency = getUrgencyLevel(batch);
+    const daysLeft = daysUntil(batch.expiredAt);
+    
+    const config = {
+      expired: {
+        color: "bg-red-50 text-red-700",
+        label: "Hết hạn",
+        icon: <IconAlertTriangle />,
+        rowBg: "bg-red-50/50"
+      },
+      urgent: {
+        color: "bg-orange-50 text-orange-700",
+        label: `${daysLeft}h cảnh báo`,
+        icon: <IconFire />,
+        rowBg: "bg-orange-50/50"
+      },
+      expiring: {
+        color: "bg-yellow-50 text-yellow-700",
+        label: `${daysLeft}d sắp hết`,
+        icon: <IconClock />,
+        rowBg: "bg-yellow-50/50"
+      },
+      soon: {
+        color: "bg-blue-50 text-blue-700",
+        label: `${daysLeft}d giám sát`,
+        icon: <IconClock />,
+        rowBg: "bg-gray-50/30"
+      },
+      slow: {
+        color: "bg-indigo-50 text-indigo-700",
+        label: "Tiêu thụ chậm",
+        icon: <IconTrendingDown />,
+        rowBg: "bg-gray-50/30"
+      },
+      normal: {
+        color: "bg-brand-bg text-brand-dark",
+        label: "Bình thường",
+        icon: <IconCheckCircle />,
+        rowBg: "bg-white"
+      }
+    };
+    
+    return config[urgency] || config.normal;
   };
 
   return (
-    <div className="flex flex-col min-h-full">
-      <div className="flex-1 p-6 sm:p-8 space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Kho hàng</h1>
-          <button
-            onClick={openModal}
-            className="bg-brand hover:bg-brand-secondary text-gray-900 text-sm font-semibold px-4 py-2 rounded-xl transition flex items-center gap-2"
-          >
-            <span className="text-base leading-none">+</span> Nhập lô hàng
-          </button>
+    <div className="p-6 sm:p-8 space-y-6">
+      {/* ════ HEADER ════ */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">📦 Kho hàng</h1>
         </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { label: "Tổng lô hàng", value: stats.total, icon: "📦", color: "bg-blue-50 text-blue-600" },
-            { label: "Đang có hàng", value: stats.active, icon: "✅", color: "bg-brand-bg text-brand-dark" },
-            {
-              label: "Sắp hết hạn (≤7 ngày)",
-              value: stats.expiringSoon,
-              icon: "⚠️",
-              color: "bg-amber-50 text-amber-600",
-            },
-            { label: "Đã hết hàng", value: stats.depleted, icon: "❌", color: "bg-red-50 text-red-600" },
-          ].map((s) => (
-            <div key={s.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-4 flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0 ${s.color}`}>
-                {s.icon}
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">{s.label}</p>
-                <p className="text-lg font-bold text-gray-800">{s.value}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Filters */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-wrap gap-3 items-end">
-          <div>
-            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">Tìm kiếm</label>
-            <input
-              type="text"
-              value={keyword}
-              onChange={(e) => setFilterAndResetPage(setKeyword, e.target.value)}
-              placeholder="Mã lô, tên biến thể, nhà cung cấp..."
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-dark min-w-60"
-            />
-          </div>
-          <div>
-            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">Trạng thái</label>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterAndResetPage(setFilterStatus, e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-dark bg-white"
-            >
-              <option value="all">Tất cả</option>
-              <option value="active">Còn hàng</option>
-              <option value="depleted">Đã hết</option>
-              <option value="expired">Hết hạn</option>
-              <option value="blocked">Bị chặn</option>
-            </select>
-          </div>
-          <button
-            onClick={load}
-            className="bg-brand hover:bg-brand-secondary text-gray-900 text-sm font-semibold px-4 py-2 rounded-lg transition"
-          >
-            Làm mới
-          </button>
-        </div>
-
-        {/* Table */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wide">
-                  <th className="px-4 py-3 text-left">Mã lô</th>
-                  <th className="px-4 py-3 text-left">Biến thể sản phẩm</th>
-                  <th className="px-4 py-3 text-left">Nhà cung cấp</th>
-                  <th className="px-4 py-3 text-right">Nhập kho</th>
-                  <th className="px-4 py-3 text-right">Còn lại</th>
-                  <th className="px-4 py-3 text-right">Giá nhập</th>
-                  <th className="px-4 py-3 text-left">Ngày nhập</th>
-                  <th className="px-4 py-3 text-left">Hạn sử dụng</th>
-                  <th className="px-4 py-3 text-left">Trạng thái</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {loading ? (
-                  <tr>
-                    <td colSpan={9} className="text-center py-10 text-gray-400">
-                      Đang tải...
-                    </td>
-                  </tr>
-                ) : filtered.length === 0 ? (
-                  <tr>
-                    <td colSpan={9} className="text-center py-10 text-gray-400">
-                      Không có lô hàng nào.
-                    </td>
-                  </tr>
-                ) : (
-                  paginatedBatches.map((b) => {
-                    const st = STATUS_STYLE[b.status?.toLowerCase()] || STATUS_STYLE.active;
-                    const days = daysUntil(b.expiredAt);
-                    const expiringSoon =
-                      b.status?.toLowerCase() === "active" && days !== null && days <= 7 && days >= 0;
-                    const alreadyExpired = days !== null && days < 0;
-
-                    return (
-                      <tr
-                        key={b.id}
-                        className={`hover:bg-gray-50 transition ${b.status?.toLowerCase() === "depleted" ? "opacity-60" : ""}`}
-                      >
-                        <td className="px-4 py-3 font-mono text-xs text-gray-600">{b.batchCode}</td>
-                        <td className="px-4 py-3 text-gray-800 font-medium">{b.variantName || "—"}</td>
-                        <td className="px-4 py-3 text-gray-500">{b.supplierName || "—"}</td>
-                        <td className="px-4 py-3 text-right text-gray-700">{fmt(b.quantityReceived)}</td>
-                        <td className="px-4 py-3 text-right">
-                          <span
-                            className={
-                              b.status?.toLowerCase() === "depleted"
-                                ? "text-red-500 font-bold"
-                                : Number(b.quantityAvailable) <= 5
-                                  ? "text-orange-500 font-semibold"
-                                  : "text-gray-700"
-                            }
-                          >
-                            {fmt(b.quantityAvailable)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-right text-gray-500">{fmtMoney(b.costPrice)}</td>
-                        <td className="px-4 py-3 text-gray-500">{fmtDate(b.receivedAt)}</td>
-                        <td className="px-4 py-3">
-                          {b.expiredAt ? (
-                            <span
-                              className={`font-medium ${alreadyExpired ? "text-red-500" : expiringSoon ? "text-orange-500" : "text-gray-600"}`}
-                            >
-                              {fmtDate(b.expiredAt)}
-                              {expiringSoon && !alreadyExpired && (
-                                <span className="ml-1 text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full">
-                                  còn {days} ngày
-                                </span>
-                              )}
-                              {alreadyExpired && (
-                                <span className="ml-1 text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full">
-                                  hết hạn
-                                </span>
-                              )}
-                            </span>
-                          ) : (
-                            <span className="text-gray-400">—</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${st.bg} ${st.text}`}
-                          >
-                            <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`}></span>
-                            {st.label}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination — 10 lô/trang */}
-          {totalPages > 1 && (
-            <div className="px-5 py-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-gray-500">
-                Hiển thị {paginatedBatches.length} / {totalFiltered} lô hàng
-                <span className="ml-2 text-gray-400">· Trang {currentPage}/{totalPages}</span>
-              </p>
-              <div className="flex items-center gap-2">
-                <button
-                  disabled={currentPage <= 1}
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-brand-bg hover:border-brand/50 transition disabled:opacity-40 disabled:pointer-events-none"
-                >
-                  ‹
-                </button>
-                <span className="text-sm font-medium text-gray-700 min-w-16 text-center">
-                  {currentPage} / {totalPages}
-                </span>
-                <button
-                  disabled={currentPage >= totalPages}
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-brand-bg hover:border-brand/50 transition disabled:opacity-40 disabled:pointer-events-none"
-                >
-                  ›
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+        <button
+          onClick={openModal}
+          className="bg-brand hover:bg-brand-secondary text-gray-900 font-semibold px-4 py-2.5 rounded-xl transition flex items-center gap-2"
+        >
+          <span className="text-lg leading-none">+</span> Nhập lô hàng
+        </button>
       </div>
 
-      {/* Add Batch Modal */}
+      {/* ════ STATS CARDS ════ */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          { label: "Tổng lô", value: stats.total, icon: "📦", color: "bg-blue-50 text-blue-700" },
+          { label: "Cấp độ ⚠️", value: stats.urgent, icon: "🔴", color: "bg-red-50 text-red-700", highlight: true },
+          { label: "Bình thường", value: stats.normal, icon: "✅", color: "bg-brand-bg text-brand-dark" },
+          { label: "Hết hàng", value: stats.depleted, icon: "❌", color: "bg-gray-100 text-gray-700" },
+        ].map((s) => (
+          <div
+            key={s.label}
+            className={`rounded-xl border border-gray-100 shadow-sm px-4 py-3 flex flex-col gap-1 ${s.highlight ? "ring-2 ring-offset-2 ring-red-300 bg-red-50/30" : "bg-white"}`}
+          >
+            <p className="text-xs text-gray-500 font-medium">{s.label}</p>
+            <p className={`text-2xl font-bold ${s.color.split(" ")[1]}`}>{s.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* ════ TABS ════ */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-1 inline-flex gap-1">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setTabAndResetPage(tab.id)}
+            className={`px-4 py-2 rounded-lg font-medium text-sm transition flex items-center gap-2 ${
+              selectedTab === tab.id
+                ? "bg-brand text-gray-900 shadow-md"
+                : "text-gray-600 hover:bg-gray-50"
+            } ${tab.highlight && selectedTab === tab.id ? "ring-2 ring-red-400 ring-offset-1" : ""}`}
+          >
+            {tab.label}
+            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+              selectedTab === tab.id ? "bg-gray-900/20 text-gray-900" : "bg-gray-200 text-gray-700"
+            }`}>
+              {tab.count}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* ════ FILTERS ════ */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex flex-wrap gap-3 items-center">
+        <div className="flex-1 min-w-56">
+          <input
+            type="text"
+            value={keyword}
+            onChange={(e) => {
+              setKeyword(e.target.value);
+              setCurrentPage(1);
+            }}
+            placeholder="🔍 Tìm mã lô, sản phẩm, nhà cung cấp..."
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
+          />
+        </div>
+        <button
+          onClick={load}
+          className="bg-brand hover:bg-brand-secondary text-gray-900 font-medium px-4 py-2 rounded-lg transition text-sm"
+        >
+          🔄 Làm mới
+        </button>
+      </div>
+
+      {/* ════ TABLE ════ */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-100">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Mã lô</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Sản phẩm</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">NCC</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Nhập/Còn</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Tiêu thụ %</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Giá vốn</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Hạn sử dụng</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {loading ? (
+                <tr>
+                  <td colSpan={8} className="text-center py-10 text-gray-400">
+                    ⏳ Đang tải...
+                  </td>
+                </tr>
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="text-center py-10 text-gray-400">
+                    ℹ️ Không có lô hàng nào
+                  </td>
+                </tr>
+              ) : (
+                paginatedBatches.map((b) => {
+                  const ui = getUrgencyUI(b);
+                  const consumption = calculateConsumption(b);
+                  const daysLeft = daysUntil(b.expiredAt);
+                  
+                  return (
+                    <tr key={b.id} className={`hover:bg-gray-50 transition ${ui.rowBg}`}>
+                      <td className="px-4 py-3 font-mono text-xs text-gray-600 font-semibold">{b.batchCode}</td>
+                      <td className="px-4 py-3">
+                        <div className="space-y-1">
+                          <p className="font-semibold text-gray-900">{variantMap[b.variantId] || "—"}</p>
+                          {b.variantName && (
+                            <p className="text-xs text-gray-500">{b.variantName}</p>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-gray-600 text-sm">{b.supplierName || "—"}</td>
+                      <td className="px-4 py-3 text-right text-gray-700 font-medium">
+                        {fmt(b.quantityReceived)} / {fmt(b.quantityAvailable)}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <div className="flex items-center gap-1.5">
+                          <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden max-w-20">
+                            <div
+                              className={`h-full transition ${
+                                consumption >= 80 ? "bg-green-500" : consumption >= 50 ? "bg-yellow-500" : "bg-gray-300"
+                              }`}
+                              style={{ width: `${consumption}%` }}
+                            />
+                          </div>
+                          <span className="text-xs font-bold text-gray-700 w-8 text-right">{consumption}%</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right text-gray-600 font-medium">{fmtMoney(b.costPrice)}</td>
+                      <td className="px-4 py-3 text-sm">
+                        <div className="space-y-0.5">
+                          <div className="text-gray-600">
+                            <span className="text-gray-400">Nhập:</span> {fmtDate(b.receivedAt)}
+                          </div>
+                          {b.expiredAt ? (
+                            <div className={`font-semibold ${daysLeft && daysLeft < 0 ? "text-red-600" : "text-gray-600"}`}>
+                              <span className="text-gray-400">Hết:</span> {fmtDate(b.expiredAt)}
+                              {daysLeft !== null && (
+                                <span className={`ml-2 text-xs font-bold px-2 py-0.5 rounded-full ${
+                                  daysLeft < 0 ? "bg-red-100 text-red-700" : daysLeft <= 1 ? "bg-orange-100 text-orange-700" : "bg-yellow-100 text-yellow-700"
+                                }`}>
+                                  {daysLeft < 0 ? "hết" : `${daysLeft}d`}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="text-gray-400 text-sm">Chưa có hạn</div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium text-xs ${ui.color}`}>
+                          <span>{ui.icon}</span>
+                          {ui.label}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* ════ PAGINATION ════ */}
+        {totalPages > 1 && (
+          <div className="px-5 py-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-gray-600">
+              Hiển thị <span className="font-semibold">{paginatedBatches.length}</span> / <span className="font-semibold">{totalFiltered}</span> lô
+              <span className="text-gray-400 ml-2">Trang {currentPage}/{totalPages}</span>
+            </p>
+            <div className="flex gap-2">
+              <button
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-brand-bg transition disabled:opacity-40 disabled:pointer-events-none"
+              >
+                ‹
+              </button>
+              <span className="text-sm font-medium text-gray-700 px-3 py-1">
+                {currentPage} / {totalPages}
+              </span>
+              <button
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-brand-bg transition disabled:opacity-40 disabled:pointer-events-none"
+              >
+                ›
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ════ ADD BATCH MODAL ════ */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <h2 className="font-bold text-gray-800 text-base">📦 Nhập lô hàng mới</h2>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white">
+              <h2 className="font-bold text-gray-900 text-lg">📦 Nhập lô hàng mới</h2>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+                className="text-gray-400 hover:text-gray-600 text-2xl leading-none w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded-lg transition"
               >
                 ×
               </button>
@@ -406,15 +562,15 @@ export default function InventoryPage() {
             <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
               {/* Variant */}
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Biến thể sản phẩm *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Biến thể sản phẩm *</label>
                 {variantsLoading ? (
-                  <p className="text-xs text-gray-400">Đang tải danh sách biến thể...</p>
+                  <p className="text-sm text-gray-400">Đang tải danh sách...</p>
                 ) : (
                   <select
                     value={batchForm.variantId}
                     onChange={(e) => setBatchForm((p) => ({ ...p, variantId: e.target.value }))}
                     required
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 bg-white"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark bg-white"
                   >
                     <option value="">-- Chọn biến thể --</option>
                     {variants.map((v) => (
@@ -428,120 +584,125 @@ export default function InventoryPage() {
 
               {/* Batch Code */}
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Mã lô hàng *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Mã lô hàng *</label>
                 <input
                   type="text"
                   value={batchForm.batchCode}
                   onChange={(e) => setBatchForm((p) => ({ ...p, batchCode: e.target.value }))}
                   required
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 {/* Cost Price */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Giá vốn (đồng) *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Giá vốn (đồng) *</label>
                   <input
                     type="number"
                     min={0}
                     value={batchForm.costPrice}
                     onChange={(e) => setBatchForm((p) => ({ ...p, costPrice: e.target.value }))}
                     required
-                    placeholder="VD: 25000"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+                    placeholder="25000"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
                   />
                 </div>
                 {/* Quantity */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Số lượng nhập *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Số lượng nhập *</label>
                   <input
                     type="number"
                     min={1}
                     value={batchForm.quantityReceived}
                     onChange={(e) => setBatchForm((p) => ({ ...p, quantityReceived: e.target.value }))}
                     required
-                    placeholder="VD: 100"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+                    placeholder="100"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
                   />
                 </div>
               </div>
 
               {/* Supplier */}
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Nhà cung cấp</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Nhà cung cấp</label>
                 <input
                   type="text"
                   value={batchForm.supplierName}
                   onChange={(e) => setBatchForm((p) => ({ ...p, supplierName: e.target.value }))}
                   placeholder="Tên nhà cung cấp..."
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 {/* Received At */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Ngày nhập kho *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Ngày nhập kho *</label>
                   <input
                     type="datetime-local"
                     value={batchForm.receivedAt}
                     onChange={(e) => setBatchForm((p) => ({ ...p, receivedAt: e.target.value }))}
                     required
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
                   />
                 </div>
                 {/* Manufactured At */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Ngày sản xuất</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Ngày sản xuất</label>
                   <input
                     type="datetime-local"
                     value={batchForm.manufacturedAt}
                     onChange={(e) => setBatchForm((p) => ({ ...p, manufacturedAt: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
                   />
                 </div>
               </div>
 
               {/* Expired At */}
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Hạn sử dụng</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Hạn sử dụng</label>
                 <input
                   type="datetime-local"
                   value={batchForm.expiredAt}
                   onChange={(e) => setBatchForm((p) => ({ ...p, expiredAt: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
                 />
+                <p className="text-xs text-gray-500 mt-1.5">💡 VD: Nhập 24/03/2026, hạn hết 26/03/2026</p>
               </div>
 
               {/* Note */}
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Ghi chú</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Ghi chú</label>
                 <textarea
                   rows={2}
                   value={batchForm.note}
                   onChange={(e) => setBatchForm((p) => ({ ...p, note: e.target.value }))}
                   placeholder="Ghi chú thêm về lô hàng..."
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 resize-none"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark resize-none"
                 />
               </div>
 
-              {formError && <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2">{formError}</p>}
+              {formError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
+                  ❌ {formError}
+                </div>
+              )}
 
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+                  className="px-4 py-2.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 text-sm font-semibold bg-brand hover:bg-brand-secondary text-gray-900 rounded-lg transition disabled:opacity-60"
+                  className="px-5 py-2.5 text-sm font-semibold bg-brand hover:bg-brand-secondary text-gray-900 rounded-lg transition disabled:opacity-60"
                 >
-                  {submitting ? "Đang lưu..." : "Nhập kho"}
+                  {submitting ? "⏳ Đang lưu..." : "✅ Nhập kho"}
                 </button>
               </div>
             </form>
