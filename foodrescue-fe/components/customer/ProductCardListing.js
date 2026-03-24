@@ -19,6 +19,7 @@ export default function ProductCardListing({ product, onAddToCart }) {
     storeName = "",
     address = "",
     province = "",
+    distanceLabel = "",
     rating = 0,
     stock = null,
   } = product ?? {};
@@ -98,6 +99,9 @@ export default function ProductCardListing({ product, onAddToCart }) {
             <LocationIcon className="w-3.5 h-3.5 shrink-0 text-slate-400" />
             <span className="line-clamp-1">{cityLabel}</span>
           </p>
+        )}
+        {distanceLabel && (
+          <p className="text-xs text-emerald-700 mb-3 font-medium">{distanceLabel}</p>
         )}
         <div className="mt-auto flex items-center justify-end">
           {!isOutOfStock && (

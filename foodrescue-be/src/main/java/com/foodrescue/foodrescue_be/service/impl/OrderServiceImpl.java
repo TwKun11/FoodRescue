@@ -46,6 +46,7 @@ public class OrderServiceImpl implements OrderService {
         if (req.getItems() == null || req.getItems().isEmpty()) {
             throw new IllegalArgumentException("Gio hang khong duoc de trong");
         }
+        validateOrderLines(req.getItems());
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Nguoi dung khong ton tai"));
@@ -154,6 +155,23 @@ public class OrderServiceImpl implements OrderService {
         if (order.getUser() == null || !order.getUser().getId().equals(customerId)) {
             throw new IllegalArgumentException("Ban khong co quyen xem don hang nay");
         }
+        OrderPayment payment = reconcilePayOSPayment(order);
+        return toCustomerResponse(
+                order,
+                orderItemRepository.findByOrderId(orderId),
+                payment
+        );
+    }
+
+    @Override
+    @Transactional
+    public OrderResponse syncOrderPaymentStatus(Long customerId, Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Don hang khong ton tai"));
+        if (order.getUser() == null || !order.getUser().getId().equals(customerId)) {
+            throw new IllegalArgumentException("Ban khong co quyen xem don hang nay");
+        }
+
         OrderPayment payment = reconcilePayOSPayment(order);
         return toCustomerResponse(
                 order,
@@ -319,6 +337,21 @@ public class OrderServiceImpl implements OrderService {
         }
     }
 
+    private void validateOrderLines(List<PlaceOrderRequest.OrderLineRequest> items) {
+        Set<Long> variantIds = new HashSet<>();
+        for (PlaceOrderRequest.OrderLineRequest line : items) {
+            if (line == null) {
+                throw new IllegalArgumentException("Dong san pham khong hop le");
+            }
+            if (line.getVariantId() == null) {
+                throw new IllegalArgumentException("variantId khong duoc de trong");
+            }
+            if (!variantIds.add(line.getVariantId())) {
+                throw new IllegalArgumentException("Gio hang co bien the bi trung lap: " + line.getVariantId());
+            }
+        }
+    }
+
     private OrderSellerOrder createSellerOrder(Order order, Seller seller, Order.PaymentMethod paymentMethod) {
         return sellerOrderRepository.save(OrderSellerOrder.builder()
                 .order(order)
@@ -469,6 +502,17 @@ public class OrderServiceImpl implements OrderService {
 
     private void markPaymentPaid(OrderPayment payment) {
         if (payment.getStatus() == OrderPayment.PaymentTransactionStatus.paid) {
+            return;
+        }
+        if (payment.getStatus() == OrderPayment.PaymentTransactionStatus.cancelled
+                || payment.getStatus() == OrderPayment.PaymentTransactionStatus.expired
+                || payment.getStatus() == OrderPayment.PaymentTransactionStatus.failed
+                || payment.getStatus() == OrderPayment.PaymentTransactionStatus.refunded) {
+            log.warn(
+                    "Ignoring late or duplicate paid signal for order {} with payment status {}",
+                    payment.getOrder() != null ? payment.getOrder().getId() : null,
+                    payment.getStatus()
+            );
             return;
         }
 

@@ -9,6 +9,7 @@ import CountdownTimer from "@/components/customer/CountdownTimer";
 import ProductCardListing from "@/components/customer/ProductCardListing";
 import { apiGetProduct, apiGetProducts } from "@/lib/api";
 import { addItemToCart, startDirectCheckout } from "@/lib/cart";
+import { formatDistanceMeters, getCurrentPosition, haversineDistanceMeters } from "@/lib/location";
 
 function ImageGallery({ images, name, discountPercent }) {
   const [active, setActive] = useState(0);
@@ -79,6 +80,9 @@ function mapProductDetail(p) {
     sellerName: p.sellerName || "",
     sellerSlug: p.sellerSlug || "",
     sellerPhone: p.sellerPhone || "",
+    sellerPickupAddress: p.sellerPickupAddress || "",
+    sellerLatitude: p.sellerLatitude ?? null,
+    sellerLongitude: p.sellerLongitude ?? null,
     sellerRatingAvg: p.sellerRatingAvg ?? 0,
     sellerVerified: p.sellerVerified ?? false,
     brandName: p.brandName || "",
@@ -104,9 +108,12 @@ function mapRelated(p) {
     expiryAt: shelfDays ? new Date(Date.now() + shelfDays * 24 * 60 * 60 * 1000).toISOString() : null,
     stock,
     storeName: p.sellerName || "",
-    address: p.originProvince || "",
+    address: p.sellerPickupAddress || p.originProvince || "",
     province: p.originProvince || "",
+    sellerLatitude: p.sellerLatitude ?? null,
+    sellerLongitude: p.sellerLongitude ?? null,
     rating: p.sellerRatingAvg != null ? Number(p.sellerRatingAvg) : 0,
+    distanceLabel: "",
   };
 }
 
@@ -130,6 +137,18 @@ export default function ProductDetailPage() {
   const [addedToCart, setAddedToCart] = useState(false);
   const [buyingNow, setBuyingNow] = useState(false);
   const [detailTab, setDetailTab] = useState("description");
+  const [viewerLocation, setViewerLocation] = useState(null);
+
+  useEffect(() => {
+    getCurrentPosition()
+      .then((position) => {
+        setViewerLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -154,12 +173,24 @@ export default function ProductDetailPage() {
             res2.data.data.content
               .filter((r) => String(r.id) !== String(id))
               .slice(0, 4)
-              .map(mapRelated)
+              .map((item) => {
+                const mapped = mapRelated(item);
+                const distanceMeters = viewerLocation
+                  ? haversineDistanceMeters(viewerLocation, {
+                      latitude: mapped.sellerLatitude,
+                      longitude: mapped.sellerLongitude,
+                    })
+                  : null;
+                return {
+                  ...mapped,
+                  distanceLabel: distanceMeters != null ? `Cách bạn ${formatDistanceMeters(distanceMeters)}` : "",
+                };
+              })
           );
         }
       })
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, viewerLocation]);
 
   const buildCheckoutItem = () => {
     if (!product || !selectedSku) return null;
@@ -250,7 +281,14 @@ export default function ProductDetailPage() {
     (displaySku.stockAvailable ?? displaySku.stockQuantity) != null
       ? displaySku.stockAvailable ?? displaySku.stockQuantity
       : product.remaining;
-  const storeAddress = product.originProvince || "";
+  const storeAddress = product.sellerPickupAddress || product.originProvince || "";
+  const storeDistanceMeters = viewerLocation
+    ? haversineDistanceMeters(viewerLocation, {
+        latitude: product.sellerLatitude,
+        longitude: product.sellerLongitude,
+      })
+    : null;
+  const storeDistanceLabel = storeDistanceMeters != null ? formatDistanceMeters(storeDistanceMeters) : "";
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans antialiased">
@@ -336,6 +374,7 @@ export default function ProductDetailPage() {
                 <p className="text-xs text-gray-500 font-medium">Cửa hàng</p>
                 <p className="font-bold text-gray-900 mt-0.5">{product.sellerName || "—"}</p>
                 <p className="text-sm text-gray-500 mt-1">{[product.sellerPhone, storeAddress].filter(Boolean).join(" • ") || "Chưa cập nhật"}</p>
+                {storeDistanceLabel && <p className="mt-1 text-sm font-medium text-emerald-700">Cách bạn {storeDistanceLabel}</p>}
               </div>
             </div>
 

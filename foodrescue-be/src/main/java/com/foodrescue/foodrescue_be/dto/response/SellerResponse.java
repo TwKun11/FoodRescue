@@ -21,6 +21,8 @@ public class SellerResponse {
     private String contactName;
     private String phone;
     private String pickupAddress;
+    private Double latitude;
+    private Double longitude;
     private String taxCode;
     private String businessLicenseNumber;
     private String identityNumber;
@@ -59,6 +61,8 @@ public class SellerResponse {
                 .contactName(seller.getContactName())
                 .phone(seller.getPhone())
                 .pickupAddress(seller.getPickupAddress())
+                .latitude(seller.getLatitude())
+                .longitude(seller.getLongitude())
                 .taxCode(seller.getTaxCode())
                 .businessLicenseNumber(seller.getBusinessLicenseNumber())
                 .identityNumber(seller.getIdentityNumber())

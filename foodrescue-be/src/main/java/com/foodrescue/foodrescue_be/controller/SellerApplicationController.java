@@ -78,6 +78,8 @@ public class SellerApplicationController {
         seller.setContactName(clean(request.getContactName()));
         seller.setPhone(cleanNullable(request.getPhone()));
         seller.setPickupAddress(cleanNullable(request.getPickupAddress()));
+        seller.setLatitude(request.getLatitude());
+        seller.setLongitude(request.getLongitude());
         seller.setTaxCode(cleanNullable(request.getTaxCode()));
         seller.setBusinessLicenseNumber(cleanNullable(request.getBusinessLicenseNumber()));
         seller.setIdentityNumber(cleanNullable(request.getIdentityNumber()));
