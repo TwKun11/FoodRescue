@@ -39,9 +39,9 @@ const PAYMENT_LABELS = {
   unpaid: "Chưa thanh toán",
   pending: "Chờ PayOS",
   paid: "Đã thanh toán",
-  cancelled: "Đã hủy payment",
-  expired: "Payment hết hạn",
-  failed: "Payment lỗi",
+  cancelled: "Đã hủy thanh toán",
+  expired: "Thanh toán hết hạn",
+  failed: "Thanh toán lỗi",
   refunded: "Đã hoàn tiền",
 };
 
@@ -56,15 +56,14 @@ const PAYMENT_METHOD_LABELS = {
 };
 
 const NEXT_STATUS = {
-  // Luồng đơn giản: khách thanh toán xong -> seller xác nhận -> hoàn thành
   pending: "completed",
 };
 
-/** Gộp danh sách có thể là từng dòng (1 SP/dòng) thành 1 đơn = 1 phần tử, mỗi đơn có items[] */
 function normalizeOrders(content) {
   if (!Array.isArray(content) || content.length === 0) return [];
   const first = content[0];
   if (first.items && Array.isArray(first.items)) return content;
+
   const byId = new Map();
   for (const row of content) {
     const oid = row.orderId ?? row.orderCode ?? row.id;
@@ -85,40 +84,57 @@ function normalizeOrders(content) {
         items: [],
       });
     }
-    const o = byId.get(oid);
+
+    const order = byId.get(oid);
     if (row.productName != null || row.variantName != null || row.quantity != null) {
-      o.items.push({
+      order.items.push({
         id: row.id,
         productId: row.productId,
         productName: row.productName ?? row.variantName,
         variantName: row.variantName,
         quantity: row.quantity,
+        listPrice: row.listPrice,
         unitPrice: row.unitPrice,
         lineTotal: row.lineTotal ?? (Number(row.quantity) || 0) * (Number(row.unitPrice) || 0),
       });
     }
   }
+
   return Array.from(byId.values());
 }
 
-// Mockdata đã xóa - chỉ sử dụng dữ liệu thực từ API
+function getOrderSortTime(order) {
+  return new Date(order?.createdAt || 0).getTime();
+}
+
+function sortOrdersNewestFirst(items) {
+  return [...items].sort((left, right) => getOrderSortTime(right) - getOrderSortTime(left));
+}
 
 function OrderDetailModal({ order, onClose }) {
   if (!order) return null;
+
   const items = order.items || [];
-  const subtotal = order.subtotal ?? items.reduce((s, i) => s + (Number(i.lineTotal) || Number(i.unitPrice) * (i.quantity || 0)), 0);
+  const subtotal =
+    order.subtotal ?? items.reduce((sum, item) => sum + (Number(item.lineTotal) || Number(item.unitPrice) * (item.quantity || 0)), 0);
   const discountAmount = Number(order.discountAmount) || 0;
   const totalAmount = order.totalAmount ?? order.subtotal ?? subtotal - discountAmount;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="bg-white rounded-2xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+        onClick={(event) => event.stopPropagation()}
+      >
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <h3 className="text-lg font-bold text-gray-900">Chi tiết đơn hàng #{order.orderCode || order.id}</h3>
           <button type="button" onClick={onClose} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
+
         <div className="flex-1 overflow-y-auto px-5 py-4">
           <table className="w-full text-sm">
             <thead>
@@ -133,25 +149,32 @@ function OrderDetailModal({ order, onClose }) {
             <tbody>
               {items.map((item) => {
                 const qty = Number(item.quantity) || 0;
-                const originalUnitPrice = Number(
-                  item.listPrice ?? item.originalUnitPrice ?? item.unitPrice,
-                ) || 0;
-                const discountedUnitPrice = Number(item.unitPrice ?? originalUnitPrice) || 0;
-                const lineTotal = Number(item.lineTotal) || discountedUnitPrice * qty;
+                const unitPrice = Number(item.unitPrice) || 0;
+                const listPrice = item.listPrice != null ? Number(item.listPrice) : null;
+                const originalUnitPrice = listPrice != null && listPrice > 0 ? listPrice : unitPrice;
+                const hasDiscount = listPrice != null && listPrice > 0 && unitPrice > 0 && unitPrice < listPrice;
+                const lineTotal = Number(item.lineTotal) || unitPrice * qty;
+
                 return (
                   <tr key={item.id || item.productId} className="border-b border-gray-100">
                     <td className="py-3 pr-2 text-gray-800">
                       <p className="font-medium truncate">{item.productName || item.variantName || "—"}</p>
-                      {item.variantName && (
-                        <p className="text-xs text-gray-400 mt-0.5">{item.variantName}</p>
-                      )}
+                      {item.variantName && <p className="text-xs text-gray-400 mt-0.5">{item.variantName}</p>}
                     </td>
                     <td className="py-3 px-2 text-center text-gray-600">{qty}</td>
-                    <td className="py-3 px-2 text-right text-gray-400 line-through">
-                      {originalUnitPrice.toLocaleString("vi-VN")}₫
+                    <td className="py-3 px-2 text-right text-gray-500">
+                      {hasDiscount ? (
+                        <span className="line-through">{originalUnitPrice.toLocaleString("vi-VN")}₫</span>
+                      ) : (
+                        <span>{originalUnitPrice.toLocaleString("vi-VN")}₫</span>
+                      )}
                     </td>
-                    <td className="py-3 px-2 text-right text-red-600 font-semibold">
-                      {discountedUnitPrice.toLocaleString("vi-VN")}₫
+                    <td className="py-3 px-2 text-right">
+                      {hasDiscount ? (
+                        <span className="text-red-600 font-semibold">{unitPrice.toLocaleString("vi-VN")}₫</span>
+                      ) : (
+                        <span className="text-gray-400 text-xs">—</span>
+                      )}
                     </td>
                     <td className="py-3 pl-2 text-right font-semibold text-gray-800">
                       {lineTotal.toLocaleString("vi-VN")}₫
@@ -161,20 +184,21 @@ function OrderDetailModal({ order, onClose }) {
               })}
             </tbody>
           </table>
+
           <div className="mt-4 pt-4 border-t border-gray-200 space-y-1 text-sm">
             <div className="flex justify-between text-gray-600">
               <span>Tổng tiền (chưa giảm)</span>
-              <span className="font-medium">{(subtotal).toLocaleString("vi-VN")}₫</span>
+              <span className="font-medium">{subtotal.toLocaleString("vi-VN")}₫</span>
             </div>
             {discountAmount > 0 && (
               <div className="flex justify-between text-green-600">
                 <span>Tổng tiền giảm</span>
-                <span className="font-medium">−{(discountAmount).toLocaleString("vi-VN")}₫</span>
+                <span className="font-medium">−{discountAmount.toLocaleString("vi-VN")}₫</span>
               </div>
             )}
             <div className="flex justify-between text-gray-900 font-bold pt-2 border-t border-gray-100">
               <span>Tổng tiền sau giảm</span>
-              <span>{(totalAmount).toLocaleString("vi-VN")}₫</span>
+              <span>{totalAmount.toLocaleString("vi-VN")}₫</span>
             </div>
           </div>
         </div>
@@ -205,25 +229,12 @@ export default function StoreOrdersPage() {
           if (res.ok && res.data?.data) {
             const data = res.data.data;
             const raw = data.content ?? data;
-            const content = Array.isArray(raw) ? normalizeOrders(raw) : [];
+            const content = Array.isArray(raw) ? sortOrdersNewestFirst(normalizeOrders(raw)) : [];
             setOrders(content);
             setTotalPages(data.totalPages ?? 1);
             setTotalElements(data.totalElements ?? content.length);
             setPage(nextPage ?? 0);
-          } else {
-            // Nếu API lỗi, hiển thị rỗng (không dùng mockdata)
-            setOrders([]);
-            setTotalPages(1);
-            setTotalElements(0);
-            setPage(0);
           }
-        })
-        .catch(() => {
-          // Khi API lỗi, hiển thị rỗng
-          setOrders([]);
-          setTotalPages(1);
-          setTotalElements(0);
-          setPage(0);
         })
         .finally(() => setLoading(false));
     },
@@ -241,7 +252,8 @@ export default function StoreOrdersPage() {
         if (res.ok) {
           setOrders((prev) => prev.map((order) => (order.id === sellerOrderId ? { ...order, status: newStatus } : order)));
         } else {
-          alert("Cập nhật trạng thái thất bại.");
+          const msg = res.data?.message || res.data?.error || "Cập nhật trạng thái thất bại.";
+          alert(msg);
         }
       })
       .finally(() => setUpdating(null));
@@ -255,7 +267,13 @@ export default function StoreOrdersPage() {
         const name = (order.customerName || order.customer || "").toString().toLowerCase();
         const email = (order.customerEmail || order.email || "").toString().toLowerCase();
         const phone = (order.customerPhone || order.phone || "").toString().toLowerCase();
-        return code.includes(searchLower) || payment.includes(searchLower) || name.includes(searchLower) || email.includes(searchLower) || phone.includes(searchLower);
+        return (
+          code.includes(searchLower) ||
+          payment.includes(searchLower) ||
+          name.includes(searchLower) ||
+          email.includes(searchLower) ||
+          phone.includes(searchLower)
+        );
       })
     : orders;
 
@@ -265,11 +283,7 @@ export default function StoreOrdersPage() {
         <h1 className="text-2xl font-bold text-gray-900">Đơn hàng</h1>
         <p className="text-sm text-gray-500">
           {totalElements} đơn hàng
-          {totalPages > 1 && (
-            <span className="ml-2 text-gray-400">
-              · Trang {page + 1}/{totalPages}
-            </span>
-          )}
+          {totalPages > 1 && <span className="ml-2 text-gray-400">· Trang {page + 1}/{totalPages}</span>}
         </p>
       </div>
 
@@ -280,21 +294,25 @@ export default function StoreOrdersPage() {
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(event) => setSearch(event.target.value)}
               placeholder="Mã đơn, tên khách, email, SĐT..."
               className="flex-1 min-w-0 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
             />
           </div>
           {search && (
-            <button type="button" onClick={() => setSearch("")} className="text-sm text-gray-500 hover:text-gray-700 underline">
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="text-sm text-gray-500 hover:text-gray-700 underline"
+            >
               Xóa tìm kiếm
             </button>
           )}
         </div>
 
-        {/* <div className="px-4 pt-2 pb-1">
+        <div className="px-4 pt-2 pb-1">
           <span className="text-gray-500 text-sm">Lọc theo trạng thái</span>
-        </div> */}
+        </div>
 
         <div className="flex overflow-x-auto border-b border-gray-100">
           {TABS.map((tab) => (
@@ -303,7 +321,9 @@ export default function StoreOrdersPage() {
               onClick={() => setActiveTab(tab.id)}
               className={
                 "px-4 py-3 whitespace-nowrap text-sm font-medium border-b-2 transition " +
-                (activeTab === tab.id ? "border-brand text-brand-dark" : "border-transparent text-gray-500 hover:text-gray-700")
+                (activeTab === tab.id
+                  ? "border-brand text-brand-dark"
+                  : "border-transparent text-gray-500 hover:text-gray-700")
               }
             >
               {tab.label}
@@ -323,19 +343,20 @@ export default function StoreOrdersPage() {
                 <th className="text-left px-4 py-3 whitespace-nowrap">Trạng thái</th>
                 <th className="text-right px-4 py-3 whitespace-nowrap">Tổng tiền</th>
                 <th className="text-left px-4 py-3 whitespace-nowrap">Ngày tạo</th>
+                <th className="text-left px-4 py-3 whitespace-nowrap">Chi tiết đơn</th>
                 <th className="text-left px-4 py-3 whitespace-nowrap">Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="text-center py-12 text-gray-400">
+                  <td colSpan={10} className="text-center py-12 text-gray-400">
                     Đang tải...
                   </td>
                 </tr>
               ) : filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="text-center py-12 text-gray-400">
+                  <td colSpan={10} className="text-center py-12 text-gray-400">
                     Chưa có đơn hàng nào.
                   </td>
                 </tr>
@@ -344,53 +365,102 @@ export default function StoreOrdersPage() {
               {filteredOrders.map((order) => {
                 const statusLabel = STATUS_LABELS[order.status] || order.status;
                 const statusColor = STATUS_COLORS[order.status] || "bg-gray-50 text-gray-600 border border-gray-200";
-                const nextStatus = NEXT_STATUS[order.status];
                 const paymentStatusLabel = PAYMENT_LABELS[order.paymentStatus] || order.paymentStatus || "-";
-                const paymentMethodLabel = PAYMENT_METHOD_LABELS[order.paymentMethod?.toLowerCase()] || order.paymentMethod || "-";
+                const paymentMethodLabel =
+                  PAYMENT_METHOD_LABELS[order.paymentMethod?.toLowerCase?.()] || order.paymentMethod || "-";
                 const customerName = order.customerName || order.customer || "—";
                 const customerEmail = order.customerEmail || order.email || "—";
                 const customerPhone = order.customerPhone || order.phone || "—";
                 const totalDisplay = order.totalAmount ?? order.subtotal ?? 0;
+                const canConfirm = order.status === "pending";
+                const canCancel = order.status === "pending";
 
                 return (
                   <tr key={order.id} className="border-t border-gray-50 hover:bg-gray-50/50 transition">
-                    <td className="px-4 py-3 font-mono text-xs text-gray-700 whitespace-nowrap">#{order.orderCode || order.id}</td>
-                    <td className="px-4 py-3 text-gray-800 max-w-[140px] truncate" title={customerName}>{customerName}</td>
-                    <td className="px-4 py-3 text-gray-600 text-xs max-w-[160px] truncate" title={customerEmail}>{customerEmail}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-gray-700 whitespace-nowrap">
+                      #{order.orderCode || order.id}
+                    </td>
+                    <td className="px-4 py-3 text-gray-800 max-w-[140px] truncate" title={customerName}>
+                      {customerName}
+                    </td>
+                    <td className="px-4 py-3 text-gray-600 text-xs max-w-[160px] truncate" title={customerEmail}>
+                      {customerEmail}
+                    </td>
                     <td className="px-4 py-3 text-gray-600 text-xs whitespace-nowrap">{customerPhone}</td>
                     <td className="px-4 py-3 text-xs text-gray-600">{paymentMethodLabel}</td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${statusColor}`}>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${statusColor}`}
+                      >
                         {statusLabel}
                       </span>
                       <span className="block text-[11px] text-gray-500 mt-0.5">TT: {paymentStatusLabel}</span>
                     </td>
                     <td className="px-4 py-3 text-right font-semibold text-gray-900 whitespace-nowrap">
-                      {(totalDisplay).toLocaleString("vi-VN")}₫
+                      {totalDisplay.toLocaleString("vi-VN")}₫
                     </td>
                     <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
-                      {order.createdAt ? new Date(order.createdAt).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
+                      {order.createdAt
+                        ? new Date(order.createdAt).toLocaleString("vi-VN", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : "—"}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <button
-                          type="button"
-                          onClick={() => setDetailOrder(order)}
-                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300 transition"
-                          title="Xem chi tiết đơn hàng"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                        </button>
-                        {nextStatus && (
-                          <button
-                            disabled={updating === order.id}
-                            onClick={() => handleUpdateStatus(order.id, nextStatus)}
-                            className="text-xs bg-brand hover:bg-brand-secondary text-gray-900 font-medium px-2.5 py-1.5 rounded-lg transition disabled:opacity-50 whitespace-nowrap"
-                          >
-                            {updating === order.id ? "..." : STATUS_LABELS[nextStatus] || nextStatus}
-                          </button>
-                        )}
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setDetailOrder(order)}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition"
+                        title="Xem chi tiết đơn hàng"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                          />
+                        </svg>
+                        <span>Chi tiết đơn</span>
+                      </button>
+                    </td>
+                    <td className="px-4 py-3">
+                      {canConfirm || canCancel ? (
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {canConfirm && (
+                            <button
+                              disabled={updating === order.id}
+                              onClick={() => handleUpdateStatus(order.id, NEXT_STATUS.pending)}
+                              className="text-xs bg-brand hover:bg-brand-secondary text-gray-900 font-medium px-2.5 py-1.5 rounded-lg transition disabled:opacity-50 whitespace-nowrap"
+                            >
+                              {updating === order.id ? "..." : "Xác nhận đơn"}
+                            </button>
+                          )}
+                          {canCancel && (
+                            <button
+                              disabled={updating === order.id}
+                              onClick={() => handleUpdateStatus(order.id, "cancelled")}
+                              className="text-xs bg-red-50 hover:bg-red-100 text-red-600 font-medium px-2.5 py-1.5 rounded-lg border border-red-200 transition disabled:opacity-50 whitespace-nowrap"
+                            >
+                              {updating === order.id ? "..." : "Hủy đơn"}
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200">
+                          {STATUS_LABELS[order.status] || "Đã xử lý"}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 );
@@ -403,9 +473,7 @@ export default function StoreOrdersPage() {
 
         {totalPages > 1 && (
           <div className="px-5 py-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-gray-500">
-              Hiển thị {orders.length} / {totalElements} đơn hàng
-            </p>
+            <p className="text-sm text-gray-500">Hiển thị {orders.length} / {totalElements} đơn hàng</p>
             <div className="flex items-center gap-2">
               <button
                 disabled={page === 0}
