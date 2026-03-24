@@ -398,6 +398,15 @@ export async function apiAdminGetStats() {
   return request("/api/admin/stats");
 }
 
+/** Phân tích lãng phí thực phẩm cho admin */
+export async function apiAdminGetWasteAnalytics({ full = true, limit = 5 } = {}) {
+  const params = new URLSearchParams();
+  if (full !== undefined) params.append("full", full);
+  if (limit !== undefined) params.append("limit", limit);
+  const query = params.toString();
+  return request(`/api/admin/waste-analytics${query ? "?" + query : ""}`);
+}
+
 // ============================================================
 // SELLER – PRODUCT IMAGES
 // ============================================================

@@ -36,10 +36,19 @@ export default function AdminRevenuePage() {
   }, [page, search, filterStatus]);
 
   const totalRevenue = stats?.totalRevenue != null ? Number(stats.totalRevenue) : null;
-  const monthlyData = stats?.monthlyRevenue && stats.monthlyRevenue.length >= 12
+  const monthlyDataRaw = stats?.monthlyRevenue && stats.monthlyRevenue.length >= 12
     ? stats.monthlyRevenue.slice(0, 12).map((m) => Number(m) || 0)
     : [42, 58, 75, 92, 88, 105, 120, 98, 132, 145, 158, 168];
+  const monthlyData = monthlyDataRaw.map((v) => v / 1_000_000); // convert VND -> million VND
   const maxMonthly = Math.max(1, ...monthlyData);
+  const chartHeightPx = 150;
+
+  const getLevel = (value) => {
+    const ratio = value / maxMonthly;
+    if (ratio >= 0.66) return { label: "Cao", color: "bg-emerald-500" };
+    if (ratio >= 0.33) return { label: "Trung bình", color: "bg-amber-400" };
+    return { label: "Thấp", color: "bg-slate-300" };
+  };
 
   return (
     <div className="space-y-6">
@@ -70,16 +79,21 @@ export default function AdminRevenuePage() {
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
         <h2 className="text-lg font-bold text-gray-900 mb-1">Biểu đồ doanh thu theo tháng</h2>
         <p className="text-sm text-gray-500 mb-4">Xu hướng doanh thu 12 tháng (đơn vị: triệu đồng)</p>
-        <div className="h-48 flex items-end gap-1">
+        <div className="mb-4 flex items-center gap-4 text-xs text-gray-600">
+          <span className="inline-flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />Cao</span>
+          <span className="inline-flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-amber-400" />Trung bình</span>
+          <span className="inline-flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-slate-300" />Thấp</span>
+        </div>
+        <div className="h-56 flex items-stretch gap-1">
           {monthlyData.map((val, i) => (
-            <div key={i} className="flex-1 flex flex-col items-center gap-1 group">
-              <span className="text-xs font-medium text-gray-400 opacity-0 group-hover:opacity-100 transition">
-                {val}tr
+            <div key={i} className="h-full flex-1 flex flex-col items-center justify-end gap-1 group">
+              <span className="text-xs font-medium text-gray-500 opacity-0 group-hover:opacity-100 transition">
+                {val.toLocaleString("vi-VN", { maximumFractionDigits: 1 })} tr
               </span>
               <div
-                className="w-full rounded-t bg-brand/80 hover:bg-brand transition-all min-h-[8px]"
-                style={{ height: `${Math.max(8, (val / maxMonthly) * 100)}%` }}
-                title={`Tháng ${i + 1}: ${val} tr đ`}
+                className={`w-full rounded-t transition-all ${getLevel(val).color} group-hover:opacity-90`}
+                style={{ height: `${val <= 0 ? 6 : Math.max(14, (val / maxMonthly) * chartHeightPx)}px` }}
+                title={`Tháng ${i + 1}: ${val.toLocaleString("vi-VN", { maximumFractionDigits: 1 })} triệu (${getLevel(val).label})`}
               />
               <span className="text-[10px] text-gray-400">{"T" + (i + 1)}</span>
             </div>

@@ -93,3 +93,18 @@ export function HorizontalBars({ rows, colorClass = "bg-emerald-500", unit = "",
     </div>
   );
 }
+
+export function paginateList(list, page, pageSize) {
+  const safePage = Math.max(1, Number(page) || 1);
+  const safePageSize = Math.max(1, Number(pageSize) || 1);
+  const total = Array.isArray(list) ? list.length : 0;
+  const totalPages = Math.max(1, Math.ceil(total / safePageSize));
+  const currentPage = Math.min(safePage, totalPages);
+  const start = (currentPage - 1) * safePageSize;
+  return {
+    total,
+    totalPages,
+    currentPage,
+    pageItems: (list || []).slice(start, start + safePageSize),
+  };
+}
