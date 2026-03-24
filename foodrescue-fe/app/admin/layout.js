@@ -24,6 +24,15 @@ const NAV = [
     ),
   },
   {
+    href: "/admin/vouchers",
+    label: "Voucher",
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h14a2 2 0 012 2v2a2 2 0 01-2 2h-1a2 2 0 100 4h1a2 2 0 012 2v1H5a2 2 0 01-2-2v-1a2 2 0 012-2h1a2 2 0 100-4H5a2 2 0 01-2-2V9z" />
+      </svg>
+    ),
+  },
+  {
     href: "/admin/sellers",
     label: "Cửa hàng",
     icon: (

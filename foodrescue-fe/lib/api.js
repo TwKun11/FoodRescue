@@ -408,6 +408,29 @@ export async function apiAdminGetWasteAnalytics({ full = true, limit = 5 } = {})
 }
 
 // ============================================================
+// ADMIN - VOUCHERS
+// ============================================================
+export async function apiAdminGetVouchers({ page = 0, size = 20, search = "", status = "", discountType = "" } = {}) {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  if (search && search.trim()) params.set("search", search.trim());
+  if (status) params.set("status", status);
+  if (discountType) params.set("discountType", discountType);
+  return request(`/api/admin/vouchers?${params.toString()}`);
+}
+
+export async function apiAdminCreateVoucher(body) {
+  return request("/api/admin/vouchers", { method: "POST", body: JSON.stringify(body) });
+}
+
+export async function apiAdminUpdateVoucher(id, body) {
+  return request(`/api/admin/vouchers/${id}`, { method: "PUT", body: JSON.stringify(body) });
+}
+
+export async function apiAdminUpdateVoucherStatus(id, status) {
+  return request(`/api/admin/vouchers/${id}/status?status=${encodeURIComponent(status)}`, { method: "PUT" });
+}
+
+// ============================================================
 // SELLER – PRODUCT IMAGES
 // ============================================================
 export async function apiSellerGetProductImages(productId) {
