@@ -148,16 +148,26 @@ export default function OrdersPage() {
                 </div>
 
                 {order.items && order.items.length > 0 && (
-                  <div className="mt-3 space-y-1">
+                  <div className="mt-3 space-y-2">
                     {order.items.slice(0, 2).map((item) => (
-                      <div key={item.id} className="flex items-center justify-between text-sm">
-                        <span className="text-gray-700 truncate max-w-[260px]">
-                          {item.productName}
-                          {item.variantName ? ` · ${item.variantName}` : ""}
-                        </span>
-                        <span className="text-gray-500 shrink-0 ml-2">
-                          x{item.quantity} · {fmt(item.lineTotal)}
-                        </span>
+                      <div key={item.id} className="flex items-center justify-between text-sm group">
+                        <div className="flex-1 min-w-0">
+                          <span className="text-gray-700 truncate max-w-[260px]">
+                            {item.productName}
+                            {item.variantName ? ` · ${item.variantName}` : ""}
+                          </span>
+                          <span className="text-gray-500 shrink-0 ml-2">
+                            x{item.quantity} · {fmt(item.lineTotal)}
+                          </span>
+                        </div>
+                        {order.status?.toLowerCase() === "completed" && (
+                          <Link
+                            href={`/products/${item.productId}?tab=reviews`}
+                            className="ml-2 px-2.5 py-1 text-xs bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition font-medium whitespace-nowrap"
+                          >
+                            ⭐ Đánh giá
+                          </Link>
+                        )}
                       </div>
                     ))}
                     {order.items.length > 2 && (
