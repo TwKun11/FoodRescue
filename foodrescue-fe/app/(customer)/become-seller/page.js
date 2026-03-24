@@ -10,6 +10,7 @@ import {
   apiSubmitSellerApplication,
   apiUploadSellerApplicationImage,
 } from "@/lib/api";
+import { getCurrentPosition, mapLocationToAddress, reverseGeocode } from "@/lib/location";
 
 const STATUS_META = {
   pending: {
@@ -63,6 +64,7 @@ export default function BecomeSellerPage() {
   const [booting, setBooting] = useState(true);
   const [saving, setSaving] = useState(false);
   const [refreshingRole, setRefreshingRole] = useState(false);
+  const [locating, setLocating] = useState(false);
   const [user, setUser] = useState(null);
   const [application, setApplication] = useState(null);
   const [message, setMessage] = useState({ type: null, text: "" });
@@ -76,6 +78,8 @@ export default function BecomeSellerPage() {
     contactName: "",
     phone: "",
     pickupAddress: "",
+    latitude: null,
+    longitude: null,
     taxCode: "",
     businessLicenseNumber: "",
     identityNumber: "",
@@ -130,6 +134,8 @@ export default function BecomeSellerPage() {
             contactName: nextApplication.contactName || nextUser?.fullName || "",
             phone: nextApplication.phone || nextUser?.phone || "",
             pickupAddress: nextApplication.pickupAddress || "",
+            latitude: nextApplication.latitude ?? null,
+            longitude: nextApplication.longitude ?? null,
             taxCode: nextApplication.taxCode || "",
             businessLicenseNumber: nextApplication.businessLicenseNumber || "",
             identityNumber: nextApplication.identityNumber || "",
@@ -183,6 +189,41 @@ export default function BecomeSellerPage() {
     setSlugTouched(true);
     setMessage({ type: null, text: "" });
     setForm((prev) => ({ ...prev, shopSlug: slugify(e.target.value) }));
+  };
+
+  const handleUseCurrentLocation = async () => {
+    setLocating(true);
+    setMessage({ type: null, text: "" });
+    try {
+      const position = await getCurrentPosition();
+      const { latitude, longitude } = position.coords;
+      const data = await reverseGeocode(latitude, longitude);
+      const location = mapLocationToAddress(data?.address);
+      const pickupAddress = [
+        location.addressLine,
+        location.ward,
+        location.district,
+        location.province,
+      ]
+        .filter(Boolean)
+        .join(", ");
+
+      setForm((prev) => ({
+        ...prev,
+        pickupAddress: pickupAddress || prev.pickupAddress,
+        latitude,
+        longitude,
+      }));
+      setMessage({ type: "success", text: "Da lay vi tri hien tai va cap nhat dia chi cua hang." });
+    } catch (err) {
+      let text = err?.message || "Khong the lay vi tri hien tai.";
+      if (err?.code === 1) text = "Ban da tu choi quyen truy cap vi tri.";
+      if (err?.code === 2) text = "Khong xac dinh duoc vi tri hien tai.";
+      if (err?.code === 3) text = "Het thoi gian lay vi tri hien tai.";
+      setMessage({ type: "error", text });
+    } finally {
+      setLocating(false);
+    }
   };
 
   const handleUpload = (field) => async (e) => {
@@ -333,6 +374,25 @@ export default function BecomeSellerPage() {
           )}
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-8">
+            <div className="flex flex-col gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-emerald-800">Vi tri cua hang</p>
+                <p className="mt-1 text-xs text-emerald-700">Lay vi tri hien tai de luu toa do cua shop va tinh khoang cach cho khach hang.</p>
+                {form.latitude != null && form.longitude != null && (
+                  <p className="mt-2 text-xs text-gray-600">
+                    Toa do da luu: {Number(form.latitude).toFixed(6)}, {Number(form.longitude).toFixed(6)}
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={handleUseCurrentLocation}
+                disabled={locating}
+                className="inline-flex items-center justify-center rounded-xl border border-emerald-200 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-60"
+              >
+                {locating ? "Dang lay vi tri..." : "Lay vi tri hien tai"}
+              </button>
+            </div>
             <Section title="Thông tin cửa hàng">
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Tên cửa hàng *" value={form.shopName} onChange={handleField("shopName")} placeholder="Ví dụ: Rau sạch cuối ngày Quận 3" required />

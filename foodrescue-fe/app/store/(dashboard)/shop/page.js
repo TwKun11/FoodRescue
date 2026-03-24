@@ -3,55 +3,56 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { apiGetMyShop, apiSellerUploadShopImage, apiUpdateMyShop } from "@/lib/api";
+import { getCurrentPosition, mapLocationToAddress, reverseGeocode } from "@/lib/location";
 
 const STATUS_META = {
   pending: {
-    label: "Cho duyet",
+    label: "Chờ duyệt",
     className: "bg-amber-50 text-amber-800 border-amber-200",
-    description: "Ho so cua hang dang cho admin kiem tra. Ban co the cap nhat them thong tin neu can.",
+    description: "Hồ sơ cửa hàng đang chờ admin kiểm tra. Bạn có thể cập nhật thêm thông tin nếu cần.",
   },
   active: {
-    label: "Dang hoat dong",
+    label: "Đang hoạt động",
     className: "bg-green-50 text-green-800 border-green-200",
-    description: "Cua hang da duoc duyet va co the dang san pham, xu ly don hang.",
+    description: "Cửa hàng đã được duyệt và có thể đăng sản phẩm, xử lý đơn hàng.",
   },
   suspended: {
-    label: "Tam khoa",
+    label: "Tạm khóa",
     className: "bg-red-50 text-red-700 border-red-200",
-    description: "Cua hang dang tam khoa. Hay lien he admin neu can ho tro.",
+    description: "Cửa hàng đang tạm khóa. Hãy liên hệ admin nếu cần hỗ trợ.",
   },
   closed: {
-    label: "Da dong",
+    label: "Đã đóng",
     className: "bg-gray-100 text-gray-700 border-gray-200",
-    description: "Ho so seller dang o trang thai da dong.",
+    description: "Hồ sơ seller đang ở trạng thái đã đóng.",
   },
 };
 
 const IMAGE_FIELDS = [
   {
     key: "avatarUrl",
-    label: "Logo cua hang",
-    hint: "Anh dai dien xuat hien tren shop va san pham.",
+    label: "Logo cửa hàng",
+    hint: "Ảnh đại diện xuất hiện trên shop và sản phẩm.",
   },
   {
     key: "coverUrl",
-    label: "Banner cua hang",
-    hint: "Anh ngang de lam hero cho trang shop.",
+    label: "Banner cửa hàng",
+    hint: "Ảnh ngang để làm hero cho trang shop.",
   },
   {
     key: "storefrontImageUrl",
-    label: "Anh mat tien / quay ban",
-    hint: "Dung de admin doi chieu diem ban thuc te.",
+    label: "Ảnh mặt tiền / quầy bán",
+    hint: "Dùng để admin đối chiếu điểm bán thực tế.",
   },
   {
     key: "businessLicenseImageUrl",
-    label: "Anh giay phep kinh doanh",
-    hint: "Ban scan/chup ro thong tin doanh nghiep hoac ho kinh doanh.",
+    label: "Ảnh giấy phép kinh doanh",
+    hint: "Bản scan/chụp rõ thông tin doanh nghiệp hoặc hộ kinh doanh.",
   },
   {
     key: "identityCardImageUrl",
-    label: "Anh CCCD/CMND dai dien",
-    hint: "Giay to cua nguoi dai dien dang ky seller.",
+    label: "Ảnh CCCD/CMND đại diện",
+    hint: "Giấy tờ của người đại diện đăng ký seller.",
   },
 ];
 
@@ -63,6 +64,8 @@ const EMPTY_SHOP = {
   contactName: "",
   phone: "",
   pickupAddress: "",
+  latitude: null,
+  longitude: null,
   description: "",
   taxCode: "",
   businessLicenseNumber: "",
@@ -107,6 +110,8 @@ function mapShopResponse(data) {
     contactName: data?.contactName || "",
     phone: data?.phone || "",
     pickupAddress: data?.pickupAddress || "",
+    latitude: data?.latitude ?? null,
+    longitude: data?.longitude ?? null,
     description: data?.description || "",
     taxCode: data?.taxCode || "",
     businessLicenseNumber: data?.businessLicenseNumber || "",
@@ -137,6 +142,7 @@ function mapShopResponse(data) {
 export default function ShopPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [locating, setLocating] = useState(false);
   const [uploadingField, setUploadingField] = useState("");
   const [message, setMessage] = useState({ type: null, text: "" });
   const [shop, setShop] = useState(EMPTY_SHOP);
@@ -158,7 +164,7 @@ export default function ShopPage() {
           setShop(mapped);
           setForm(mapped);
         } else {
-          setMessage({ type: "error", text: res.data?.message || "Khong tai duoc thong tin cua hang." });
+          setMessage({ type: "error", text: res.data?.message || "Không tải được thông tin cửa hàng." });
         }
         setLoading(false);
       }
@@ -197,15 +203,50 @@ export default function ShopPage() {
     try {
       const res = await apiSellerUploadShopImage(file);
       if (!res.ok) {
-        setMessage({ type: "error", text: res.data?.message || "Tai anh that bai." });
+        setMessage({ type: "error", text: res.data?.message || "Tải ảnh thất bại." });
         return;
       }
       const url = res.data?.data || "";
       setForm((prev) => ({ ...prev, [field]: url }));
-      setMessage({ type: "success", text: "Da tai anh len thanh cong." });
+      setMessage({ type: "success", text: "Đã tải ảnh lên thành công." });
     } finally {
       setUploadingField("");
       e.target.value = "";
+    }
+  };
+
+  const handleUseCurrentLocation = async () => {
+    setLocating(true);
+    setMessage({ type: null, text: "" });
+    try {
+      const position = await getCurrentPosition();
+      const { latitude, longitude } = position.coords;
+      const data = await reverseGeocode(latitude, longitude);
+      const location = mapLocationToAddress(data?.address);
+      const pickupAddress = [
+        location.addressLine,
+        location.ward,
+        location.district,
+        location.province,
+      ]
+        .filter(Boolean)
+        .join(", ");
+
+      setForm((prev) => ({
+        ...prev,
+        pickupAddress: pickupAddress || prev.pickupAddress,
+        latitude,
+        longitude,
+      }));
+      setMessage({ type: "success", text: "Đã cập nhật vị trí cửa hàng." });
+    } catch (err) {
+      let text = err?.message || "Không thể lấy vị trí hiện tại.";
+      if (err?.code === 1) text = "Bạn đã từ chối quyền truy cập vị trí.";
+      if (err?.code === 2) text = "Không xác định được vị trí hiện tại.";
+      if (err?.code === 3) text = "Hết thời gian lấy vị trí hiện tại.";
+      setMessage({ type: "error", text });
+    } finally {
+      setLocating(false);
     }
   };
 
@@ -220,6 +261,8 @@ export default function ShopPage() {
         contactName: form.contactName || null,
         phone: form.phone || null,
         pickupAddress: form.pickupAddress || null,
+        latitude: form.latitude,
+        longitude: form.longitude,
         description: form.description || null,
         taxCode: form.taxCode || null,
         businessLicenseNumber: form.businessLicenseNumber || null,
@@ -238,7 +281,7 @@ export default function ShopPage() {
         const text =
           typeof res.data?.data === "object" && res.data?.data
             ? Object.values(res.data.data)[0]
-            : res.data?.message || "Cap nhat cua hang that bai.";
+            : res.data?.message || "Cập nhật cửa hàng thất bại.";
         setMessage({ type: "error", text });
         return;
       }
@@ -246,7 +289,7 @@ export default function ShopPage() {
       const mapped = mapShopResponse(res.data?.data);
       setShop(mapped);
       setForm(mapped);
-      setMessage({ type: "success", text: "Da cap nhat ho so cua hang thanh cong." });
+      setMessage({ type: "success", text: "Đã cập nhật hồ sơ cửa hàng thành công." });
     } finally {
       setSaving(false);
     }
@@ -264,13 +307,13 @@ export default function ShopPage() {
     <div className="space-y-6 p-4 sm:p-6">
       <section className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
         <div className="relative h-44 bg-gradient-to-r from-emerald-500 via-green-500 to-lime-400">
-          {shop.coverUrl && <img src={shop.coverUrl} alt="Banner cua hang" className="h-full w-full object-cover opacity-40" />}
+          {shop.coverUrl && <img src={shop.coverUrl} alt="Banner cửa hàng" className="h-full w-full object-cover opacity-40" />}
           <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/15 to-transparent" />
           <div className="absolute bottom-5 left-5 right-5 flex flex-wrap items-end justify-between gap-4">
             <div className="flex items-end gap-4">
               <div className="h-20 w-20 overflow-hidden rounded-2xl border-4 border-white bg-white shadow-md">
                 {shop.avatarUrl ? (
-                  <img src={shop.avatarUrl} alt={shop.shopName || "Logo cua hang"} className="h-full w-full object-cover" />
+                  <img src={shop.avatarUrl} alt={shop.shopName || "Logo cửa hàng"} className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center bg-brand text-2xl font-bold text-gray-900">
                     {(shop.shopName?.charAt(0) || "S").toUpperCase()}
@@ -278,7 +321,7 @@ export default function ShopPage() {
                 )}
               </div>
               <div className="pb-1 text-white">
-                <h1 className="text-2xl font-bold">{shop.shopName || "Cua hang cua ban"}</h1>
+                <h1 className="text-2xl font-bold">{shop.shopName || "Cửa hàng của bạn"}</h1>
                 <p className="mt-1 text-sm text-white/80">
                   @{shop.shopSlug || "chua-co-slug"} {shop.code ? `· ${shop.code}` : ""}
                 </p>
@@ -335,17 +378,36 @@ export default function ShopPage() {
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-6">
           <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900">Thong tin van hanh</h2>
-            <p className="mt-1 text-sm text-gray-500">Cap nhat ten shop, thong tin lien he va dia chi giao nhan.</p>
+            <h2 className="text-lg font-semibold text-gray-900">Thông tin vận hành</h2>
+            <p className="mt-1 text-sm text-gray-500">Cập nhật tên shop, thông tin liên hệ và địa chỉ giao nhận.</p>
             <div className="mt-5 grid gap-4 md:grid-cols-2">
-              <Field label="Ten cua hang *" value={form.shopName} onChange={setField("shopName")} />
+              <Field label="Tên cửa hàng *" value={form.shopName} onChange={setField("shopName")} />
               <ReadOnlyField label="Slug cua hang" value={form.shopSlug || "—"} />
               <Field label="Ten phap ly / ho kinh doanh *" value={form.legalName} onChange={setField("legalName")} />
-              <Field label="Loai hinh kinh doanh *" value={form.businessType} onChange={setField("businessType")} />
-              <Field label="Nguoi lien he *" value={form.contactName} onChange={setField("contactName")} />
-              <Field label="So dien thoai *" value={form.phone} onChange={setField("phone")} inputMode="numeric" />
+              <Field label="Loại hình kinh doanh *" value={form.businessType} onChange={setField("businessType")} />
+              <Field label="Người liên hệ *" value={form.contactName} onChange={setField("contactName")} />
+              <Field label="Số điện thoại *" value={form.phone} onChange={setField("phone")} inputMode="numeric" />
             </div>
-            <div className="mt-4">
+            <div className="mt-4 space-y-3">
+              <div className="flex flex-col gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-emerald-800">Vi tri cua hang</p>
+                  <p className="mt-1 text-xs text-emerald-700">Luu toa do de tinh khoang cach tu khach hang den cua hang.</p>
+                  {form.latitude != null && form.longitude != null && (
+                    <p className="mt-2 text-xs text-gray-600">
+                      Toa do da luu: {Number(form.latitude).toFixed(6)}, {Number(form.longitude).toFixed(6)}
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleUseCurrentLocation}
+                  disabled={locating}
+                  className="inline-flex items-center justify-center rounded-xl border border-emerald-200 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-60"
+                >
+                  {locating ? "Dang lay vi tri..." : "Lay vi tri hien tai"}
+                </button>
+              </div>
               <TextArea label="Dia chi lay hang / giao nhan *" value={form.pickupAddress} onChange={setField("pickupAddress")} rows={3} />
             </div>
             <div className="mt-4">
