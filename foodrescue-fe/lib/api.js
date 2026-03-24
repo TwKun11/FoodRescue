@@ -115,6 +115,10 @@ export async function apiGetOrderDetail(orderId) {
   return request(`/api/orders/${orderId}`);
 }
 
+export async function apiSyncOrderPayment(orderId) {
+  return request(`/api/orders/${orderId}/payment/sync`, { method: "POST" });
+}
+
 // ============================================================
 // SELLER APPLICATIONS
 // ============================================================
@@ -416,6 +420,89 @@ export async function apiSellerAddProductImage(productId, file) {
 
 export async function apiSellerDeleteProductImage(productId, imageId) {
   return request(`/api/seller/products/${productId}/images/${imageId}`, { method: "DELETE" });
+}
+
+// ============================================================
+// CUSTOMER – REVIEWS (Product Reviews)
+// ============================================================
+export async function apiGetProductReviews(productId, { page = 0, size = 20 } = {}) {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  return request(`/api/reviews/product/${productId}?${params.toString()}`);
+}
+
+export async function apiGetMyReviewForProduct(productId) {
+  return request(`/api/reviews/product/${productId}/my-review`);
+}
+
+export async function apiCreateProductReview(body) {
+  // body: { productId, rating, comment, imageUrls: [] }
+  return request("/api/reviews", { method: "POST", body: JSON.stringify(body) });
+}
+
+export async function apiUpdateProductReview(reviewId, body) {
+  // body: { rating, comment, imageUrls: [] }
+  return request(`/api/reviews/${reviewId}`, { method: "PUT", body: JSON.stringify(body) });
+}
+
+export async function apiDeleteProductReview(reviewId) {
+  return request(`/api/reviews/${reviewId}`, { method: "DELETE" });
+}
+
+export async function apiCheckCanReviewProduct(productId) {
+  // Check if user has purchased this product (completed status)
+  return request(`/api/reviews/product/${productId}/can-review`);
+}
+
+// Upload review images (similar to product images)
+export async function apiUploadReviewImage(file) {
+  const token = getToken();
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch(`${BASE()}/api/reviews/upload-image`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+  const data = await res.json().catch(() => null);
+  return { ok: res.ok, status: res.status, data };
+}
+
+// Seller review stats
+export async function apiGetSellerRatingStats() {
+  // Get overall rating stats for all seller's products
+  return request("/api/reviews/seller/stats");
+}
+
+export async function apiGetTopRatedSellerProducts(limit = 5) {
+  // Get top rated products for seller's dashboard
+  const params = new URLSearchParams({ limit: String(limit) });
+  return request(`/api/reviews/seller/top-products?${params.toString()}`);
+}
+
+export async function apiMockTopRatedSellerProducts(limit = 5) {
+  // MOCK: Return hardcoded data for testing
+  const params = new URLSearchParams({ limit: String(limit) });
+  return request(`/api/reviews/seller/mock/top-products?${params.toString()}`);
+}
+
+// Seller reviews management endpoints
+export async function apiSellerGetProductsWithRatings({ page = 0, size = 15 } = {}) {
+  // Get all seller's products with ratings and review statistics
+  // Returns Map with: content, totalElements, totalPages, currentPage, pageSize
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  return request(`/api/reviews/seller/reviews/products?${params.toString()}`);
+}
+
+export async function apiSellerGetProductReviews(productId, { page = 0, size = 10 } = {}) {
+  // Get all reviews for a specific seller's product
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  return request(`/api/reviews/seller/reviews/product/${productId}?${params.toString()}`);
+}
+
+export async function apiSellerGetReceivedReviews({ page = 0, size = 10 } = {}) {
+  // Get all reviews received by the seller
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  return request(`/api/reviews/seller/reviews/received?${params.toString()}`);
 }
 
 export async function apiSellerSetPrimaryImage(productId, imageId) {

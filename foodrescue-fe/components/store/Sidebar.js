@@ -40,6 +40,15 @@ const NAV_ITEMS = [
     ),
   },
   {
+    href: "/store/reviews",
+    label: "Đánh giá",
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-2-4 2V5a2 2 0 012-2h8a2 2 0 012 2v15z" />
+      </svg>
+    ),
+  },
+  {
     href: "/store/stats",
     label: "Doanh thu",
     icon: (

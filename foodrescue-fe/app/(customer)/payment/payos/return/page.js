@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { apiGetOrderDetail } from "@/lib/api";
+import { apiGetOrderDetail, apiSyncOrderPayment } from "@/lib/api";
 
 function formatRemaining(seconds) {
   if (seconds == null) return null;
@@ -13,10 +13,78 @@ function formatRemaining(seconds) {
   const minutes = Math.floor((total % 3600) / 60);
   const secs = total % 60;
 
-  if (hours > 0) return `Con lai khoang ${hours} gio ${minutes} phut`;
-  if (minutes > 0) return `Con lai khoang ${minutes} phut`;
-  if (secs > 0) return `Con lai khoang ${secs} giay`;
-  return "Da den han xu ly";
+  if (hours > 0) return `Còn lại khoảng ${hours} giờ ${minutes} phút`;
+  if (minutes > 0) return `Còn lại khoảng ${minutes} phút`;
+  if (secs > 0) return `Còn lại khoảng ${secs} giây`;
+  return "Đã đến hạn xử lý";
+}
+
+function normalizeStatus(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function getPaymentSummary(order) {
+  const paymentStatus = normalizeStatus(order?.paymentStatus);
+  const orderStatus = normalizeStatus(order?.status);
+
+  if (paymentStatus === "paid") {
+    return {
+      tone: "green",
+      title: "Thanh toán thành công",
+      description: "Đơn hàng đã được ghi nhận và chuyển sang trạng thái chờ cửa hàng xác nhận.",
+    };
+  }
+
+  if (paymentStatus === "cancelled") {
+    return {
+      tone: "red",
+      title: "Giao dịch đã bị hủy",
+      description: "PayOS đã trả về kết quả hủy giao dịch. Đơn hàng này sẽ không tiếp tục xử lý.",
+    };
+  }
+
+  if (paymentStatus === "expired") {
+    return {
+      tone: "red",
+      title: "Giao dịch đã hết hạn",
+      description: "Quá thời gian thanh toán nên đơn đã được đánh dấu hết hạn.",
+    };
+  }
+
+  if (paymentStatus === "failed") {
+    return {
+      tone: "red",
+      title: "Thanh toán thất bại",
+      description: "Gateway đã trả về trạng thái thất bại. Vui lòng kiểm tra lại trước khi đặt đơn mới.",
+    };
+  }
+
+  if (paymentStatus === "pending" || orderStatus === "pending_payment") {
+    return {
+      tone: "amber",
+      title: "Đang chờ đối soát thanh toán",
+      description: "Hệ thống đang đồng bộ trạng thái từ PayOS để xử lý các trường hợp timeout hoặc phản hồi chậm.",
+    };
+  }
+
+  return {
+    tone: "slate",
+    title: "Đã nhận phản hồi từ PayOS",
+    description: "Bạn có thể mở chi tiết đơn hàng để kiểm tra trạng thái mới nhất.",
+  };
+}
+
+function toneClasses(tone) {
+  switch (tone) {
+    case "green":
+      return "border-green-200 bg-green-50 text-green-800";
+    case "red":
+      return "border-red-200 bg-red-50 text-red-800";
+    case "amber":
+      return "border-amber-200 bg-amber-50 text-amber-800";
+    default:
+      return "border-slate-200 bg-slate-50 text-slate-700";
+  }
 }
 
 export default function PayOSReturnPage() {
@@ -33,19 +101,19 @@ export default function PayOSReturnPage() {
         return;
       }
 
-      if (!silent) {
-        setLoading(true);
-      }
+      if (!silent) setLoading(true);
 
       try {
-        const res = await apiGetOrderDetail(orderId);
+        let res = await apiSyncOrderPayment(orderId);
+        if (!res.ok) {
+          res = await apiGetOrderDetail(orderId);
+        }
+
         if (res.ok && res.data?.data) {
           setOrder(res.data.data);
         }
       } finally {
-        if (!silent) {
-          setLoading(false);
-        }
+        if (!silent) setLoading(false);
       }
     },
     [orderId],
@@ -61,20 +129,25 @@ export default function PayOSReturnPage() {
     void loadOrder();
   }, [loadOrder, router]);
 
+  const summary = useMemo(() => getPaymentSummary(order), [order]);
+
   return (
     <div className="min-h-screen bg-brand-bg px-4 py-12">
-      <div className="max-w-xl mx-auto bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
-        <div className="w-14 h-14 rounded-full bg-brand/20 flex items-center justify-center mb-4">
+      <div className="mx-auto max-w-xl rounded-2xl border border-gray-100 bg-white p-8 shadow-sm">
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-brand/20">
           <span className="text-2xl">🏦</span>
         </div>
+
         <h1 className="text-2xl font-bold text-gray-900">Đã quay lại từ PayOS</h1>
-        <p className="text-sm text-gray-600 mt-2">
-          Hệ thống sẽ cập nhật đơn hàng sau khi webhook PayOS được xác minh. Nếu payment thành công, đơn sẽ chuyển sang
-          trạng thái chờ xác nhận.
+        <p className="mt-2 text-sm text-gray-600">
+          Trang này chủ động đối soát lại trạng thái thanh toán để xử lý các trường hợp webhook đến chậm, timeout
+          hoặc người dùng đóng gateway giữa chừng.
         </p>
-        {order?.paymentMethod?.toLowerCase() === "payos" && order?.paymentStatus?.toLowerCase() === "pending" && (
-          <p className="text-xs text-amber-700 mt-2">Backend se tu dong dong bo trang thai thanh toan tu DB va PayOS.</p>
-        )}
+
+        <div className={`mt-5 rounded-xl border p-4 text-sm ${toneClasses(summary.tone)}`}>
+          <p className="font-semibold">{summary.title}</p>
+          <p className="mt-1">{summary.description}</p>
+        </div>
 
         <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
           {loading ? (
@@ -85,33 +158,37 @@ export default function PayOSReturnPage() {
                 Đơn hàng: <span className="font-mono font-semibold">#{order.orderCode}</span>
               </p>
               <p>Trạng thái đơn: {order.status || "-"}</p>
-              <p>Trạng thái payment: {order.paymentStatus || "-"}</p>
-              {order.payment?.remainingSeconds != null && <p>Thoi gian con lai: {formatRemaining(order.payment.remainingSeconds)}</p>}
+              <p>Trạng thái thanh toán: {order.paymentStatus || "-"}</p>
+              {order.payment?.failureReason ? <p>Lý do lỗi: {order.payment.failureReason}</p> : null}
+              {order.payment?.remainingSeconds != null ? (
+                <p>Thời gian còn lại: {formatRemaining(order.payment.remainingSeconds)}</p>
+              ) : null}
             </div>
           ) : (
             <p>Không đọc được thông tin đơn hàng. Bạn có thể mở lại trong mục đơn hàng của tôi.</p>
           )}
         </div>
 
-        <div className="mt-6 flex flex-col sm:flex-row gap-3">
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
           {orderId ? (
             <Link
               href={`/orders/${orderId}`}
-              className="inline-flex items-center justify-center rounded-xl px-5 py-2.5 bg-brand text-gray-900 font-medium text-sm hover:bg-brand-dark transition"
+              className="inline-flex items-center justify-center rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-gray-900 transition hover:bg-brand-dark"
             >
               Xem chi tiết đơn hàng
             </Link>
           ) : (
             <Link
               href="/orders"
-              className="inline-flex items-center justify-center rounded-xl px-5 py-2.5 bg-brand text-gray-900 font-medium text-sm hover:bg-brand-dark transition"
+              className="inline-flex items-center justify-center rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-gray-900 transition hover:bg-brand-dark"
             >
               Đơn hàng của tôi
             </Link>
           )}
+
           <Link
             href="/products"
-            className="inline-flex items-center justify-center rounded-xl px-5 py-2.5 border border-brand text-brand-dark font-medium text-sm hover:bg-brand-bg transition"
+            className="inline-flex items-center justify-center rounded-xl border border-brand px-5 py-2.5 text-sm font-medium text-brand-dark transition hover:bg-brand-bg"
           >
             Tiếp tục mua hàng
           </Link>

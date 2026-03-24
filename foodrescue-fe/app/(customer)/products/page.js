@@ -1,11 +1,13 @@
 // FE02-002 – Trang Danh sách sản phẩm (layout mới: carousel, thanh danh mục, lọc, grid 3x4, 12/trang)
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import ProductCardListing from "@/components/customer/ProductCardListing";
 import BannerCarousel from "@/components/customer/BannerCarousel";
 import { apiGetProducts, apiGetCategories, apiGetActiveBannerAds } from "@/lib/api";
+import { formatDistanceMeters, getCurrentPosition, haversineDistanceMeters } from "@/lib/location";
 import { fetchProvinces, fetchDistricts, fetchWards } from "@/lib/vn-locations";
 
 const PAGE_SIZE = 12;
@@ -99,7 +101,7 @@ function mapProductFromApi(p) {
   const discountPercent = listPrice > 0 ? Math.round(((listPrice - salePrice) / listPrice) * 100) : 0;
   const shelfDays = p.shelfLifeDays ?? 0;
   const expiryAt = shelfDays ? new Date(Date.now() + shelfDays * 24 * 60 * 60 * 1000).toISOString() : null;
-  const address = [p.originProvince].filter(Boolean).join(", ") || "";
+  const address = p.sellerPickupAddress || [p.originProvince].filter(Boolean).join(", ") || "";
   return {
     id: String(p.id),
     name: p.name,
@@ -114,6 +116,10 @@ function mapProductFromApi(p) {
     categoryId: p.categoryId,
     address,
     province: p.originProvince,
+    sellerLatitude: p.sellerLatitude ?? null,
+    sellerLongitude: p.sellerLongitude ?? null,
+    distanceMeters: null,
+    distanceLabel: "",
     district: null,
     ward: null,
     stock: defaultSku?.stockAvailable ?? 0,
@@ -142,6 +148,7 @@ export default function ProductsPage() {
   const [selectedProvince, setSelectedProvince] = useState("");
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [selectedWard, setSelectedWard] = useState("");
+  const [viewerLocation, setViewerLocation] = useState(null);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(null);
   const [seeMoreCategoriesOpen, setSeeMoreCategoriesOpen] = useState(false);
 
@@ -204,6 +211,20 @@ export default function ProductsPage() {
     setSelectedWard("");
   }, [selectedDistrict, districts]);
 
+  useEffect(() => {
+    if (!nearMe || viewerLocation) return;
+    getCurrentPosition()
+      .then((position) => {
+        setViewerLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+      })
+      .catch(() => {
+        toast.error("Khong lay duoc vi tri hien tai de tinh khoang cach.");
+      });
+  }, [nearMe, viewerLocation]);
+
   const rootCategories = useMemo(() => {
     const fromApi = categories.filter((c) => !c.parentId);
     return fromApi.slice(0, VISIBLE_ROOT_CATEGORIES);
@@ -236,7 +257,22 @@ export default function ProductsPage() {
       .then(({ ok, data }) => {
         if (ok && data?.data) {
           const page = data.data;
-          setProducts((page.content || []).map(mapProductFromApi));
+          setProducts(
+            (page.content || []).map((item) => {
+              const product = mapProductFromApi(item);
+              const distanceMeters = viewerLocation
+                ? haversineDistanceMeters(viewerLocation, {
+                    latitude: product.sellerLatitude,
+                    longitude: product.sellerLongitude,
+                  })
+                : null;
+              return {
+                ...product,
+                distanceMeters,
+                distanceLabel: distanceMeters != null ? `Cách bạn ${formatDistanceMeters(distanceMeters)}` : "",
+              };
+            }),
+          );
           setTotalPages(page.totalPages || 1);
           setTotalElements(page.totalElements || 0);
         } else {
@@ -249,7 +285,7 @@ export default function ProductsPage() {
         setProducts([]);
       })
       .finally(() => setLoading(false));
-  }, [categoryId, debouncedSearch, sort, currentPage, priceRangeId, nearMe, selectedProvince]);
+  }, [categoryId, debouncedSearch, sort, currentPage, priceRangeId, nearMe, selectedProvince, viewerLocation]);
 
   useEffect(() => {
     fetchProducts();
@@ -527,7 +563,7 @@ export default function ProductsPage() {
         )}
 
         {!error && loading && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {Array.from({ length: 12 }).map((_, i) => (
               <div key={i} className="bg-white rounded-2xl border border-slate-200 overflow-hidden animate-pulse">
                 <div className="aspect-square bg-slate-100" />
@@ -553,7 +589,7 @@ export default function ProductsPage() {
 
         {!error && !loading && products.length > 0 && (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
               {products.map((product) => (
                 <ProductCardListing key={product.id} product={product} onAddToCart={handleAddToCart} />
               ))}

@@ -12,6 +12,13 @@ import java.util.List;
 @Repository
 public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
     List<OrderItem> findByOrderId(Long orderId);
+    
+    @Query("SELECT DISTINCT oi FROM OrderItem oi " +
+           "JOIN FETCH oi.variant v " +
+           "JOIN FETCH v.product " +
+           "WHERE oi.order.id = :orderId")
+    List<OrderItem> findByOrderIdWithVariantAndProduct(@Param("orderId") Long orderId);
+    
     List<OrderItem> findBySellerOrderId(Long sellerOrderId);
 
     @Query("SELECT oi FROM OrderItem oi WHERE oi.seller.id = :sellerId AND oi.sellerOrder.orderStatus = 'completed' AND oi.createdAt >= :since")

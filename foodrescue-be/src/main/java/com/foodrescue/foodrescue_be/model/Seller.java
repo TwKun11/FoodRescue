@@ -49,6 +49,12 @@ public class Seller {
     @Column(name = "pickup_address", columnDefinition = "TEXT")
     private String pickupAddress;
 
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "longitude")
+    private Double longitude;
+
     @Column(name = "tax_code", length = 50)
     private String taxCode;
 

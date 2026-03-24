@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -15,6 +16,9 @@ public class ProductResponse {
     private String sellerName;
     private String sellerSlug;
     private String sellerPhone;
+    private String sellerPickupAddress;
+    private Double sellerLatitude;
+    private Double sellerLongitude;
     private BigDecimal sellerRatingAvg;
     private Boolean sellerVerified;
     private Long categoryId;
@@ -34,6 +38,7 @@ public class ProductResponse {
     private Integer shelfLifeDays;
     private Integer minPreparationMinutes;
     private String status;
+    private LocalDateTime createdAt;
     private String primaryImageUrl;
     private List<ProductImageResponse> images;
     private List<ProductVariantResponse> variants;
@@ -45,6 +50,9 @@ public class ProductResponse {
                 .sellerName(product.getSeller() != null ? product.getSeller().getShopName() : null)
                 .sellerSlug(product.getSeller() != null ? product.getSeller().getShopSlug() : null)
                 .sellerPhone(product.getSeller() != null ? product.getSeller().getPhone() : null)
+                .sellerPickupAddress(product.getSeller() != null ? product.getSeller().getPickupAddress() : null)
+                .sellerLatitude(product.getSeller() != null ? product.getSeller().getLatitude() : null)
+                .sellerLongitude(product.getSeller() != null ? product.getSeller().getLongitude() : null)
                 .sellerRatingAvg(product.getSeller() != null ? product.getSeller().getRatingAvg() : null)
                 .sellerVerified(product.getSeller() != null ? product.getSeller().getIsVerified() : null)
                 .categoryId(product.getCategory() != null ? product.getCategory().getId() : null)
@@ -64,6 +72,7 @@ public class ProductResponse {
                 .shelfLifeDays(product.getShelfLifeDays())
                 .minPreparationMinutes(product.getMinPreparationMinutes())
                 .status(product.getStatus() != null ? product.getStatus().name() : null)
+                .createdAt(product.getCreatedAt())
                 .primaryImageUrl(primaryImageUrl)
                 .variants(variants)
                 .build();

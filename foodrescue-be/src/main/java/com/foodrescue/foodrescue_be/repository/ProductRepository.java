@@ -90,4 +90,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
           AND (:keyword IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
     """)
     Page<Product> findBySeller(@Param("sellerId") Long sellerId, @Param("keyword") String keyword, Pageable pageable);
+
+    /**
+     * Lấy tất cả sản phẩm của seller (user)
+     */
+    @Query("SELECT p FROM Product p JOIN p.seller s WHERE s.user.id = :userId")
+    java.util.List<Product> findByUserId(@Param("userId") Long userId);
 }
