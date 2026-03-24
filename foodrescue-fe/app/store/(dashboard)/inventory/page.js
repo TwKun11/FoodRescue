@@ -1,5 +1,5 @@
-"use client";
-import { useState, useEffect, useCallback } from "react";
+﻿"use client";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { apiSellerGetBatches, apiSellerAddBatch, apiSellerGetProducts } from "@/lib/api";
 
@@ -21,7 +21,7 @@ const EMPTY_BATCH = {
 
 const PAGE_SIZE = 10;
 
-// ── SVG Icons ─────────────────────────────────────────────────────────────
+// â”€â”€ SVG Icons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const IconFire = () => (
   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
     <path d="M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2zm0 2c-4.418 0-8 3.582-8 8s3.582 8 8 8 8-3.582 8-8-3.582-8-8-8zm0 2a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H8a1 1 0 110-2h3V7a1 1 0 011-1z" />
@@ -58,7 +58,7 @@ const IconTrendingDown = () => (
   </svg>
 );
 
-// ── Urgency Calculation ────────────────────────────────────────────────────
+// â”€â”€ Urgency Calculation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function getUrgencyLevel(batch) {
   const daysLeft = daysUntil(batch.expiredAt);
   const available = Number(batch.quantityAvailable) || 0;
@@ -70,7 +70,7 @@ function getUrgencyLevel(batch) {
   if (daysLeft >= 2 && daysLeft <= 3) return "expiring";
   if (daysLeft >= 4 && daysLeft <= 7) return "soon";
   
-  // Slow-moving: >7 days và consumption <50%
+  // Slow-moving: >7 days vÃ  consumption <50%
   const consumption = received > 0 ? ((received - available) / received) * 100 : 0;
   if (daysLeft > 7 && consumption < 50) return "slow";
   
@@ -85,17 +85,17 @@ function calculateConsumption(batch) {
 }
 
 function fmt(n) {
-  if (n == null) return "—";
+  if (n == null) return "â€”";
   return Number(n).toLocaleString("vi-VN");
 }
 
 function fmtMoney(n) {
-  if (n == null) return "—";
-  return Number(n).toLocaleString("vi-VN") + "₫";
+  if (n == null) return "â€”";
+  return Number(n).toLocaleString("vi-VN") + "â‚«";
 }
 
 function fmtDate(iso) {
-  if (!iso) return "—";
+  if (!iso) return "â€”";
   return new Date(iso).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
@@ -106,6 +106,14 @@ function daysUntil(isoDate) {
   const exp = new Date(isoDate);
   exp.setHours(0, 0, 0, 0);
   return Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
+}
+
+function getBatchSortTime(batch) {
+  return new Date(batch?.receivedAt || batch?.createdAt || 0).getTime();
+}
+
+function sortBatchesNewestFirst(items) {
+  return [...items].sort((left, right) => getBatchSortTime(right) - getBatchSortTime(left));
 }
 
 
@@ -150,7 +158,8 @@ export default function InventoryPage() {
         // Set batches
         if (batchRes.ok && batchRes.data?.data) {
           const d = batchRes.data.data;
-          setBatches(Array.isArray(d) ? d : d.content || []);
+          const batchList = Array.isArray(d) ? d : d.content || [];
+          setBatches(sortBatchesNewestFirst(batchList));
         } else if (batchRes.status === 401) {
           router.replace("/login");
         }
@@ -179,7 +188,7 @@ export default function InventoryPage() {
         const flat = [];
         products.forEach((p) => {
           (p.variants || []).forEach((v) => {
-            flat.push({ id: v.id, label: `${p.name} – ${v.name || v.variantCode} (${v.unit || ""})` });
+            flat.push({ id: v.id, label: `${p.name} â€“ ${v.name || v.variantCode} (${v.unit || ""})` });
           });
         });
         setVariants(flat);
@@ -192,15 +201,15 @@ export default function InventoryPage() {
     e.preventDefault();
     setFormError("");
     if (!batchForm.variantId) {
-      setFormError("Vui lòng chọn biến thể sản phẩm");
+      setFormError("Vui lÃ²ng chá»n biáº¿n thá»ƒ sáº£n pháº©m");
       return;
     }
     if (!batchForm.costPrice || Number(batchForm.costPrice) < 0) {
-      setFormError("Nhập giá vốn hợp lệ");
+      setFormError("Nháº­p giÃ¡ vá»‘n há»£p lá»‡");
       return;
     }
     if (!batchForm.quantityReceived || Number(batchForm.quantityReceived) <= 0) {
-      setFormError("Số lượng nhập phải > 0");
+      setFormError("Sá»‘ lÆ°á»£ng nháº­p pháº£i > 0");
       return;
     }
 
@@ -225,48 +234,43 @@ export default function InventoryPage() {
       setShowModal(false);
       load();
     } else {
-      setFormError(res.data?.message || "Nhập lô thất bại, vui lòng thử lại");
+      setFormError(res.data?.message || "Nháº­p lô tháº¥t báº¡i, vui lÃ²ng thá»­ láº¡i");
     }
   };
 
-  // ── Tab Filtering ──
-  const getFilteredBatches = () => {
-    return batches.filter((b) => {
-      const urgency = getUrgencyLevel(b);
-      
-      // Tab filter
-      if (selectedTab === "urgent") {
-        if (urgency !== "expired" && urgency !== "urgent") return false;
-      } else if (selectedTab === "normal") {
-        if (!["normal", "soon", "expiring"].includes(urgency)) return false;
-      } else if (selectedTab === "depleted") {
-        if (Number(b.quantityAvailable) > 0) return false;
-      }
-      
-      // Keyword filter
-      if (keyword) {
-        const kw = keyword.toLowerCase();
-        const productName = variantMap[b.variantId] || "";
+  // â”€â”€ Tab Filtering â”€â”€
+  const filtered = useMemo(() => {
+    const normalizedKeyword = keyword.trim().toLowerCase();
+    return batches.filter((batch) => {
+      const urgency = getUrgencyLevel(batch);
+
+      if (selectedTab === "urgent" && urgency !== "expired" && urgency !== "urgent") return false;
+      if (selectedTab === "normal" && !["normal", "soon", "expiring"].includes(urgency)) return false;
+      if (selectedTab === "depleted" && Number(batch.quantityAvailable) > 0) return false;
+
+      if (normalizedKeyword) {
+        const productName = variantMap[batch.variantId] || "";
         if (
-          !b.batchCode?.toLowerCase().includes(kw) &&
-          !productName.toLowerCase().includes(kw) &&
-          !b.variantName?.toLowerCase().includes(kw) &&
-          !b.supplierName?.toLowerCase().includes(kw)
-        )
+          !batch.batchCode?.toLowerCase().includes(normalizedKeyword) &&
+          !productName.toLowerCase().includes(normalizedKeyword) &&
+          !batch.variantName?.toLowerCase().includes(normalizedKeyword) &&
+          !batch.supplierName?.toLowerCase().includes(normalizedKeyword)
+        ) {
           return false;
+        }
       }
-      
+
       return true;
     });
-  };
+  }, [batches, keyword, selectedTab, variantMap]);
 
-  const filtered = getFilteredBatches();
   const totalFiltered = filtered.length;
   const totalPages = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE));
-  const pageStart = (currentPage - 1) * PAGE_SIZE;
-  const paginatedBatches = filtered.slice(pageStart, pageStart + PAGE_SIZE);
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const pageStart = (safeCurrentPage - 1) * PAGE_SIZE;
+  const paginatedBatches = useMemo(() => filtered.slice(pageStart, pageStart + PAGE_SIZE), [filtered, pageStart]);
 
-  // ── Stats ──
+  // â”€â”€ Stats â”€â”€
   const stats = {
     total: batches.length,
     urgent: batches.filter((b) => {
@@ -280,12 +284,12 @@ export default function InventoryPage() {
     depleted: batches.filter((b) => Number(b.quantityAvailable) <= 0).length,
   };
 
-  // ── Tab Config ──
+  // â”€â”€ Tab Config â”€â”€
   const tabs = [
     { id: "all", label: "Tất cả", count: stats.total },
-    { id: "urgent", label: "🔴 Cần xử lý ngay", count: stats.urgent, highlight: true },
-    { id: "normal", label: "✅ Ổn định", count: stats.normal },
-    { id: "depleted", label: "❌ Hết hàng", count: stats.depleted },
+    { id: "urgent", label: "Cần xử lý ngay", count: stats.urgent, highlight: true },
+    { id: "normal", label: "Ổn định", count: stats.normal },
+    { id: "depleted", label: "Hết hàng", count: stats.depleted },
   ];
 
   const setTabAndResetPage = (tab) => {
@@ -293,7 +297,7 @@ export default function InventoryPage() {
     setCurrentPage(1);
   };
 
-  // ── Urgency UI ──
+  // â”€â”€ Urgency UI â”€â”€
   const getUrgencyUI = (batch) => {
     const urgency = getUrgencyLevel(batch);
     const daysLeft = daysUntil(batch.expiredAt);
@@ -307,31 +311,31 @@ export default function InventoryPage() {
       },
       urgent: {
         color: "bg-orange-50 text-orange-700",
-        label: `${daysLeft}h cảnh báo`,
+        label: `${daysLeft}h cáº£nh bÃ¡o`,
         icon: <IconFire />,
         rowBg: "bg-orange-50/50"
       },
       expiring: {
         color: "bg-yellow-50 text-yellow-700",
-        label: `${daysLeft}d sắp hết`,
+        label: `${daysLeft}d sáº¯p háº¿t`,
         icon: <IconClock />,
         rowBg: "bg-yellow-50/50"
       },
       soon: {
         color: "bg-blue-50 text-blue-700",
-        label: `${daysLeft}d giám sát`,
+        label: `${daysLeft}d giÃ¡m sÃ¡t`,
         icon: <IconClock />,
         rowBg: "bg-gray-50/30"
       },
       slow: {
         color: "bg-indigo-50 text-indigo-700",
-        label: "Tiêu thụ chậm",
+        label: "TiÃªu thá»¥ cháº­m",
         icon: <IconTrendingDown />,
         rowBg: "bg-gray-50/30"
       },
       normal: {
         color: "bg-brand-bg text-brand-dark",
-        label: "Bình thường",
+        label: "BÃ¬nh thÆ°á»ng",
         icon: <IconCheckCircle />,
         rowBg: "bg-white"
       }
@@ -342,10 +346,10 @@ export default function InventoryPage() {
 
   return (
     <div className="p-6 sm:p-8 space-y-6">
-      {/* ════ HEADER ════ */}
+      {/* â•â•â•â• HEADER â•â•â•â• */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">📦 Kho hàng</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Kho hàng</h1>
         </div>
         <button
           onClick={openModal}
@@ -355,11 +359,11 @@ export default function InventoryPage() {
         </button>
       </div>
 
-      {/* ════ STATS CARDS ════ */}
+      {/* â•â•â•â• STATS CARDS â•â•â•â• */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           { label: "Tổng lô", value: stats.total, icon: "📦", color: "bg-blue-50 text-blue-700" },
-          { label: "Cấp độ ⚠️", value: stats.urgent, icon: "🔴", color: "bg-red-50 text-red-700", highlight: true },
+          { label: "Cấp độ cảnh báo", value: stats.urgent, icon: "🔴", color: "bg-red-50 text-red-700", highlight: true },
           { label: "Bình thường", value: stats.normal, icon: "✅", color: "bg-brand-bg text-brand-dark" },
           { label: "Hết hàng", value: stats.depleted, icon: "❌", color: "bg-gray-100 text-gray-700" },
         ].map((s) => (
@@ -373,7 +377,7 @@ export default function InventoryPage() {
         ))}
       </div>
 
-      {/* ════ TABS ════ */}
+      {/* â•â•â•â• TABS â•â•â•â• */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-1 inline-flex gap-1">
         {tabs.map((tab) => (
           <button
@@ -395,7 +399,7 @@ export default function InventoryPage() {
         ))}
       </div>
 
-      {/* ════ FILTERS ════ */}
+      {/* â•â•â•â• FILTERS â•â•â•â• */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex flex-wrap gap-3 items-center">
         <div className="flex-1 min-w-56">
           <input
@@ -405,7 +409,7 @@ export default function InventoryPage() {
               setKeyword(e.target.value);
               setCurrentPage(1);
             }}
-            placeholder="🔍 Tìm mã lô, sản phẩm, nhà cung cấp..."
+            placeholder="ðŸ” TÃ¬m mÃ£ lô, sáº£n pháº©m, nhÃ  cung cáº¥p..."
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
           />
         </div>
@@ -413,37 +417,37 @@ export default function InventoryPage() {
           onClick={load}
           className="bg-brand hover:bg-brand-secondary text-gray-900 font-medium px-4 py-2 rounded-lg transition text-sm"
         >
-          🔄 Làm mới
+          ðŸ”„ LÃ m má»›i
         </button>
       </div>
 
-      {/* ════ TABLE ════ */}
+      {/* â•â•â•â• TABLE â•â•â•â• */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Mã lô</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Sản phẩm</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">MÃ£ lô</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Sáº£n pháº©m</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">NCC</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Nhập/Còn</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Tiêu thụ %</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Giá vốn</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Hạn sử dụng</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Trạng thái</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Nháº­p/CÃ²n</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">TiÃªu thá»¥ %</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">GiÃ¡ vá»‘n</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Háº¡n sá»­ dá»¥ng</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Tráº¡ng thÃ¡i</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {loading ? (
                 <tr>
                   <td colSpan={8} className="text-center py-10 text-gray-400">
-                    ⏳ Đang tải...
+                    â³ Äang táº£i...
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="text-center py-10 text-gray-400">
-                    ℹ️ Không có lô hàng nào
+                    â„¹ï¸ KhÃ´ng cÃ³ lô hÃ ng nÃ o
                   </td>
                 </tr>
               ) : (
@@ -457,13 +461,13 @@ export default function InventoryPage() {
                       <td className="px-4 py-3 font-mono text-xs text-gray-600 font-semibold">{b.batchCode}</td>
                       <td className="px-4 py-3">
                         <div className="space-y-1">
-                          <p className="font-semibold text-gray-900">{variantMap[b.variantId] || "—"}</p>
+                          <p className="font-semibold text-gray-900">{variantMap[b.variantId] || "â€”"}</p>
                           {b.variantName && (
                             <p className="text-xs text-gray-500">{b.variantName}</p>
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-gray-600 text-sm">{b.supplierName || "—"}</td>
+                      <td className="px-4 py-3 text-gray-600 text-sm">{b.supplierName || "â€”"}</td>
                       <td className="px-4 py-3 text-right text-gray-700 font-medium">
                         {fmt(b.quantityReceived)} / {fmt(b.quantityAvailable)}
                       </td>
@@ -484,21 +488,21 @@ export default function InventoryPage() {
                       <td className="px-4 py-3 text-sm">
                         <div className="space-y-0.5">
                           <div className="text-gray-600">
-                            <span className="text-gray-400">Nhập:</span> {fmtDate(b.receivedAt)}
+                            <span className="text-gray-400">Nháº­p:</span> {fmtDate(b.receivedAt)}
                           </div>
                           {b.expiredAt ? (
                             <div className={`font-semibold ${daysLeft && daysLeft < 0 ? "text-red-600" : "text-gray-600"}`}>
-                              <span className="text-gray-400">Hết:</span> {fmtDate(b.expiredAt)}
+                              <span className="text-gray-400">Háº¿t:</span> {fmtDate(b.expiredAt)}
                               {daysLeft !== null && (
                                 <span className={`ml-2 text-xs font-bold px-2 py-0.5 rounded-full ${
                                   daysLeft < 0 ? "bg-red-100 text-red-700" : daysLeft <= 1 ? "bg-orange-100 text-orange-700" : "bg-yellow-100 text-yellow-700"
                                 }`}>
-                                  {daysLeft < 0 ? "hết" : `${daysLeft}d`}
+                                  {daysLeft < 0 ? "háº¿t" : `${daysLeft}d`}
                                 </span>
                               )}
                             </div>
                           ) : (
-                            <div className="text-gray-400 text-sm">Chưa có hạn</div>
+                            <div className="text-gray-400 text-sm">ChÆ°a cÃ³ háº¡n</div>
                           )}
                         </div>
                       </td>
@@ -516,26 +520,26 @@ export default function InventoryPage() {
           </table>
         </div>
 
-        {/* ════ PAGINATION ════ */}
+        {/* â•â•â•â• PAGINATION â•â•â•â• */}
         {totalPages > 1 && (
           <div className="px-5 py-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-gray-600">
               Hiển thị <span className="font-semibold">{paginatedBatches.length}</span> / <span className="font-semibold">{totalFiltered}</span> lô
-              <span className="text-gray-400 ml-2">Trang {currentPage}/{totalPages}</span>
+              <span className="text-gray-400 ml-2">Trang {safeCurrentPage}/{totalPages}</span>
             </p>
             <div className="flex gap-2">
               <button
-                disabled={currentPage <= 1}
+                disabled={safeCurrentPage <= 1}
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-brand-bg transition disabled:opacity-40 disabled:pointer-events-none"
               >
                 ‹
               </button>
               <span className="text-sm font-medium text-gray-700 px-3 py-1">
-                {currentPage} / {totalPages}
+                {safeCurrentPage} / {totalPages}
               </span>
               <button
-                disabled={currentPage >= totalPages}
+                disabled={safeCurrentPage >= totalPages}
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-brand-bg transition disabled:opacity-40 disabled:pointer-events-none"
               >
@@ -546,25 +550,25 @@ export default function InventoryPage() {
         )}
       </div>
 
-      {/* ════ ADD BATCH MODAL ════ */}
+      {/* â•â•â•â• ADD BATCH MODAL â•â•â•â• */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white">
-              <h2 className="font-bold text-gray-900 text-lg">📦 Nhập lô hàng mới</h2>
+              <h2 className="font-bold text-gray-900 text-lg">ðŸ“¦ Nháº­p lô hÃ ng má»›i</h2>
               <button
                 onClick={() => setShowModal(false)}
                 className="text-gray-400 hover:text-gray-600 text-2xl leading-none w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded-lg transition"
               >
-                ×
+                Ã—
               </button>
             </div>
             <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
               {/* Variant */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Biến thể sản phẩm *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Biáº¿n thá»ƒ sáº£n pháº©m *</label>
                 {variantsLoading ? (
-                  <p className="text-sm text-gray-400">Đang tải danh sách...</p>
+                  <p className="text-sm text-gray-400">Äang táº£i danh sÃ¡ch...</p>
                 ) : (
                   <select
                     value={batchForm.variantId}
@@ -572,7 +576,7 @@ export default function InventoryPage() {
                     required
                     className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark bg-white"
                   >
-                    <option value="">-- Chọn biến thể --</option>
+                    <option value="">-- Chá»n biáº¿n thá»ƒ --</option>
                     {variants.map((v) => (
                       <option key={v.id} value={v.id}>
                         {v.label}
@@ -584,7 +588,7 @@ export default function InventoryPage() {
 
               {/* Batch Code */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Mã lô hàng *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">MÃ£ lô hÃ ng *</label>
                 <input
                   type="text"
                   value={batchForm.batchCode}
@@ -597,7 +601,7 @@ export default function InventoryPage() {
               <div className="grid grid-cols-2 gap-3">
                 {/* Cost Price */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Giá vốn (đồng) *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">GiÃ¡ vá»‘n (Ä‘á»“ng) *</label>
                   <input
                     type="number"
                     min={0}
@@ -610,7 +614,7 @@ export default function InventoryPage() {
                 </div>
                 {/* Quantity */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Số lượng nhập *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Sá»‘ lÆ°á»£ng nháº­p *</label>
                   <input
                     type="number"
                     min={1}
@@ -625,12 +629,12 @@ export default function InventoryPage() {
 
               {/* Supplier */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Nhà cung cấp</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">NhÃ  cung cáº¥p</label>
                 <input
                   type="text"
                   value={batchForm.supplierName}
                   onChange={(e) => setBatchForm((p) => ({ ...p, supplierName: e.target.value }))}
-                  placeholder="Tên nhà cung cấp..."
+                  placeholder="TÃªn nhÃ  cung cáº¥p..."
                   className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
                 />
               </div>
@@ -638,7 +642,7 @@ export default function InventoryPage() {
               <div className="grid grid-cols-2 gap-3">
                 {/* Received At */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Ngày nhập kho *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">NgÃ y nháº­p kho *</label>
                   <input
                     type="datetime-local"
                     value={batchForm.receivedAt}
@@ -649,7 +653,7 @@ export default function InventoryPage() {
                 </div>
                 {/* Manufactured At */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Ngày sản xuất</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">NgÃ y sáº£n xuáº¥t</label>
                   <input
                     type="datetime-local"
                     value={batchForm.manufacturedAt}
@@ -661,31 +665,31 @@ export default function InventoryPage() {
 
               {/* Expired At */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Hạn sử dụng</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Háº¡n sá»­ dá»¥ng</label>
                 <input
                   type="datetime-local"
                   value={batchForm.expiredAt}
                   onChange={(e) => setBatchForm((p) => ({ ...p, expiredAt: e.target.value }))}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
                 />
-                <p className="text-xs text-gray-500 mt-1.5">💡 VD: Nhập 24/03/2026, hạn hết 26/03/2026</p>
+                <p className="text-xs text-gray-500 mt-1.5">ðŸ’¡ VD: Nháº­p 24/03/2026, háº¡n háº¿t 26/03/2026</p>
               </div>
 
               {/* Note */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Ghi chú</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Ghi chÃº</label>
                 <textarea
                   rows={2}
                   value={batchForm.note}
                   onChange={(e) => setBatchForm((p) => ({ ...p, note: e.target.value }))}
-                  placeholder="Ghi chú thêm về lô hàng..."
+                  placeholder="Ghi chÃº thÃªm vá» lô hÃ ng..."
                   className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark resize-none"
                 />
               </div>
 
               {formError && (
                 <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
-                  ❌ {formError}
+                  âŒ {formError}
                 </div>
               )}
 
@@ -695,14 +699,14 @@ export default function InventoryPage() {
                   onClick={() => setShowModal(false)}
                   className="px-4 py-2.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
                 >
-                  Hủy
+                  Há»§y
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
                   className="px-5 py-2.5 text-sm font-semibold bg-brand hover:bg-brand-secondary text-gray-900 rounded-lg transition disabled:opacity-60"
                 >
-                  {submitting ? "⏳ Đang lưu..." : "✅ Nhập kho"}
+                  {submitting ? "â³ Äang lÆ°u..." : "âœ… Nháº­p kho"}
                 </button>
               </div>
             </form>
@@ -712,3 +716,5 @@ export default function InventoryPage() {
     </div>
   );
 }
+
+

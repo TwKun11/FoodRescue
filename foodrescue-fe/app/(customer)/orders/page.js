@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiGetMyOrders } from "@/lib/api";
+
+const PAGE_SIZE = 10;
 
 const STATUS_TABS = [
   { id: "all", label: "Tất cả" },
@@ -36,20 +38,28 @@ const PAYMENT_STATUS = {
   refunded: { label: "Đã hoàn tiền", text: "text-gray-500" },
 };
 
-function fmt(n) {
-  if (n == null) return "-";
-  return Number(n).toLocaleString("vi-VN") + " đồng";
+function formatMoney(value) {
+  if (value == null) return "-";
+  return `${Number(value).toLocaleString("vi-VN")} đồng`;
 }
 
-function fmtDate(iso) {
-  if (!iso) return "-";
-  return new Date(iso).toLocaleString("vi-VN", {
+function formatDate(value) {
+  if (!value) return "-";
+  return new Date(value).toLocaleString("vi-VN", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function getOrderSortTime(order) {
+  return new Date(order?.createdAt || 0).getTime();
+}
+
+function sortOrdersNewestFirst(items) {
+  return [...items].sort((left, right) => getOrderSortTime(right) - getOrderSortTime(left));
 }
 
 export default function OrdersPage() {
@@ -63,11 +73,11 @@ export default function OrdersPage() {
   const load = useCallback(
     (nextPage) => {
       setLoading(true);
-      apiGetMyOrders({ page: nextPage, size: 10 })
+      apiGetMyOrders({ page: nextPage, size: PAGE_SIZE })
         .then((res) => {
           if (res.ok && res.data?.data) {
             const data = res.data.data;
-            setOrders(data.content || []);
+            setOrders(sortOrdersNewestFirst(data.content || []));
             setTotalPages(data.totalPages || 1);
             setPage(nextPage);
           } else if (res.status === 401) {
@@ -88,7 +98,10 @@ export default function OrdersPage() {
     queueMicrotask(() => load(0));
   }, [load, router]);
 
-  const filtered = activeTab === "all" ? orders : orders.filter((order) => order.status?.toLowerCase() === activeTab);
+  const filteredOrders = useMemo(
+    () => (activeTab === "all" ? orders : orders.filter((order) => order.status?.toLowerCase() === activeTab)),
+    [activeTab, orders],
+  );
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -110,7 +123,7 @@ export default function OrdersPage() {
 
       {loading ? (
         <div className="text-center py-16 text-gray-400">Đang tải...</div>
-      ) : filtered.length === 0 ? (
+      ) : filteredOrders.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
           <p className="text-4xl mb-3">🛍️</p>
           <p className="font-semibold text-gray-600">Chưa có đơn hàng nào</p>
@@ -120,7 +133,7 @@ export default function OrdersPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {filtered.map((order) => {
+          {filteredOrders.map((order) => {
             const status = STATUS_STYLE[order.status?.toLowerCase()] || {
               label: order.status,
               bg: "bg-gray-50",
@@ -134,7 +147,7 @@ export default function OrdersPage() {
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div>
                     <p className="font-mono text-sm font-semibold text-gray-700">#{order.orderCode}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{fmtDate(order.createdAt)}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{formatDate(order.createdAt)}</p>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap justify-end">
                     <span
@@ -170,16 +183,14 @@ export default function OrdersPage() {
                         )}
                       </div>
                     ))}
-                    {order.items.length > 2 && (
-                      <p className="text-xs text-gray-400">+{order.items.length - 2} sản phẩm khác</p>
-                    )}
+                    {order.items.length > 2 && <p className="text-xs text-gray-400">+{order.items.length - 2} sản phẩm khác</p>}
                   </div>
                 )}
 
                 <div className="mt-4 flex items-center justify-between gap-3 flex-wrap">
                   <div className="text-sm">
                     <span className="text-gray-500">Tổng cộng: </span>
-                    <span className="font-bold text-gray-800">{fmt(order.totalAmount)}</span>
+                    <span className="font-bold text-gray-800">{formatMoney(order.totalAmount)}</span>
                   </div>
                   <Link href={`/orders/${order.id}`} className="text-sm text-green-600 font-medium hover:underline">
                     Xem chi tiết →

@@ -115,6 +115,10 @@ export async function apiGetOrderDetail(orderId) {
   return request(`/api/orders/${orderId}`);
 }
 
+export async function apiSyncOrderPayment(orderId) {
+  return request(`/api/orders/${orderId}/payment/sync`, { method: "POST" });
+}
+
 // ============================================================
 // SELLER APPLICATIONS
 // ============================================================

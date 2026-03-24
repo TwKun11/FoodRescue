@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { apiGetMyShop, apiSellerUploadShopImage, apiUpdateMyShop } from "@/lib/api";
+import { getCurrentPosition, mapLocationToAddress, reverseGeocode } from "@/lib/location";
 
 const TABS = [
   { id: "basic", label: "Thông tin cơ bản", icon: "📋" },
@@ -53,7 +54,7 @@ const IMAGE_FIELDS = [
   {
     key: "businessLicenseImageUrl",
     label: "Ảnh giấy phép kinh doanh",
-    hint: "Bạn scan/chụp rõ thông tin doanh nghiệp hoặc hộ kinh doanh.",
+    hint: "Bản scan/chụp rõ thông tin doanh nghiệp hoặc hộ kinh doanh.",
   },
   {
     key: "identityCardImageUrl",
@@ -89,6 +90,8 @@ const EMPTY_SHOP = {
   contactName: "",
   phone: "",
   pickupAddress: "",
+  latitude: null,
+  longitude: null,
   description: "",
   taxCode: "",
   businessLicenseNumber: "",
@@ -133,6 +136,8 @@ function mapShopResponse(data) {
     contactName: data?.contactName || "",
     phone: data?.phone || "",
     pickupAddress: data?.pickupAddress || "",
+    latitude: data?.latitude ?? null,
+    longitude: data?.longitude ?? null,
     description: data?.description || "",
     taxCode: data?.taxCode || "",
     businessLicenseNumber: data?.businessLicenseNumber || "",
@@ -163,6 +168,7 @@ function mapShopResponse(data) {
 export default function ShopPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [locating, setLocating] = useState(false);
   const [uploadingField, setUploadingField] = useState("");
   const [message, setMessage] = useState({ type: null, text: "" });
   const [shop, setShop] = useState(EMPTY_SHOP);
@@ -239,6 +245,41 @@ export default function ShopPage() {
     }
   };
 
+  const handleUseCurrentLocation = async () => {
+    setLocating(true);
+    setMessage({ type: null, text: "" });
+    try {
+      const position = await getCurrentPosition();
+      const { latitude, longitude } = position.coords;
+      const data = await reverseGeocode(latitude, longitude);
+      const location = mapLocationToAddress(data?.address);
+      const pickupAddress = [
+        location.addressLine,
+        location.ward,
+        location.district,
+        location.province,
+      ]
+        .filter(Boolean)
+        .join(", ");
+
+      setForm((prev) => ({
+        ...prev,
+        pickupAddress: pickupAddress || prev.pickupAddress,
+        latitude,
+        longitude,
+      }));
+      setMessage({ type: "success", text: "Đã cập nhật vị trí cửa hàng." });
+    } catch (err) {
+      let text = err?.message || "Không thể lấy vị trí hiện tại.";
+      if (err?.code === 1) text = "Bạn đã từ chối quyền truy cập vị trí.";
+      if (err?.code === 2) text = "Không xác định được vị trí hiện tại.";
+      if (err?.code === 3) text = "Hết thời gian lấy vị trí hiện tại.";
+      setMessage({ type: "error", text });
+    } finally {
+      setLocating(false);
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setMessage({ type: null, text: "" });
@@ -250,6 +291,8 @@ export default function ShopPage() {
         contactName: form.contactName || null,
         phone: form.phone || null,
         pickupAddress: form.pickupAddress || null,
+        latitude: form.latitude,
+        longitude: form.longitude,
         description: form.description || null,
         taxCode: form.taxCode || null,
         businessLicenseNumber: form.businessLicenseNumber || null,
@@ -301,7 +344,7 @@ export default function ShopPage() {
             <div className="flex items-end gap-3">
               <div className="h-16 w-16 overflow-hidden rounded-xl border-4 border-white bg-white shadow-md">
                 {shop.avatarUrl ? (
-                  <img src={shop.avatarUrl} alt={shop.shopName || "Logo"} className="h-full w-full object-cover" />
+                  <img src={shop.avatarUrl} alt={shop.shopName || "Logo cửa hàng"} className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center bg-brand text-lg font-bold text-gray-900">
                     {(shop.shopName?.charAt(0) || "S").toUpperCase()}
@@ -309,10 +352,12 @@ export default function ShopPage() {
                 )}
               </div>
               <div className="pb-1 text-white">
-                <h1 className="text-xl font-bold">{shop.shopName || "Cửa hàng"}</h1>
-                <p className="mt-0.5 text-xs text-white/80">@{shop.shopSlug || "—"}</p>
-                <div className="mt-2 flex gap-2">
-                  <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-semibold ${statusMeta.className}`}>
+                <h1 className="text-2xl font-bold">{shop.shopName || "Cửa hàng của bạn"}</h1>
+                <p className="mt-1 text-sm text-white/80">
+                  @{shop.shopSlug || "chua-co-slug"} {shop.code ? `· ${shop.code}` : ""}
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${statusMeta.className}`}>
                     {statusMeta.label}
                   </span>
                   {shop.isVerified && (
@@ -364,49 +409,42 @@ export default function ShopPage() {
         ))}
       </div>
 
-      {/* ════ TAB CONTENT ════ */}
-      <div className="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm">
-        {/* TAB: Thông tin cơ bản */}
-        {activeTab === "basic" && (
-          <div className="space-y-5">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-1">Thông tin vận hành</h2>
-              <p className="text-sm text-gray-600">Cập nhật tên shop, thông tin liên hệ và địa chỉ giao nhận.</p>
+      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="space-y-6">
+          <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+            {activeTab === "basic" && (
+              <>
+            <h2 className="text-lg font-semibold text-gray-900">Thông tin vận hành</h2>
+            <p className="mt-1 text-sm text-gray-500">Cập nhật tên shop, thông tin liên hệ và địa chỉ giao nhận.</p>
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <Field label="Tên cửa hàng *" value={form.shopName} onChange={setField("shopName")} />
+              <ReadOnlyField label="Slug cua hang" value={form.shopSlug || "—"} />
+              <Field label="Ten phap ly / ho kinh doanh *" value={form.legalName} onChange={setField("legalName")} />
+              <Field label="Loại hình kinh doanh *" value={form.businessType} onChange={setField("businessType")} />
+              <Field label="Người liên hệ *" value={form.contactName} onChange={setField("contactName")} />
+              <Field label="Số điện thoại *" value={form.phone} onChange={setField("phone")} inputMode="numeric" />
             </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <Field
-                label="Tên cửa hàng *"
-                value={form.shopName}
-                onChange={setField("shopName")}
-                error={touched.shopName ? validateField("shopName", form.shopName) : null}
-              />
-              <ReadOnlyField label="Slug cửa hàng" value={form.shopSlug || "—"} />
-              <Field
-                label="Tên pháp lý / hộ kinh doanh *"
-                value={form.legalName}
-                onChange={setField("legalName")}
-                error={touched.legalName ? validateField("legalName", form.legalName) : null}
-              />
-              <Field
-                label="Loại hình kinh doanh *"
-                value={form.businessType}
-                onChange={setField("businessType")}
-                error={touched.businessType ? validateField("businessType", form.businessType) : null}
-              />
-              <Field
-                label="Người liên hệ *"
-                value={form.contactName}
-                onChange={setField("contactName")}
-                error={touched.contactName ? validateField("contactName", form.contactName) : null}
-              />
-              <Field
-                label="Số điện thoại *"
-                value={form.phone}
-                onChange={setField("phone")}
-                inputMode="numeric"
-                error={touched.phone ? validateField("phone", form.phone) : null}
-              />
+            <div className="mt-4 space-y-3">
+              <div className="flex flex-col gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-emerald-800">Vi tri cua hang</p>
+                  <p className="mt-1 text-xs text-emerald-700">Luu toa do de tinh khoang cach tu khach hang den cua hang.</p>
+                  {form.latitude != null && form.longitude != null && (
+                    <p className="mt-2 text-xs text-gray-600">
+                      Toa do da luu: {Number(form.latitude).toFixed(6)}, {Number(form.longitude).toFixed(6)}
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleUseCurrentLocation}
+                  disabled={locating}
+                  className="inline-flex items-center justify-center rounded-xl border border-emerald-200 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-60"
+                >
+                  {locating ? "Dang lay vi tri..." : "Lay vi tri hien tai"}
+                </button>
+              </div>
+              <TextArea label="Dia chi lay hang / giao nhan *" value={form.pickupAddress} onChange={setField("pickupAddress")} rows={3} />
             </div>
 
             <TextArea
@@ -424,7 +462,7 @@ export default function ShopPage() {
               rows={4}
               hint="Viết gì đó để khách hàng biết thêm về cửa hàng của bạn"
             />
-          </div>
+          </>
         )}
 
         {/* TAB: Hồ sơ pháp lý */}
@@ -527,9 +565,11 @@ export default function ShopPage() {
             </div>
           </div>
         )}
+          </section>
       </div>
 
       {/* ════ STICKY SAVE BUTTON ════ */}
+      </div>
       <div className="sticky bottom-0 z-10 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-lg backdrop-blur">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>

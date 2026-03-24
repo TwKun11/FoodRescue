@@ -16,6 +16,9 @@ public class ProductResponse {
     private String sellerName;
     private String sellerSlug;
     private String sellerPhone;
+    private String sellerPickupAddress;
+    private Double sellerLatitude;
+    private Double sellerLongitude;
     private BigDecimal sellerRatingAvg;
     private Boolean sellerVerified;
     private Long categoryId;
@@ -47,6 +50,9 @@ public class ProductResponse {
                 .sellerName(product.getSeller() != null ? product.getSeller().getShopName() : null)
                 .sellerSlug(product.getSeller() != null ? product.getSeller().getShopSlug() : null)
                 .sellerPhone(product.getSeller() != null ? product.getSeller().getPhone() : null)
+                .sellerPickupAddress(product.getSeller() != null ? product.getSeller().getPickupAddress() : null)
+                .sellerLatitude(product.getSeller() != null ? product.getSeller().getLatitude() : null)
+                .sellerLongitude(product.getSeller() != null ? product.getSeller().getLongitude() : null)
                 .sellerRatingAvg(product.getSeller() != null ? product.getSeller().getRatingAvg() : null)
                 .sellerVerified(product.getSeller() != null ? product.getSeller().getIsVerified() : null)
                 .categoryId(product.getCategory() != null ? product.getCategory().getId() : null)
