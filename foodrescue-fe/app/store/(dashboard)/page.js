@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import StatCard from "@/components/store/StatCard";
 import Badge from "@/components/common/Badge";
 import Link from "next/link";
-import { apiSellerGetProducts, apiSellerGetOrders, apiGetSellerStats } from "@/lib/api";
+import { apiSellerGetProducts, apiSellerGetOrders, apiGetSellerStats, apiGetSellerRatingStats, apiGetTopRatedSellerProducts, apiMockTopRatedSellerProducts } from "@/lib/api";
 
 // ── Icon SVG hiện đại (outline, 24x24) ─────────────────────────────────────
 const IconClock = () => (
@@ -52,6 +52,11 @@ const IconProduct = () => (
     <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10m0-10l8 4m0 0v10l-8 4m0-10l-8-4" stroke="currentColor" strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
+const IconStar = () => (
+  <svg className="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+  </svg>
+);
 
 // ── Status Map ─────────────────────────────────────────────────────────────
 const STATUS_MAP = {
@@ -91,6 +96,10 @@ export default function StoreDashboardPage() {
   const [todayRevenue, setTodayRevenue] = useState(0);
   const [monthRevenue, setMonthRevenue] = useState(0);
   const [topProducts, setTopProducts] = useState([]);
+  
+  const [ratingStats, setRatingStats] = useState(null);
+  const [topRatedProducts, setTopRatedProducts] = useState([]);
+  const [ratingStatsLoading, setRatingStatsLoading] = useState(true);
 
   // Fetch products
   useEffect(() => {
@@ -176,6 +185,54 @@ export default function StoreDashboardPage() {
       })
       .catch((err) => console.error("Stats fetch error:", err))
       .finally(() => setStatsLoading(false));
+  }, []);
+
+  // Fetch rating stats
+  useEffect(() => {
+    console.log("=== FETCHING RATING STATS ===");
+    
+    Promise.all([
+      apiGetSellerRatingStats(),
+      apiGetTopRatedSellerProducts(5)
+    ])
+      .then(([ratingRes, topRatedRes]) => {
+        console.log("=== Rating Stats Response ===");
+        console.log("Status:", ratingRes.ok, "Data:", ratingRes.data);
+        console.log("=== Top Rated Response ===");
+        console.log("Status:", topRatedRes.ok, "Data:", topRatedRes.data);
+        console.log("Is Array?", Array.isArray(topRatedRes.data?.data));
+        
+        if (ratingRes.ok && ratingRes.data?.data) {
+          console.log("Setting ratingStats:", ratingRes.data.data);
+          setRatingStats(ratingRes.data.data);
+        }
+        if (topRatedRes.ok && topRatedRes.data?.data && Array.isArray(topRatedRes.data.data)) {
+          console.log("Setting topRatedProducts:", topRatedRes.data.data);
+          setTopRatedProducts(topRatedRes.data.data);
+        } else {
+          console.warn("Top rated response not valid:", {
+            ok: topRatedRes.ok,
+            hasData: !!topRatedRes.data?.data,
+            isArray: Array.isArray(topRatedRes.data?.data),
+            actualData: topRatedRes.data?.data
+          });
+          
+          // TEST: Try mock endpoint
+          console.log("=== TESTING MOCK ENDPOINT ===");
+          apiMockTopRatedSellerProducts(5)
+            .then(mockRes => {
+              console.log("Mock endpoint status:", mockRes.ok);
+              console.log("Mock endpoint data:", mockRes.data);
+              if (mockRes.ok && mockRes.data?.data && Array.isArray(mockRes.data.data)) {
+                console.log("Mock data is valid! Setting mock topRatedProducts:", mockRes.data.data);
+                setTopRatedProducts(mockRes.data.data);
+              }
+            })
+            .catch(err => console.error("Mock endpoint error:", err));
+        }
+      })
+      .catch((err) => console.error("Rating stats fetch error:", err))
+      .finally(() => setRatingStatsLoading(false));
   }, []);
 
   return (
@@ -472,6 +529,131 @@ export default function StoreDashboardPage() {
         </div>
       </div>
 
+      {/* ════ RATING STATS & TOP RATED PRODUCTS ════ */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Rating Stats Cards */}
+        <div className="lg:col-span-1">
+          <div className="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-2xl shadow-sm border border-yellow-200 overflow-hidden p-6">
+            <div className="flex items-start justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-yellow-100 flex items-center justify-center text-yellow-600">
+                  <IconStar />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 font-medium">Trung bình đánh giá</p>
+                  <p className="text-3xl font-black text-yellow-600 leading-none">{ratingStatsLoading ? "-" : (ratingStats?.averageRating || 0).toFixed(1)}</p>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 mb-3">
+              {ratingStatsLoading ? (
+                <span className="text-sm text-gray-500">Đang tải...</span>
+              ) : (
+                <>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <svg
+                        key={i}
+                        className={`w-4 h-4 ${i <= Math.round(ratingStats?.averageRating || 0) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
+                        viewBox="0 0 20 20"
+                      >
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                    ))}
+                  </div>
+                  <span className="text-sm text-gray-600 ml-2">{ratingStats?.totalReviews || 0} đánh giá</span>
+                </>
+              )}
+            </div>
+            {!ratingStatsLoading && ratingStats?.ratingCounts && (
+              <div className="space-y-2">
+                {[5, 4, 3, 2, 1].map((stars) => (
+                  <div key={stars} className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-gray-600 w-6">{stars}⭐</span>
+                    <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-yellow-400"
+                        style={{ width: `${ratingStats.totalReviews > 0 ? (ratingStats.ratingCounts[stars] || 0) / ratingStats.totalReviews * 100 : 0}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-gray-500 w-6 text-right">{ratingStats.ratingCounts[stars] || 0}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Top Rated Products */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full lg:col-span-2">
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-lg bg-yellow-50 flex items-center justify-center text-yellow-600">
+                <IconStar />
+              </div>
+              <h2 className="font-semibold text-gray-900">Đánh giá cao nhất</h2>
+            </div>
+          </div>
+          <div className="divide-y divide-gray-50 flex-1 overflow-y-auto">
+            {ratingStatsLoading ? (
+              <div className="px-5 py-8 text-center text-gray-400">
+                <p className="text-sm">Đang tải...</p>
+              </div>
+            ) : topRatedProducts.length === 0 ? (
+              <div className="px-5 py-8 text-center text-gray-400">
+                <p className="text-sm">Chưa có đánh giá nào</p>
+              </div>
+            ) : (
+              topRatedProducts.map((product, idx) => {
+                const avgRating = parseFloat(product.avgRating) || 0;
+                const reviewCount = parseInt(product.reviewCount) || 0;
+                return (
+                  <div key={product.id || idx} className="px-4 py-3 hover:bg-yellow-50/30 transition">
+                    <div className="flex items-center gap-3">
+                      {/* Ranking Badge */}
+                      <span className={`font-bold text-xs w-6 h-6 shrink-0 flex items-center justify-center rounded-full ${
+                        idx === 0 ? "bg-yellow-400 text-white" :
+                        idx === 1 ? "bg-gray-400 text-white" :
+                        idx === 2 ? "bg-orange-400 text-white" : "bg-gray-200 text-gray-600"
+                      }`}>
+                        {idx + 1}
+                      </span>
+                      
+                      {/* Product Image */}
+                      <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center shrink-0 overflow-hidden">
+                        {product.primaryImageUrl ? (
+                          <img src={product.primaryImageUrl} alt={product.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <IconProduct />
+                        )}
+                      </div>
+                      
+                      {/* Product Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-800 text-sm truncate">{product.name || "Sản phẩm"}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <div className="flex gap-0.5">
+                            {[1, 2, 3, 4, 5].map((i) => (
+                              <svg
+                                key={i}
+                                className={`w-3 h-3 ${i <= Math.round(avgRating) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
+                                viewBox="0 0 20 20"
+                              >
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                              </svg>
+                            ))}
+                          </div>
+                          <span className="text-xs text-gray-500">{avgRating.toFixed(1)} ({reviewCount})</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      </div>
 
     </div>
   );

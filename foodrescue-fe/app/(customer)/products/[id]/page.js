@@ -1,13 +1,15 @@
 // Trang chi tiết sản phẩm – theo thiết kế Figma (Figma V2)
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import CountdownTimer from "@/components/customer/CountdownTimer";
 import ProductCardListing from "@/components/customer/ProductCardListing";
-import { apiGetProduct, apiGetProducts } from "@/lib/api";
+import ReviewForm from "@/components/customer/ReviewForm";
+import ReviewDisplay from "@/components/customer/ReviewDisplay";
+import { apiGetProduct, apiGetProducts, apiGetMyReviewForProduct, apiCheckCanReviewProduct } from "@/lib/api";
 import { addItemToCart, startDirectCheckout } from "@/lib/cart";
 import { formatDistanceMeters, getCurrentPosition, haversineDistanceMeters } from "@/lib/location";
 
@@ -126,7 +128,9 @@ const STORAGE_LABELS = {
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const id = params?.id;
+  const reviewsSectionRef = useRef(null);
   const [product, setProduct] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -136,9 +140,16 @@ export default function ProductDetailPage() {
   const [qty, setQty] = useState(1);
   const [addedToCart, setAddedToCart] = useState(false);
   const [buyingNow, setBuyingNow] = useState(false);
-  const [detailTab, setDetailTab] = useState("description");
-  const [viewerLocation, setViewerLocation] = useState(null);
+ const [detailTab, setDetailTab] = useState(searchParams?.get("tab") || "description");
 
+// Review states
+const [myReview, setMyReview] = useState(null);
+const [canReview, setCanReview] = useState(false);
+const [reviewLoading, setReviewLoading] = useState(false);
+const [reviewsRefreshTrigger, setReviewsRefreshTrigger] = useState(0);
+
+// Location state
+const [viewerLocation, setViewerLocation] = useState(null);
   useEffect(() => {
     getCurrentPosition()
       .then((position) => {
@@ -191,6 +202,63 @@ export default function ProductDetailPage() {
       })
       .finally(() => setLoading(false));
   }, [id, viewerLocation]);
+
+  // Load review info when tab=reviews
+  useEffect(() => {
+    if (detailTab !== "reviews" || !id) return;
+    
+    setReviewLoading(true);
+    Promise.all([
+      apiGetMyReviewForProduct(id),
+      apiCheckCanReviewProduct(id)
+    ])
+      .then(([reviewRes, canReviewRes]) => {
+        if (reviewRes.ok && reviewRes.data?.data) {
+          setMyReview(reviewRes.data.data);
+        }
+        if (canReviewRes.ok && canReviewRes.data?.data) {
+          setCanReview(canReviewRes.data.data.canReview || false);
+        }
+      })
+      .finally(() => setReviewLoading(false));
+  }, [detailTab, id]);
+
+  // Scroll to reviews section when tab is set to reviews
+  useEffect(() => {
+    if (detailTab === "reviews" && reviewsSectionRef.current) {
+      setTimeout(() => {
+        reviewsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
+  }, [detailTab]);
+
+  // Reload review data when review is created or updated
+  const reloadReviewData = async () => {
+    if (!id) return;
+    
+    console.log("[Page] reloadReviewData() called");
+    const [reviewRes, canReviewRes] = await Promise.all([
+      apiGetMyReviewForProduct(id),
+      apiCheckCanReviewProduct(id)
+    ]);
+    
+    console.log("[Page] reviewRes:", reviewRes);
+    if (reviewRes.ok && reviewRes.data?.data) {
+      console.log("[Page] Setting myReview:", reviewRes.data.data);
+      setMyReview(reviewRes.data.data);
+    } else {
+      console.log("[Page] No review found, setting null");
+      setMyReview(null);
+    }
+    
+    if (canReviewRes.ok && canReviewRes.data?.data) {
+      setCanReview(canReviewRes.data.data.canReview || false);
+    }
+    
+    // Trigger ReviewDisplay to reload
+    console.log("[Page] Triggering ReviewDisplay refresh");
+    setReviewsRefreshTrigger(prev => prev + 1);
+  };
 
   const buildCheckoutItem = () => {
     if (!product || !selectedSku) return null;
@@ -440,11 +508,12 @@ export default function ProductDetailPage() {
           </section>
         </div>
 
-        <section className="mt-14 pt-12 border-t border-slate-200">
+        <section className="mt-14 pt-12 border-t border-slate-200" ref={reviewsSectionRef}>
           <div className="flex gap-10 border-b border-slate-200 mb-8">
             {[
               { id: "description", label: "Mô tả sản phẩm" },
               { id: "storage", label: "Cách bảo quản" },
+              { id: "reviews", label: "⭐ Đánh giá" },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -467,6 +536,30 @@ export default function ProductDetailPage() {
                   {product.storageType && <p>{STORAGE_LABELS[product.storageType] || product.storageType}</p>}
                   {product.shelfLifeDays > 0 && <p>Hạn sử dụng: {product.shelfLifeDays} ngày kể từ khi mua</p>}
                   {!product.storageType && !product.shelfLifeDays && "Chưa cập nhật."}
+                </div>
+              )}
+              {detailTab === "reviews" && (
+                <div className="space-y-6">
+                  {reviewLoading ? (
+                    <div className="text-center py-8 text-gray-400">Đang tải...</div>
+                  ) : (
+                    <>
+                      {canReview && !myReview && (
+                        <ReviewForm 
+                          productId={id} 
+                          existingReview={myReview}
+                          onSubmit={reloadReviewData}
+                          onDelete={() => setMyReview(null)}
+                        />
+                      )}
+                      <ReviewDisplay 
+                        productId={id} 
+                        myReview={myReview}
+                        onRefresh={reloadReviewData}
+                        refreshTrigger={reviewsRefreshTrigger} 
+                      />
+                    </>
+                  )}
                 </div>
               )}
             </div>
