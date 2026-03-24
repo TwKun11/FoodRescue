@@ -412,6 +412,8 @@ export default function ShopPage() {
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-6">
           <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+            {activeTab === "basic" && (
+              <>
             <h2 className="text-lg font-semibold text-gray-900">Thông tin vận hành</h2>
             <p className="mt-1 text-sm text-gray-500">Cập nhật tên shop, thông tin liên hệ và địa chỉ giao nhận.</p>
             <div className="mt-5 grid gap-4 md:grid-cols-2">
@@ -460,7 +462,7 @@ export default function ShopPage() {
               rows={4}
               hint="Viết gì đó để khách hàng biết thêm về cửa hàng của bạn"
             />
-          </div>
+          </>
         )}
 
         {/* TAB: Hồ sơ pháp lý */}
@@ -563,9 +565,11 @@ export default function ShopPage() {
             </div>
           </div>
         )}
+          </section>
       </div>
 
       {/* ════ STICKY SAVE BUTTON ════ */}
+      </div>
       <div className="sticky bottom-0 z-10 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-lg backdrop-blur">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>

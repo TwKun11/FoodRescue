@@ -8,6 +8,8 @@ import {
   apiAdminRejectBannerAd,
 } from "@/lib/api";
 
+const PAGE_SIZE = 10;
+
 const TABS = [
   { id: "all", label: "Tất cả" },
   { id: "pending", label: "Chờ duyệt" },
@@ -21,15 +23,23 @@ const STATUS_LABEL = {
   REJECTED: "Từ chối",
 };
 
-function formatDate(d) {
-  if (!d) return "—";
-  return new Date(d).toLocaleString("vi-VN", {
+function formatDate(value) {
+  if (!value) return "-";
+  return new Date(value).toLocaleString("vi-VN", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function getAdSortTime(ad) {
+  return new Date(ad?.createdAt || ad?.startDate || 0).getTime();
+}
+
+function sortAdsNewestFirst(items) {
+  return [...items].sort((left, right) => getAdSortTime(right) - getAdSortTime(left));
 }
 
 function AdCard({ ad, onApprove, onReject, acting }) {
@@ -42,7 +52,9 @@ function AdCard({ ad, onApprove, onReject, acting }) {
           src={ad.imageUrl}
           alt={ad.title}
           className="w-full h-full object-cover"
-          onError={(e) => (e.target.src = "https://placehold.co/192x64?text=Banner")}
+          onError={(event) => {
+            event.target.src = "https://placehold.co/192x64?text=Banner";
+          }}
         />
       </div>
       <div className="flex-1 min-w-0">
@@ -53,15 +65,11 @@ function AdCard({ ad, onApprove, onReject, acting }) {
           </span>
         </div>
         <p className="text-xs text-gray-500 mt-0.5">Seller ID: {ad.sellerId}</p>
-        {ad.linkUrl && (
-          <p className="text-xs text-gray-600 mt-1 truncate">Link: {ad.linkUrl}</p>
-        )}
+        {ad.linkUrl && <p className="text-xs text-gray-600 mt-1 truncate">Link: {ad.linkUrl}</p>}
         <p className="text-xs text-gray-500 mt-1">
-          {formatDate(ad.startDate)} → {formatDate(ad.endDate)}
+          {formatDate(ad.startDate)} -&gt; {formatDate(ad.endDate)}
         </p>
-        {ad.rejectReason && (
-          <p className="text-xs text-red-600 mt-1">Lý do từ chối: {ad.rejectReason}</p>
-        )}
+        {ad.rejectReason && <p className="text-xs text-red-600 mt-1">Lý do từ chối: {ad.rejectReason}</p>}
         {canAct && (
           <div className="mt-3 flex gap-2">
             <button
@@ -90,6 +98,7 @@ function AdCard({ ad, onApprove, onReject, acting }) {
 export default function AdminAdsPage() {
   const [statusTab, setStatusTab] = useState("all");
   const [ads, setAds] = useState([]);
+  const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(null);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
@@ -98,19 +107,13 @@ export default function AdminAdsPage() {
 
   const loadByStatus = useCallback((status) => {
     setLoading(true);
-    const fetchOne = (s) =>
-      apiAdminGetBannerAdsByStatus(s).then((res) => (res.ok && Array.isArray(res.data?.data) ? res.data.data : []));
+    const fetchOne = (value) =>
+      apiAdminGetBannerAdsByStatus(value).then((res) => (res.ok && Array.isArray(res.data?.data) ? res.data.data : []));
 
     if (status === "all") {
       Promise.all([fetchOne("pending"), fetchOne("approved"), fetchOne("rejected")])
-        .then(([p, a, r]) => {
-          const merged = [...p, ...a, ...r];
-          merged.sort((x, y) => {
-            const tx = new Date(x.createdAt || x.startDate || 0).getTime();
-            const ty = new Date(y.createdAt || y.startDate || 0).getTime();
-            return ty - tx;
-          });
-          setAds(merged);
+        .then(([pending, approved, rejected]) => {
+          setAds(sortAdsNewestFirst([...pending, ...approved, ...rejected]));
         })
         .finally(() => setLoading(false));
       return;
@@ -118,15 +121,22 @@ export default function AdminAdsPage() {
 
     apiAdminGetBannerAdsByStatus(status)
       .then((res) => {
-        if (res.ok && res.data?.data) setAds(Array.isArray(res.data.data) ? res.data.data : []);
-        else setAds([]);
+        if (res.ok && res.data?.data) {
+          setAds(sortAdsNewestFirst(Array.isArray(res.data.data) ? res.data.data : []));
+        } else {
+          setAds([]);
+        }
       })
       .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
+    setPage(0);
     loadByStatus(statusTab);
   }, [statusTab, loadByStatus]);
+
+  const totalPages = Math.max(1, Math.ceil(ads.length / PAGE_SIZE));
+  const paginatedAds = ads.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   const handleApprove = (id) => {
     setActing(id);
@@ -135,7 +145,9 @@ export default function AdminAdsPage() {
         if (res.ok) {
           toast.success("Đã duyệt quảng cáo");
           loadByStatus(statusTab);
-        } else toast.error(res.data?.message || "Duyệt thất bại.");
+        } else {
+          toast.error(res.data?.message || "Duyệt thất bại.");
+        }
       })
       .finally(() => setActing(null));
   };
@@ -153,6 +165,7 @@ export default function AdminAdsPage() {
       toast.error("Vui lòng nhập lý do từ chối.");
       return;
     }
+
     setActing(rejectAd.id);
     apiAdminRejectBannerAd(rejectAd.id, reason)
       .then((res) => {
@@ -179,7 +192,7 @@ export default function AdminAdsPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-gray-900">Quản lý quảng cáo</h1>
       <p className="text-sm text-gray-500">
-        Xem banner theo trạng thái. Duyệt hoặc từ chối banner chờ duyệt. Chỉ banner đã duyệt và trong thời gian chạy mới hiển thị tại trang Sản phẩm.
+        Danh sách banner được phân trang và sắp xếp mới nhất lên trước.
       </p>
 
       <div className="flex gap-2 border-b border-gray-200">
@@ -200,29 +213,66 @@ export default function AdminAdsPage() {
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+        <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-bold text-gray-700">
-            {TABS.find((t) => t.id === statusTab)?.label || "Banner"}
+            {TABS.find((tab) => tab.id === statusTab)?.label || "Banner"}
           </h2>
+          {!loading && ads.length > 0 && (
+            <p className="text-xs text-gray-500">
+              {ads.length} banner · Trang {page + 1}/{totalPages}
+            </p>
+          )}
         </div>
+
         {loading ? (
           <p className="p-8 text-center text-gray-400">Đang tải...</p>
         ) : ads.length === 0 ? (
-          <p className="p-8 text-center text-gray-400">
-            Không có banner nào ở trạng thái này.
-          </p>
+          <p className="p-8 text-center text-gray-400">Không có banner nào ở trạng thái này.</p>
         ) : (
-          <div className="divide-y divide-gray-100">
-            {ads.map((ad) => (
-              <AdCard
-                key={ad.id}
-                ad={ad}
-                onApprove={handleApprove}
-                onReject={handleRejectClick}
-                acting={acting}
-              />
-            ))}
-          </div>
+          <>
+            <div className="divide-y divide-gray-100">
+              {paginatedAds.map((ad) => (
+                <AdCard
+                  key={ad.id}
+                  ad={ad}
+                  onApprove={handleApprove}
+                  onReject={handleRejectClick}
+                  acting={acting}
+                />
+              ))}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="px-5 py-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm text-gray-500">
+                  Hiển thị {paginatedAds.length} / {ads.length} banner ({PAGE_SIZE}/trang)
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    disabled={page === 0}
+                    onClick={() => setPage((current) => current - 1)}
+                    className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-brand-bg hover:border-brand/50 transition disabled:opacity-40 disabled:pointer-events-none"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <span className="text-sm font-medium text-gray-700 min-w-16 text-center">
+                    {page + 1} / {totalPages}
+                  </span>
+                  <button
+                    disabled={page >= totalPages - 1}
+                    onClick={() => setPage((current) => current + 1)}
+                    className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-brand-bg hover:border-brand/50 transition disabled:opacity-40 disabled:pointer-events-none"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -232,25 +282,23 @@ export default function AdminAdsPage() {
           role="dialog"
           aria-modal="true"
           aria-label="Nhập lý do từ chối"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) handleRejectCancel();
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) handleRejectCancel();
           }}
         >
           <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl border border-gray-100 overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50">
               <h3 className="text-sm font-bold text-gray-800">Từ chối quảng cáo</h3>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Nhập lý do để Seller biết và chỉnh sửa lại.
-              </p>
+              <p className="text-xs text-gray-500 mt-0.5">Nhập lý do để seller sửa lại banner.</p>
             </div>
             <div className="p-5 space-y-3">
               <div className="text-sm text-gray-700">
-                <span className="font-semibold">Tiêu đề:</span> {rejectAd?.title || "—"}
+                <span className="font-semibold">Tiêu đề:</span> {rejectAd?.title || "-"}
               </div>
               <textarea
                 value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                placeholder="Ví dụ: Ảnh bị mờ / nội dung không phù hợp / thiếu thông tin..."
+                onChange={(event) => setRejectReason(event.target.value)}
+                placeholder="Ví dụ: Ảnh mờ, nội dung chưa phù hợp, thiếu thông tin..."
                 className="w-full min-h-[110px] border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
               />
               <div className="flex justify-end gap-2">
