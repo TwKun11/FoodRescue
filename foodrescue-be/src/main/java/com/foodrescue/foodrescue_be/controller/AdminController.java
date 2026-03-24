@@ -121,9 +121,51 @@ public class AdminController {
     public ResponseData<SellerResponse> verifySeller(@PathVariable Long id) {
         Seller seller = sellerRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Cửa hàng không tồn tại"));
+        User user = seller.getUser();
+        if (user != null && user.getRole() != Role.SELLER) {
+            user.setRole(Role.SELLER);
+            userRepository.save(user);
+        }
         seller.setIsVerified(true);
         if (seller.getStatus() == Seller.Status.pending) seller.setStatus(Seller.Status.active);
         return ResponseData.ok("Xác minh cửa hàng thành công", SellerResponse.fromEntity(sellerRepository.save(seller)));
+    }
+
+    @PostMapping("/users/{id}/convert-to-seller")
+    public ResponseData<SellerResponse> convertCustomerToSeller(
+            @PathVariable Long id,
+            @Valid @RequestBody ConvertToSellerRequest req
+    ) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
+
+        if (user.getRole() != Role.CUSTOMER) {
+            throw new IllegalArgumentException("Chỉ user với role CUSTOMER mới có thể convert thành SELLER");
+        }
+
+        // Check if seller already exists for this user
+        if (sellerRepository.existsByUserId(user.getId())) {
+            throw new IllegalArgumentException("Người dùng này đã có hồ sơ seller");
+        }
+
+        // Update user role
+        user.setRole(Role.SELLER);
+        userRepository.save(user);
+
+        // Create seller record
+        Seller seller = Seller.builder()
+                .user(user)
+                .code(req.getCode().trim().toUpperCase())
+                .shopName(req.getShopName())
+                .shopSlug(req.getShopSlug())
+                .contactName(req.getContactName())
+                .phone(req.getPhone())
+                .commissionRate(java.math.BigDecimal.ZERO)
+                .status(Seller.Status.pending)
+                .isVerified(false)
+                .build();
+
+        return ResponseData.ok("Chuyển đổi thành seller thành công", SellerResponse.fromEntity(sellerRepository.save(seller)));
     }
 
     // ── Inner DTO ──────────────────────────────────────────────────────────
@@ -133,6 +175,16 @@ public class AdminController {
     public static class CreateSellerRequest {
         @NotBlank private String email;
         @NotBlank private String password;
+        @NotBlank private String code;
+        @NotBlank private String shopName;
+        @NotBlank private String shopSlug;
+        @NotBlank private String contactName;
+        private String phone;
+    }
+
+    @Getter
+    @Setter
+    public static class ConvertToSellerRequest {
         @NotBlank private String code;
         @NotBlank private String shopName;
         @NotBlank private String shopSlug;

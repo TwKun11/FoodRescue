@@ -1,10 +1,12 @@
 package com.foodrescue.foodrescue_be.repository;
 
 import com.foodrescue.foodrescue_be.model.Seller;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -12,12 +14,33 @@ import java.util.Optional;
 
 @Repository
 public interface SellerRepository extends JpaRepository<Seller, Long> {
-    Optional<Seller> findByUserEmail(String email);
-    Optional<Seller> findByShopSlug(String shopSlug);
-    boolean existsByUserEmail(String email);
 
+    @EntityGraph(attributePaths = "user")
+    Optional<Seller> findByUserEmail(String email);
+
+    Optional<Seller> findByShopSlug(String shopSlug);
+    Optional<Seller> findByUserId(Long userId);
+    boolean existsByUserEmail(String email);
+    boolean existsByUserId(Long userId);
+
+    @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END FROM Seller s WHERE s.shopSlug = :shopSlug AND s.user.id != :userId")
+    boolean existsByShopSlug(@Param("shopSlug") String shopSlug, @Param("userId") Long userId);
+
+    @EntityGraph(attributePaths = "user")
     @Query("SELECT s FROM Seller s JOIN s.user u WHERE " +
             "(:search IS NULL OR :search = '' OR LOWER(s.shopName) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(s.code) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(s.contactName) LIKE LOWER(CONCAT('%', :search, '%'))) " +
             "AND (:status IS NULL OR s.status = :status)")
     Page<Seller> findAllWithFilter(@Param("search") String search, @Param("status") Seller.Status status, Pageable pageable);
+
+    @EntityGraph(attributePaths = "user")
+    @Query("SELECT s FROM Seller s JOIN s.user u WHERE s.termsAcceptedAt IS NOT NULL AND " +
+            "(:search IS NULL OR :search = '' OR LOWER(s.shopName) LIKE LOWER(CONCAT('%', :search, '%')) " +
+            "OR LOWER(s.shopSlug) LIKE LOWER(CONCAT('%', :search, '%')) " +
+            "OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')) " +
+            "OR LOWER(COALESCE(s.contactName, '')) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+            "AND (:status IS NULL OR s.status = :status)")
+    Page<Seller> findAllApplicationsWithFilter(@Param("search") String search, @Param("status") Seller.Status status, Pageable pageable);
+
+        @Query("SELECT COUNT(s) FROM Seller s WHERE s.status = :status")
+        long countByStatus(@Param("status") Seller.Status status);
 }

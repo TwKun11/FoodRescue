@@ -2,6 +2,7 @@ package com.foodrescue.foodrescue_be.dto.response;
 
 import com.foodrescue.foodrescue_be.model.Order;
 import com.foodrescue.foodrescue_be.model.OrderSellerOrder;
+import com.foodrescue.foodrescue_be.model.User;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -26,9 +27,14 @@ public class OrderResponse {
     private LocalDateTime confirmedAt;
     private LocalDateTime completedAt;
     private LocalDateTime cancelledAt;
+    private LocalDateTime paidAt;
+    private OrderPaymentResponse payment;
     private List<OrderItemResponse> items;
+    private String customerName;
+    private String customerEmail;
+    private String customerPhone;
 
-    public static OrderResponse fromEntity(Order order, List<OrderItemResponse> items) {
+    public static OrderResponse fromEntity(Order order, List<OrderItemResponse> items, OrderPaymentResponse payment) {
         return OrderResponse.builder()
                 .id(order.getId())
                 .orderCode(order.getOrderCode())
@@ -44,12 +50,15 @@ public class OrderResponse {
                 .confirmedAt(order.getConfirmedAt())
                 .completedAt(order.getCompletedAt())
                 .cancelledAt(order.getCancelledAt())
+                .paidAt(order.getPaidAt())
+                .payment(payment)
                 .items(items)
                 .build();
     }
 
-    public static OrderResponse fromSellerOrder(OrderSellerOrder so, List<OrderItemResponse> items) {
+    public static OrderResponse fromSellerOrder(OrderSellerOrder so, List<OrderItemResponse> items, OrderPaymentResponse payment) {
         Order order = so.getOrder();
+        User customer = order != null ? order.getUser() : null;
         return OrderResponse.builder()
                 .id(so.getId())
                 .orderCode(so.getSellerOrderCode())
@@ -65,7 +74,12 @@ public class OrderResponse {
                 .confirmedAt(so.getConfirmedAt())
                 .completedAt(so.getCompletedAt())
                 .cancelledAt(so.getCancelledAt())
+                .paidAt(order.getPaidAt())
+                .payment(payment)
                 .items(items)
+                .customerName(customer != null ? customer.getFullName() : null)
+                .customerEmail(customer != null ? customer.getEmail() : null)
+                .customerPhone(customer != null ? customer.getPhone() : null)
                 .build();
     }
 }

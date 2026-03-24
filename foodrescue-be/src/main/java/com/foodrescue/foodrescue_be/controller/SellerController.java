@@ -10,16 +10,29 @@ import com.foodrescue.foodrescue_be.model.Seller;
 import com.foodrescue.foodrescue_be.repository.OrderItemRepository;
 import com.foodrescue.foodrescue_be.repository.OrderSellerOrderRepository;
 import com.foodrescue.foodrescue_be.repository.SellerRepository;
+import com.foodrescue.foodrescue_be.service.CloudinaryService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -30,6 +43,7 @@ public class SellerController {
     private final SellerRepository sellerRepository;
     private final OrderSellerOrderRepository sellerOrderRepository;
     private final OrderItemRepository orderItemRepository;
+    private final CloudinaryService cloudinaryService;
 
     @GetMapping("/shop")
     public ResponseData<SellerResponse> getMyShop(Authentication auth) {
@@ -38,19 +52,55 @@ public class SellerController {
     }
 
     @PutMapping("/shop")
+    @Transactional
     public ResponseData<SellerResponse> updateShop(
             Authentication auth,
-            @RequestBody UpdateSellerRequest req
+            @Valid @RequestBody UpdateSellerRequest req
     ) {
-        Seller seller = resolveByEmail((String) auth.getPrincipal());
-        if (req.getShopName() != null && !req.getShopName().isBlank()) seller.setShopName(req.getShopName());
-        if (req.getLegalName() != null) seller.setLegalName(req.getLegalName());
-        if (req.getContactName() != null) seller.setContactName(req.getContactName());
-        if (req.getPhone() != null) seller.setPhone(req.getPhone());
-        if (req.getDescription() != null) seller.setDescription(req.getDescription());
-        if (req.getAvatarUrl() != null) seller.setAvatarUrl(req.getAvatarUrl());
-        if (req.getCoverUrl() != null) seller.setCoverUrl(req.getCoverUrl());
-        return ResponseData.ok("Cập nhật cửa hàng thành công", SellerResponse.fromEntity(sellerRepository.save(seller)));
+        String email = String.valueOf(auth.getPrincipal());
+        Seller seller = resolveByEmail(email);
+
+        if (req.getShopName() != null && !req.getShopName().isBlank()) {
+            seller.setShopName(req.getShopName().trim());
+        }
+        if (req.getLegalName() != null) seller.setLegalName(cleanNullable(req.getLegalName()));
+        if (req.getBusinessType() != null) seller.setBusinessType(cleanNullable(req.getBusinessType()));
+        if (req.getContactName() != null) seller.setContactName(cleanNullable(req.getContactName()));
+        if (req.getPhone() != null) seller.setPhone(cleanNullable(req.getPhone()));
+        if (req.getPickupAddress() != null) seller.setPickupAddress(cleanNullable(req.getPickupAddress()));
+        if (req.getLatitude() != null) seller.setLatitude(req.getLatitude());
+        if (req.getLongitude() != null) seller.setLongitude(req.getLongitude());
+        if (req.getTaxCode() != null) seller.setTaxCode(cleanNullable(req.getTaxCode()));
+        if (req.getBusinessLicenseNumber() != null) seller.setBusinessLicenseNumber(cleanNullable(req.getBusinessLicenseNumber()));
+        if (req.getIdentityNumber() != null) seller.setIdentityNumber(cleanNullable(req.getIdentityNumber()));
+        if (req.getDescription() != null) seller.setDescription(cleanNullable(req.getDescription()));
+        if (req.getAvatarUrl() != null) seller.setAvatarUrl(cleanNullable(req.getAvatarUrl()));
+        if (req.getCoverUrl() != null) seller.setCoverUrl(cleanNullable(req.getCoverUrl()));
+        if (req.getStorefrontImageUrl() != null) seller.setStorefrontImageUrl(cleanNullable(req.getStorefrontImageUrl()));
+        if (req.getBusinessLicenseImageUrl() != null) seller.setBusinessLicenseImageUrl(cleanNullable(req.getBusinessLicenseImageUrl()));
+        if (req.getIdentityCardImageUrl() != null) seller.setIdentityCardImageUrl(cleanNullable(req.getIdentityCardImageUrl()));
+        if (req.getBankName() != null) seller.setBankName(cleanNullable(req.getBankName()));
+        if (req.getBankAccountName() != null) seller.setBankAccountName(cleanNullable(req.getBankAccountName()));
+        if (req.getBankAccountNumber() != null) seller.setBankAccountNumber(cleanNullable(req.getBankAccountNumber()));
+
+        sellerRepository.save(seller);
+        Seller refreshed = resolveByEmail(email);
+        return ResponseData.ok("Cap nhat cua hang thanh cong", SellerResponse.fromEntity(refreshed));
+    }
+
+    @PostMapping("/shop/upload")
+    public ResponseData<String> uploadShopImage(
+            Authentication auth,
+            @RequestParam("file") MultipartFile file
+    ) {
+        resolveByEmail((String) auth.getPrincipal());
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("File khong duoc de trong");
+        }
+        return ResponseData.ok(
+                "Tai anh thanh cong",
+                cloudinaryService.uploadImage(file, "foodrescue/sellers")
+        );
     }
 
     @GetMapping("/stats")
@@ -58,7 +108,6 @@ public class SellerController {
         Seller seller = resolveByEmail((String) auth.getPrincipal());
         Long sellerId = seller.getId();
 
-        // ── All-time aggregates ─────────────────────────────────────────
         BigDecimal totalRevenue = sellerOrderRepository.sumTotalRevenueBySellerId(sellerId);
         if (totalRevenue == null) totalRevenue = BigDecimal.ZERO;
         Long totalOrders = sellerOrderRepository.countBySellerId(sellerId);
@@ -67,41 +116,37 @@ public class SellerController {
                 ? totalRevenue.divide(BigDecimal.valueOf(completedOrders), 0, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
 
-        // ── Daily revenue – last 7 days (completed orders) ──────────────
         LocalDateTime since7 = LocalDate.now().minusDays(6).atStartOfDay();
         List<OrderSellerOrder> recentCompleted = sellerOrderRepository.findCompletedSince(sellerId, since7);
 
-        // Group by date
         Map<LocalDate, BigDecimal> revenueByDay = new LinkedHashMap<>();
         Map<LocalDate, Long> ordersByDay = new LinkedHashMap<>();
-        for (OrderSellerOrder o : recentCompleted) {
-            LocalDate d = o.getCreatedAt().toLocalDate();
-            revenueByDay.merge(d, o.getTotalAmount(), BigDecimal::add);
-            ordersByDay.merge(d, 1L, Long::sum);
+        for (OrderSellerOrder order : recentCompleted) {
+            LocalDate date = order.getCreatedAt().toLocalDate();
+            revenueByDay.merge(date, order.getTotalAmount(), BigDecimal::add);
+            ordersByDay.merge(date, 1L, Long::sum);
         }
 
-        String[] VI_DAYS = { "CN", "T2", "T3", "T4", "T5", "T6", "T7" };
+        String[] viDays = {"CN", "T2", "T3", "T4", "T5", "T6", "T7"};
         DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd/MM");
         List<SellerStatsResponse.DailyRevenue> dailyRevenue = new ArrayList<>();
         for (int i = 6; i >= 0; i--) {
-            LocalDate d = LocalDate.now().minusDays(i);
+            LocalDate date = LocalDate.now().minusDays(i);
             dailyRevenue.add(SellerStatsResponse.DailyRevenue.builder()
-                    .date(d.format(dateFmt))
-                    .dayLabel(VI_DAYS[d.getDayOfWeek().getValue() % 7])
-                    .revenue(revenueByDay.getOrDefault(d, BigDecimal.ZERO))
-                    .orders(ordersByDay.getOrDefault(d, 0L))
+                    .date(date.format(dateFmt))
+                    .dayLabel(viDays[date.getDayOfWeek().getValue() % 7])
+                    .revenue(revenueByDay.getOrDefault(date, BigDecimal.ZERO))
+                    .orders(ordersByDay.getOrDefault(date, 0L))
                     .build());
         }
 
-        // ── Top products – last 30 days ──────────────────────────────────
         LocalDateTime since30 = LocalDate.now().minusDays(29).atStartOfDay();
         List<OrderItem> recentItems = orderItemRepository.findCompletedItemsBySince(sellerId, since30);
 
-        // Group by productName
         Map<String, BigDecimal[]> productMap = new LinkedHashMap<>();
         for (OrderItem item : recentItems) {
             String name = item.getProductName();
-            productMap.computeIfAbsent(name, k -> new BigDecimal[]{ BigDecimal.ZERO, BigDecimal.ZERO });
+            productMap.computeIfAbsent(name, key -> new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO});
             productMap.get(name)[0] = productMap.get(name)[0].add(item.getQuantity());
             productMap.get(name)[1] = productMap.get(name)[1].add(item.getLineTotal());
         }
@@ -109,10 +154,10 @@ public class SellerController {
         List<SellerStatsResponse.TopProduct> topProducts = productMap.entrySet().stream()
                 .sorted((a, b) -> b.getValue()[1].compareTo(a.getValue()[1]))
                 .limit(5)
-                .map(e -> SellerStatsResponse.TopProduct.builder()
-                        .name(e.getKey())
-                        .totalQty(e.getValue()[0])
-                        .totalRevenue(e.getValue()[1])
+                .map(entry -> SellerStatsResponse.TopProduct.builder()
+                        .name(entry.getKey())
+                        .totalQty(entry.getValue()[0])
+                        .totalRevenue(entry.getValue()[1])
                         .build())
                 .collect(Collectors.toList());
 
@@ -128,6 +173,14 @@ public class SellerController {
 
     private Seller resolveByEmail(String email) {
         return sellerRepository.findByUserEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("Tài khoản chưa được liên kết với cửa hàng"));
+                .orElseThrow(() -> new IllegalArgumentException("Tai khoan chua duoc lien ket voi cua hang"));
+    }
+
+    private String cleanNullable(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

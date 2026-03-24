@@ -17,12 +17,17 @@ public class OrderItemResponse {
     private String variantCode;
     private String unit;
     private BigDecimal quantity;
+    private BigDecimal listPrice;
     private BigDecimal unitPrice;
     private BigDecimal discountAmount;
     private BigDecimal lineTotal;
     private String note;
 
     public static OrderItemResponse fromEntity(OrderItem item) {
+        BigDecimal listPrice = item.getListPrice();
+        if (listPrice == null && item.getVariant() != null) {
+            listPrice = item.getVariant().getListPrice();
+        }
         return OrderItemResponse.builder()
                 .id(item.getId())
                 .variantId(item.getVariant() != null ? item.getVariant().getId() : null)
@@ -32,6 +37,7 @@ public class OrderItemResponse {
                 .variantCode(item.getVariantCode())
                 .unit(item.getUnit())
                 .quantity(item.getQuantity())
+                .listPrice(listPrice)
                 .unitPrice(item.getUnitPrice())
                 .discountAmount(item.getDiscountAmount())
                 .lineTotal(item.getLineTotal())

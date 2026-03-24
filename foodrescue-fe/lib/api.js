@@ -81,11 +81,14 @@ export async function apiGetCategories() {
 // ============================================================
 // PRODUCTS (public)
 // ============================================================
-export async function apiGetProducts({ categoryId, keyword, sort, page = 0, size = 12 } = {}) {
+export async function apiGetProducts({ categoryId, keyword, sort, minPrice, maxPrice, province, page = 0, size = 12 } = {}) {
   const params = new URLSearchParams({ page, size });
   if (categoryId) params.set("categoryId", categoryId);
   if (keyword) params.set("keyword", keyword);
   if (sort) params.set("sort", sort);
+  if (minPrice != null && minPrice !== "") params.set("minPrice", minPrice);
+  if (maxPrice != null && maxPrice !== "") params.set("maxPrice", maxPrice);
+  if (province) params.set("province", province);
   return request(`/api/products?${params}`);
 }
 
@@ -112,6 +115,34 @@ export async function apiGetOrderDetail(orderId) {
   return request(`/api/orders/${orderId}`);
 }
 
+export async function apiSyncOrderPayment(orderId) {
+  return request(`/api/orders/${orderId}/payment/sync`, { method: "POST" });
+}
+
+// ============================================================
+// SELLER APPLICATIONS
+// ============================================================
+export async function apiGetMySellerApplication() {
+  return request("/api/seller-applications/me");
+}
+
+export async function apiSubmitSellerApplication(body) {
+  return request("/api/seller-applications/me", { method: "POST", body: JSON.stringify(body) });
+}
+
+export async function apiUploadSellerApplicationImage(file) {
+  const token = getToken();
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch(`${BASE()}/api/seller-applications/upload`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: formData,
+  });
+  const data = await res.json().catch(() => null);
+  return { ok: res.ok, status: res.status, data };
+}
+
 // ============================================================
 // SELLER – SHOP
 // ============================================================
@@ -121,6 +152,19 @@ export async function apiGetMyShop() {
 
 export async function apiUpdateMyShop(body) {
   return request("/api/seller/shop", { method: "PUT", body: JSON.stringify(body) });
+}
+
+export async function apiSellerUploadShopImage(file) {
+  const token = getToken();
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch(`${BASE()}/api/seller/shop/upload`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: formData,
+  });
+  const data = await res.json().catch(() => null);
+  return { ok: res.ok, status: res.status, data };
 }
 
 // ============================================================
@@ -188,6 +232,47 @@ export async function apiSellerUpdateOrderStatus(sellerOrderId, status) {
 }
 
 // ============================================================
+// SELLER – BANNER ADS
+// ============================================================
+export async function apiSellerCreateBannerAd(body) {
+  return request("/api/seller/ads/create", { method: "POST", body: JSON.stringify(body) });
+}
+
+export async function apiSellerGetMyBannerAds() {
+  return request("/api/seller/ads/my-ads");
+}
+
+// ============================================================
+// ADMIN – BANNER ADS
+// ============================================================
+export async function apiAdminGetPendingBannerAds() {
+  return request("/api/admin/ads/pending");
+}
+
+/** Admin: lấy danh sách banner theo trạng thái (pending | approved | rejected) */
+export async function apiAdminGetBannerAdsByStatus(status = "pending") {
+  return request(`/api/admin/ads?status=${encodeURIComponent(status)}`);
+}
+
+export async function apiAdminApproveBannerAd(id) {
+  return request(`/api/admin/ads/${id}/approve`, { method: "PUT" });
+}
+
+export async function apiAdminRejectBannerAd(id, rejectReason) {
+  return request(`/api/admin/ads/${id}/reject`, {
+    method: "PUT",
+    body: JSON.stringify({ rejectReason: rejectReason || "" }),
+  });
+}
+
+// ============================================================
+// PUBLIC – BANNER ADS (active banners for /products page)
+// ============================================================
+export async function apiGetActiveBannerAds() {
+  return request("/api/public/ads/active-banners");
+}
+
+// ============================================================
 // ADMIN
 // ============================================================
 export async function apiAdminGetUsers({ page = 0, size = 20, search = "", role = "", status = "" } = {}) {
@@ -219,6 +304,24 @@ export async function apiAdminUpdateSellerStatus(sellerId, status) {
 
 export async function apiAdminVerifySeller(sellerId) {
   return request(`/api/admin/sellers/${sellerId}/verify`, { method: "PUT" });
+}
+
+export async function apiAdminGetSellerApplications({ page = 0, size = 20, search = "", status = "" } = {}) {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  if (search && search.trim()) params.set("search", search.trim());
+  if (status) params.set("status", status);
+  return request(`/api/admin/seller-applications?${params.toString()}`);
+}
+
+export async function apiAdminApproveSellerApplication(id) {
+  return request(`/api/admin/seller-applications/${id}/approve`, { method: "PUT" });
+}
+
+export async function apiAdminRejectSellerApplication(id, adminNote) {
+  return request(`/api/admin/seller-applications/${id}/reject`, {
+    method: "PUT",
+    body: JSON.stringify({ adminNote: adminNote || null }),
+  });
 }
 
 // ============================================================
@@ -317,6 +420,89 @@ export async function apiSellerAddProductImage(productId, file) {
 
 export async function apiSellerDeleteProductImage(productId, imageId) {
   return request(`/api/seller/products/${productId}/images/${imageId}`, { method: "DELETE" });
+}
+
+// ============================================================
+// CUSTOMER – REVIEWS (Product Reviews)
+// ============================================================
+export async function apiGetProductReviews(productId, { page = 0, size = 20 } = {}) {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  return request(`/api/reviews/product/${productId}?${params.toString()}`);
+}
+
+export async function apiGetMyReviewForProduct(productId) {
+  return request(`/api/reviews/product/${productId}/my-review`);
+}
+
+export async function apiCreateProductReview(body) {
+  // body: { productId, rating, comment, imageUrls: [] }
+  return request("/api/reviews", { method: "POST", body: JSON.stringify(body) });
+}
+
+export async function apiUpdateProductReview(reviewId, body) {
+  // body: { rating, comment, imageUrls: [] }
+  return request(`/api/reviews/${reviewId}`, { method: "PUT", body: JSON.stringify(body) });
+}
+
+export async function apiDeleteProductReview(reviewId) {
+  return request(`/api/reviews/${reviewId}`, { method: "DELETE" });
+}
+
+export async function apiCheckCanReviewProduct(productId) {
+  // Check if user has purchased this product (completed status)
+  return request(`/api/reviews/product/${productId}/can-review`);
+}
+
+// Upload review images (similar to product images)
+export async function apiUploadReviewImage(file) {
+  const token = getToken();
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch(`${BASE()}/api/reviews/upload-image`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+  const data = await res.json().catch(() => null);
+  return { ok: res.ok, status: res.status, data };
+}
+
+// Seller review stats
+export async function apiGetSellerRatingStats() {
+  // Get overall rating stats for all seller's products
+  return request("/api/reviews/seller/stats");
+}
+
+export async function apiGetTopRatedSellerProducts(limit = 5) {
+  // Get top rated products for seller's dashboard
+  const params = new URLSearchParams({ limit: String(limit) });
+  return request(`/api/reviews/seller/top-products?${params.toString()}`);
+}
+
+export async function apiMockTopRatedSellerProducts(limit = 5) {
+  // MOCK: Return hardcoded data for testing
+  const params = new URLSearchParams({ limit: String(limit) });
+  return request(`/api/reviews/seller/mock/top-products?${params.toString()}`);
+}
+
+// Seller reviews management endpoints
+export async function apiSellerGetProductsWithRatings({ page = 0, size = 15 } = {}) {
+  // Get all seller's products with ratings and review statistics
+  // Returns Map with: content, totalElements, totalPages, currentPage, pageSize
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  return request(`/api/reviews/seller/reviews/products?${params.toString()}`);
+}
+
+export async function apiSellerGetProductReviews(productId, { page = 0, size = 10 } = {}) {
+  // Get all reviews for a specific seller's product
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  return request(`/api/reviews/seller/reviews/product/${productId}?${params.toString()}`);
+}
+
+export async function apiSellerGetReceivedReviews({ page = 0, size = 10 } = {}) {
+  // Get all reviews received by the seller
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  return request(`/api/reviews/seller/reviews/received?${params.toString()}`);
 }
 
 export async function apiSellerSetPrimaryImage(productId, imageId) {

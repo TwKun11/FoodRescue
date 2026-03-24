@@ -286,6 +286,25 @@ export default function ProfilePage() {
             </Link>
           </p>
         </div>
+
+        {user?.role === "CUSTOMER" && (
+          <div className="mt-6 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-800">Trở thành nhà bán hàng</h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  Gửi hồ sơ cửa hàng để admin xét duyệt. Sau khi được duyệt, tài khoản của bạn sẽ có quyền seller.
+                </p>
+              </div>
+              <Link
+                href="/become-seller"
+                className="inline-flex items-center justify-center rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-gray-900 hover:bg-brand-dark transition"
+              >
+                Gửi hồ sơ seller
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

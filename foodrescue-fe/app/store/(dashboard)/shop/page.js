@@ -1,540 +1,711 @@
-// FE03-005 – UI Quản lý Cửa hàng (API-connected)
 "use client";
-import { useState, useEffect } from "react";
-import { apiGetMyShop, apiUpdateMyShop } from "@/lib/api";
+/* eslint-disable @next/next/no-img-element */
+
+import { useEffect, useMemo, useState } from "react";
+import { apiGetMyShop, apiSellerUploadShopImage, apiUpdateMyShop } from "@/lib/api";
+import { getCurrentPosition, mapLocationToAddress, reverseGeocode } from "@/lib/location";
 
 const TABS = [
-  { id: "info", label: "Thông tin cửa hàng" },
-  { id: "decoration", label: "Trang trí shop" },
-  { id: "rating", label: "Đánh giá", count: 24 },
-  { id: "violation", label: "Vi phạm", count: 0 },
-  { id: "policy", label: "Chính sách" },
+  { id: "basic", label: "Thông tin cơ bản", icon: "📋" },
+  { id: "legal", label: "Hồ sơ pháp lý", icon: "📄" },
+  { id: "bank", label: "Tài khoản ngân hàng", icon: "🏦" },
+  { id: "images", label: "Ảnh xác minh", icon: "📸" },
 ];
 
-const EMPTY_SHOP = {
-  name: "",
-  description: "",
-  address: "",
-  phone: "",
-  legalName: "",
-  contactName: "",
-  email: "",
-  openTime: "",
-  closeTime: "",
-  avatarUrl: "",
-  coverUrl: "",
-  taxCode: "",
-  bankName: "",
-  bankAccount: "",
-  bankOwner: "",
-  shopSlug: "",
-  isVerified: false,
-  ratingAvg: null,
-  commissionRate: null,
+const STATUS_META = {
+  pending: {
+    label: "Chờ duyệt",
+    className: "bg-amber-50 text-amber-800 border-amber-200",
+    description: "Hồ sơ cửa hàng đang chờ admin kiểm tra. Bạn có thể cập nhật thêm thông tin nếu cần.",
+  },
+  active: {
+    label: "Đang hoạt động",
+    className: "bg-green-50 text-green-800 border-green-200",
+    description: "Cửa hàng đã được duyệt và có thể đăng sản phẩm, xử lý đơn hàng.",
+  },
+  suspended: {
+    label: "Tạm khóa",
+    className: "bg-red-50 text-red-700 border-red-200",
+    description: "Cửa hàng đang tạm khóa. Hãy liên hệ admin nếu cần hỗ trợ.",
+  },
+  closed: {
+    label: "Đã đóng",
+    className: "bg-gray-100 text-gray-700 border-gray-200",
+    description: "Hồ sơ seller đang ở trạng thái đã đóng.",
+  },
 };
 
-const RECENT_REVIEWS = [
+const IMAGE_FIELDS = [
   {
-    id: 1,
-    customer: "Nguyễn Văn A",
-    rating: 5,
-    comment: "Hàng tươi ngon, giao nhanh!",
-    date: "24/02/2026",
-    avatar: "N",
+    key: "avatarUrl",
+    label: "Logo cửa hàng",
+    hint: "Ảnh đại diện xuất hiện trên shop và sản phẩm.",
   },
   {
-    id: 2,
-    customer: "Trần Thị B",
-    rating: 4,
-    comment: "Sản phẩm ok, đóng gói cẩn thận.",
-    date: "23/02/2026",
-    avatar: "T",
+    key: "coverUrl",
+    label: "Banner cửa hàng",
+    hint: "Ảnh ngang để làm hero cho trang shop.",
   },
   {
-    id: 3,
-    customer: "Lê Minh C",
-    rating: 5,
-    comment: "Giá rẻ, chất lượng tốt. Sẽ ủng hộ tiếp!",
-    date: "22/02/2026",
-    avatar: "L",
+    key: "storefrontImageUrl",
+    label: "Ảnh mặt tiền / quầy bán",
+    hint: "Dùng để admin đối chiếu điểm bán thực tế.",
+  },
+  {
+    key: "businessLicenseImageUrl",
+    label: "Ảnh giấy phép kinh doanh",
+    hint: "Bản scan/chụp rõ thông tin doanh nghiệp hoặc hộ kinh doanh.",
+  },
+  {
+    key: "identityCardImageUrl",
+    label: "Ảnh CCCD/CMND đại diện",
+    hint: "Giấy tờ của người đại diện đăng ký seller.",
   },
 ];
 
+const REQUIRED_FIELDS = {
+  basic: ["shopName", "legalName", "businessType", "contactName", "phone", "pickupAddress"],
+  legal: ["taxCode", "businessLicenseNumber", "identityNumber"],
+  bank: ["bankName", "bankAccountName", "bankAccountNumber"],
+  images: ["avatarUrl", "coverUrl", "storefrontImageUrl", "businessLicenseImageUrl", "identityCardImageUrl"],
+};
+
+function validateField(field, value) {
+  if (!value || value.toString().trim() === "") return "Trường này là bắt buộc";
+  if (field === "phone" && !/^\d{10,11}$/.test(value)) return "Số điện thoại không hợp lệ (10-11 chữ số)";
+  if (field === "taxCode" && value && !/^\d{10,13}$/.test(value)) return "Mã số thuế không hợp lệ (10-13 chữ số)";
+  return null;
+}
+
+function getFieldError(form, field) {
+  if (!form[field]) return null;
+  return validateField(field, form[field]);
+}
+
+const EMPTY_SHOP = {
+  shopName: "",
+  shopSlug: "",
+  legalName: "",
+  businessType: "",
+  contactName: "",
+  phone: "",
+  pickupAddress: "",
+  latitude: null,
+  longitude: null,
+  description: "",
+  taxCode: "",
+  businessLicenseNumber: "",
+  identityNumber: "",
+  bankName: "",
+  bankAccountName: "",
+  bankAccountNumber: "",
+  avatarUrl: "",
+  coverUrl: "",
+  storefrontImageUrl: "",
+  businessLicenseImageUrl: "",
+  identityCardImageUrl: "",
+  email: "",
+  status: "",
+  isVerified: false,
+  code: "",
+  termsVersion: "",
+  termsAcceptedAt: "",
+  reviewedAt: "",
+  adminNote: "",
+  ratingAvg: null,
+  commissionRate: null,
+  createdAt: "",
+  updatedAt: "",
+};
+
+function sanitizeDigits(value, max = 30) {
+  return (value || "").replace(/[^\d]/g, "").slice(0, max);
+}
+
+function formatDateTime(value) {
+  if (!value) return "—";
+  return new Date(value).toLocaleString("vi-VN");
+}
+
+function mapShopResponse(data) {
+  return {
+    shopName: data?.shopName || "",
+    shopSlug: data?.shopSlug || "",
+    legalName: data?.legalName || "",
+    businessType: data?.businessType || "",
+    contactName: data?.contactName || "",
+    phone: data?.phone || "",
+    pickupAddress: data?.pickupAddress || "",
+    latitude: data?.latitude ?? null,
+    longitude: data?.longitude ?? null,
+    description: data?.description || "",
+    taxCode: data?.taxCode || "",
+    businessLicenseNumber: data?.businessLicenseNumber || "",
+    identityNumber: data?.identityNumber || "",
+    bankName: data?.bankName || "",
+    bankAccountName: data?.bankAccountName || "",
+    bankAccountNumber: data?.bankAccountNumber || "",
+    avatarUrl: data?.avatarUrl || "",
+    coverUrl: data?.coverUrl || "",
+    storefrontImageUrl: data?.storefrontImageUrl || "",
+    businessLicenseImageUrl: data?.businessLicenseImageUrl || "",
+    identityCardImageUrl: data?.identityCardImageUrl || "",
+    email: data?.email || "",
+    status: data?.status || "",
+    isVerified: Boolean(data?.isVerified),
+    code: data?.code || "",
+    termsVersion: data?.termsVersion || "",
+    termsAcceptedAt: data?.termsAcceptedAt || "",
+    reviewedAt: data?.reviewedAt || "",
+    adminNote: data?.adminNote || "",
+    ratingAvg: data?.ratingAvg ?? null,
+    commissionRate: data?.commissionRate ?? null,
+    createdAt: data?.createdAt || "",
+    updatedAt: data?.updatedAt || "",
+  };
+}
+
 export default function ShopPage() {
-  const [activeTab, setActiveTab] = useState("info");
-  const [shop, setShop] = useState(EMPTY_SHOP);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [editing, setEditing] = useState(false);
+  const [locating, setLocating] = useState(false);
+  const [uploadingField, setUploadingField] = useState("");
+  const [message, setMessage] = useState({ type: null, text: "" });
+  const [shop, setShop] = useState(EMPTY_SHOP);
   const [form, setForm] = useState(EMPTY_SHOP);
-  const [saveMsg, setSaveMsg] = useState("");
+  const [activeTab, setActiveTab] = useState("basic");
+  const [touched, setTouched] = useState({});
 
-  useEffect(function () {
-    setLoading(true);
-    apiGetMyShop()
-      .then(function (res) {
-        if (res.ok && res.data && res.data.data) {
-          var d = res.data.data;
-          var mapped = {
-            name: d.shopName || "",
-            description: d.description || "",
-            address: d.address || "",
-            phone: d.phone || "",
-            legalName: d.legalName || "",
-            contactName: d.contactName || "",
-            email: d.email || "",
-            openTime: d.openTime || "",
-            closeTime: d.closeTime || "",
-            avatarUrl: d.avatarUrl || "",
-            coverUrl: d.coverUrl || "",
-            taxCode: d.taxCode || "",
-            bankName: d.bankName || "",
-            bankAccount: d.bankAccount || "",
-            bankOwner: d.bankOwner || "",
-            shopSlug: d.shopSlug || "",
-            isVerified: d.isVerified || false,
-            ratingAvg: d.ratingAvg || null,
-            commissionRate: d.commissionRate != null ? d.commissionRate : null,
-          };
+  const statusMeta = useMemo(() => {
+    return STATUS_META[shop.status] || STATUS_META.pending;
+  }, [shop.status]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadShop() {
+      setLoading(true);
+      const res = await apiGetMyShop();
+      if (!cancelled) {
+        if (res.ok && res.data?.data) {
+          const mapped = mapShopResponse(res.data.data);
           setShop(mapped);
           setForm(mapped);
+        } else {
+          setMessage({ type: "error", text: res.data?.message || "Không tải được thông tin cửa hàng." });
         }
-      })
-      .finally(function () {
         setLoading(false);
-      });
+      }
+    }
+
+    loadShop();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const handleSave = () => {
-    setSaving(true);
-    setSaveMsg("");
-    apiUpdateMyShop({
-      shopName: form.name,
-      legalName: form.legalName || null,
-      description: form.description,
-      phone: form.phone,
-      contactName: form.contactName || null,
-      avatarUrl: form.avatarUrl || null,
-      coverUrl: form.coverUrl || null,
-    })
-      .then(function (res) {
-        if (res.ok) {
-          setShop(form);
-          setEditing(false);
-          setSaveMsg("Đã lưu thay đổi");
-          setTimeout(() => setSaveMsg(""), 3000);
-        } else {
-          alert(res.data?.message || "Lưu thất bại.");
-        }
-      })
-      .finally(function () {
-        setSaving(false);
-      });
+  const setField = (field) => (e) => {
+    const raw = e.target.value;
+    setMessage({ type: null, text: "" });
+    setTouched((prev) => ({ ...prev, [field]: true }));
+    setForm((prev) => ({
+      ...prev,
+      [field]:
+        field === "phone"
+          ? sanitizeDigits(raw, 11)
+          : field === "taxCode"
+            ? sanitizeDigits(raw, 20)
+            : field === "identityNumber"
+              ? sanitizeDigits(raw, 20)
+              : field === "bankAccountNumber"
+                ? sanitizeDigits(raw, 30)
+                : raw,
+    }));
   };
 
-  const handleCancel = () => {
-    setForm(shop);
-    setEditing(false);
+  const handleUpload = (field) => async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingField(field);
+    setMessage({ type: null, text: "" });
+    try {
+      const res = await apiSellerUploadShopImage(file);
+      if (!res.ok) {
+        setMessage({ type: "error", text: res.data?.message || "Tải ảnh thất bại." });
+        return;
+      }
+      const url = res.data?.data || "";
+      setForm((prev) => ({ ...prev, [field]: url }));
+      setTouched((prev) => ({ ...prev, [field]: true }));
+      setMessage({ type: "success", text: "Đã tải ảnh lên thành công." });
+    } finally {
+      setUploadingField("");
+      e.target.value = "";
+    }
   };
+
+  const handleUseCurrentLocation = async () => {
+    setLocating(true);
+    setMessage({ type: null, text: "" });
+    try {
+      const position = await getCurrentPosition();
+      const { latitude, longitude } = position.coords;
+      const data = await reverseGeocode(latitude, longitude);
+      const location = mapLocationToAddress(data?.address);
+      const pickupAddress = [
+        location.addressLine,
+        location.ward,
+        location.district,
+        location.province,
+      ]
+        .filter(Boolean)
+        .join(", ");
+
+      setForm((prev) => ({
+        ...prev,
+        pickupAddress: pickupAddress || prev.pickupAddress,
+        latitude,
+        longitude,
+      }));
+      setMessage({ type: "success", text: "Đã cập nhật vị trí cửa hàng." });
+    } catch (err) {
+      let text = err?.message || "Không thể lấy vị trí hiện tại.";
+      if (err?.code === 1) text = "Bạn đã từ chối quyền truy cập vị trí.";
+      if (err?.code === 2) text = "Không xác định được vị trí hiện tại.";
+      if (err?.code === 3) text = "Hết thời gian lấy vị trí hiện tại.";
+      setMessage({ type: "error", text });
+    } finally {
+      setLocating(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setMessage({ type: null, text: "" });
+    try {
+      const res = await apiUpdateMyShop({
+        shopName: form.shopName,
+        legalName: form.legalName || null,
+        businessType: form.businessType || null,
+        contactName: form.contactName || null,
+        phone: form.phone || null,
+        pickupAddress: form.pickupAddress || null,
+        latitude: form.latitude,
+        longitude: form.longitude,
+        description: form.description || null,
+        taxCode: form.taxCode || null,
+        businessLicenseNumber: form.businessLicenseNumber || null,
+        identityNumber: form.identityNumber || null,
+        bankName: form.bankName || null,
+        bankAccountName: form.bankAccountName || null,
+        bankAccountNumber: form.bankAccountNumber || null,
+        avatarUrl: form.avatarUrl || null,
+        coverUrl: form.coverUrl || null,
+        storefrontImageUrl: form.storefrontImageUrl || null,
+        businessLicenseImageUrl: form.businessLicenseImageUrl || null,
+        identityCardImageUrl: form.identityCardImageUrl || null,
+      });
+
+      if (!res.ok) {
+        const text =
+          typeof res.data?.data === "object" && res.data?.data
+            ? Object.values(res.data.data)[0]
+            : res.data?.message || "Cập nhật cửa hàng thất bại.";
+        setMessage({ type: "error", text });
+        return;
+      }
+
+      const mapped = mapShopResponse(res.data?.data);
+      setShop(mapped);
+      setForm(mapped);
+      setMessage({ type: "success", text: "✓ Đã cập nhật hồ sơ cửa hàng thành công!" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-2 border-brand border-t-transparent animate-spin" />
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col min-h-full">
-      <div className="flex-1 p-6 space-y-4">
-        {/* ── Header ── */}
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-800">Quản lý cửa hàng</h1>
-          {!editing && (
-            <button
-              onClick={() => setEditing(true)}
-              className="flex items-center gap-2 border border-gray-300 text-gray-600 text-sm px-3 py-2 rounded-lg hover:bg-gray-50 transition"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                />
-              </svg>
-              Chỉnh sửa
-            </button>
-          )}
+    <div className="space-y-6 p-4 sm:p-6">
+      {/* ════ HEADER CARD ════ */}
+      <section className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
+        <div className="relative h-40 bg-gradient-to-r from-emerald-500 via-green-500 to-lime-400">
+          {shop.coverUrl && <img src={shop.coverUrl} alt="Banner cửa hàng" className="h-full w-full object-cover opacity-40" />}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/15 to-transparent" />
+          <div className="absolute bottom-4 left-4 right-4 flex flex-wrap items-end justify-between gap-3">
+            <div className="flex items-end gap-3">
+              <div className="h-16 w-16 overflow-hidden rounded-xl border-4 border-white bg-white shadow-md">
+                {shop.avatarUrl ? (
+                  <img src={shop.avatarUrl} alt={shop.shopName || "Logo cửa hàng"} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-brand text-lg font-bold text-gray-900">
+                    {(shop.shopName?.charAt(0) || "S").toUpperCase()}
+                  </div>
+                )}
+              </div>
+              <div className="pb-1 text-white">
+                <h1 className="text-2xl font-bold">{shop.shopName || "Cửa hàng của bạn"}</h1>
+                <p className="mt-1 text-sm text-white/80">
+                  @{shop.shopSlug || "chua-co-slug"} {shop.code ? `· ${shop.code}` : ""}
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${statusMeta.className}`}>
+                    {statusMeta.label}
+                  </span>
+                  {shop.isVerified && (
+                    <span className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">
+                      ✓ Đã xác minh
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        {saveMsg && (
-          <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg px-4 py-3">
-            {saveMsg}
+
+        {message.text && (
+          <div
+            className={`border-t px-6 py-3 text-sm font-medium ${
+              message.type === "success"
+                ? "border-green-200 bg-green-50 text-green-800"
+                : "border-red-200 bg-red-50 text-red-700"
+            }`}
+          >
+            {message.text}
           </div>
         )}
 
-        {/* ── Stats Row ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[
-            { label: "Tổng sản phẩm", value: "—", icon: "📦", color: "bg-green-50 text-green-600" },
-            { label: "Đơn hàng tháng này", value: "—", icon: "🛒", color: "bg-blue-50 text-blue-600" },
-            {
-              label: "Đánh giá trung bình",
-              value: shop.ratingAvg != null ? Number(shop.ratingAvg).toFixed(1) : "—",
-              icon: "⭐",
-              color: "bg-yellow-50 text-yellow-600",
-            },
-            {
-              label: "Hoa hồng nền tảng",
-              value: shop.commissionRate != null ? Number(shop.commissionRate).toFixed(1) + "%" : "—",
-              icon: "💼",
-              color: "bg-purple-50 text-purple-600",
-            },
-          ].map((s) => (
-            <div key={s.label} className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0 ${s.color}`}>
-                {s.icon}
-              </div>
-              <div>
-                <p className="text-xs text-gray-400">{s.label}</p>
-                <p className="text-base font-bold text-gray-800">{s.value}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* ── Main Card ── */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          {/* Tabs */}
-          <div className="flex border-b border-gray-200 overflow-x-auto">
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-3 text-sm font-medium whitespace-nowrap transition border-b-2 -mb-px ${
-                  activeTab === tab.id
-                    ? "border-green-500 text-green-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                {tab.label}
-                {tab.count !== undefined && (
-                  <span className={`ml-1.5 text-xs ${activeTab === tab.id ? "text-green-600" : "text-gray-400"}`}>
-                    ({tab.count})
-                  </span>
-                )}
-              </button>
-            ))}
+        {shop.adminNote && (
+          <div className="border-t border-red-200 bg-red-50 px-6 py-3">
+            <p className="text-xs font-semibold text-red-800">⚠ GHI CHÚ TỪ ADMIN</p>
+            <p className="mt-1 whitespace-pre-line text-xs text-red-700">{shop.adminNote}</p>
           </div>
+        )}
+      </section>
 
-          {/* ── Tab: Thông tin cửa hàng ── */}
-          {activeTab === "info" && (
-            <div className="p-6">
-              {/* Shop header preview */}
-              <div className="relative mb-6 rounded-xl overflow-hidden border border-gray-200">
-                <div className="h-32 bg-gradient-to-r from-green-400 to-green-600 relative">
-                  <img
-                    src={shop.coverUrl}
-                    alt="Banner"
-                    className="w-full h-full object-cover opacity-40"
-                    onError={(e) => {
-                      e.target.style.display = "none";
-                    }}
-                  />
-                  {editing && (
-                    <button className="absolute bottom-2 right-2 bg-white/80 text-gray-700 text-xs px-2 py-1 rounded-lg flex items-center gap-1 hover:bg-white transition">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-                        />
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-                        />
-                      </svg>
-                      Đổi banner
-                    </button>
-                  )}
-                </div>
-                <div className="px-5 pb-4 pt-0 flex items-end gap-4 -mt-8">
-                  <div className="relative">
-                    <div className="w-16 h-16 rounded-xl border-4 border-white overflow-hidden bg-white shadow-md shrink-0">
-                      <img
-                        src={shop.avatarUrl}
-                        alt="Logo"
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.target.style.display = "none";
-                          e.target.parentNode.classList.add("bg-green-500");
-                        }}
-                      />
-                    </div>
-                    {editing && (
-                      <button className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow">
-                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                      </button>
-                    )}
-                  </div>
-                  <div className="pb-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-bold text-gray-800">{shop.name}</p>
-                      {shop.isVerified && (
-                        <span className="inline-flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
-                          ✓ Đã xác minh
-                        </span>
-                      )}
-                    </div>
-                    <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                      Đang hoạt động
-                    </span>
-                    {shop.shopSlug && <p className="text-xs text-gray-400 mt-0.5">@{shop.shopSlug}</p>}
-                  </div>
-                </div>
-              </div>
-
-              {/* Form fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {/* Left column */}
-                <div className="space-y-4">
-                  <Field
-                    label="Tên cửa hàng"
-                    value={editing ? form.name : shop.name}
-                    editing={editing}
-                    onChange={(v) => setForm({ ...form, name: v })}
-                  />
-                  <Field
-                    label="Tên pháp lý (công ty/hộ kinh doanh)"
-                    value={editing ? form.legalName : shop.legalName}
-                    editing={editing}
-                    onChange={(v) => setForm({ ...form, legalName: v })}
-                  />
-                  <Field
-                    label="Tên liên hệ"
-                    value={editing ? form.contactName : shop.contactName}
-                    editing={editing}
-                    onChange={(v) => setForm({ ...form, contactName: v })}
-                  />
-                  <Field
-                    label="Danh mục"
-                    value={editing ? form.category : shop.category}
-                    editing={editing}
-                    type="select"
-                    options={["Cửa hàng tiện lợi", "Siêu thị mini", "Nhà hàng", "Bakery", "Hải sản"]}
-                    onChange={(v) => setForm({ ...form, category: v })}
-                  />
-                  <Field
-                    label="Số điện thoại"
-                    value={editing ? form.phone : shop.phone}
-                    editing={editing}
-                    onChange={(v) => setForm({ ...form, phone: v })}
-                  />
-                  <Field
-                    label="Email"
-                    value={editing ? form.email : shop.email}
-                    editing={editing}
-                    onChange={(v) => setForm({ ...form, email: v })}
-                  />
-                  <div className="grid grid-cols-2 gap-3">
-                    <Field
-                      label="Giờ mở cửa"
-                      value={editing ? form.openTime : shop.openTime}
-                      editing={editing}
-                      type="time"
-                      onChange={(v) => setForm({ ...form, openTime: v })}
-                    />
-                    <Field
-                      label="Giờ đóng cửa"
-                      value={editing ? form.closeTime : shop.closeTime}
-                      editing={editing}
-                      type="time"
-                      onChange={(v) => setForm({ ...form, closeTime: v })}
-                    />
-                  </div>
-                </div>
-
-                {/* Right column */}
-                <div className="space-y-4">
-                  <Field
-                    label="Địa chỉ"
-                    value={editing ? form.address : shop.address}
-                    editing={editing}
-                    onChange={(v) => setForm({ ...form, address: v })}
-                  />
-                  <Field
-                    label="Mô tả cửa hàng"
-                    value={editing ? form.description : shop.description}
-                    editing={editing}
-                    type="textarea"
-                    onChange={(v) => setForm({ ...form, description: v })}
-                  />
-                  <Field
-                    label="Mã số thuế"
-                    value={editing ? form.taxCode : shop.taxCode}
-                    editing={editing}
-                    onChange={(v) => setForm({ ...form, taxCode: v })}
-                  />
-                </div>
-              </div>
-
-              {/* Bank Info */}
-              <div className="mt-5 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Thông tin thanh toán</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Field
-                    label="Ngân hàng"
-                    value={editing ? form.bankName : shop.bankName}
-                    editing={editing}
-                    onChange={(v) => setForm({ ...form, bankName: v })}
-                  />
-                  <Field
-                    label="Số tài khoản"
-                    value={editing ? form.bankAccount : shop.bankAccount}
-                    editing={editing}
-                    onChange={(v) => setForm({ ...form, bankAccount: v })}
-                  />
-                  <Field
-                    label="Chủ tài khoản"
-                    value={editing ? form.bankOwner : shop.bankOwner}
-                    editing={editing}
-                    onChange={(v) => setForm({ ...form, bankOwner: v })}
-                  />
-                </div>
-              </div>
-
-              {/* Action buttons */}
-              {editing && (
-                <div className="mt-5 flex gap-3 justify-end">
-                  <button
-                    onClick={handleCancel}
-                    className="px-5 py-2 border border-gray-300 text-gray-600 text-sm rounded-lg hover:bg-gray-50 transition"
-                  >
-                    Hủy
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="px-5 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-lg transition disabled:opacity-50"
-                  >
-                    {saving ? "Dang luu..." : "Luu thay doi"}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── Tab: Đánh giá ── */}
-          {activeTab === "rating" && (
-            <div className="p-6 space-y-4">
-              {/* Rating summary */}
-              <div className="flex items-center gap-8 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                <div className="text-center">
-                  <p className="text-5xl font-extrabold text-yellow-500">4.8</p>
-                  <p className="text-yellow-400 text-xl mt-1">★★★★★</p>
-                  <p className="text-xs text-gray-400 mt-1">24 đánh giá</p>
-                </div>
-                <div className="flex-1 space-y-2">
-                  {[5, 4, 3, 2, 1].map((star) => {
-                    const pct = star === 5 ? 70 : star === 4 ? 20 : star === 3 ? 7 : star === 2 ? 2 : 1;
-                    return (
-                      <div key={star} className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500 w-4">{star}</span>
-                        <span className="text-yellow-400 text-xs">★</span>
-                        <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div className="h-full bg-yellow-400 rounded-full" style={{ width: `${pct}%` }} />
-                        </div>
-                        <span className="text-xs text-gray-400 w-6">{pct}%</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Review list */}
-              <div className="divide-y divide-gray-100">
-                {RECENT_REVIEWS.map((r) => (
-                  <div key={r.id} className="py-4 flex gap-3">
-                    <div className="w-9 h-9 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold text-sm shrink-0">
-                      {r.avatar}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-gray-800">{r.customer}</p>
-                        <p className="text-xs text-gray-400">{r.date}</p>
-                      </div>
-                      <p className="text-yellow-400 text-sm mt-0.5">
-                        {"★".repeat(r.rating)}
-                        {"☆".repeat(5 - r.rating)}
-                      </p>
-                      <p className="text-sm text-gray-600 mt-1">{r.comment}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* ── Tab: Vi phạm ── */}
-          {activeTab === "violation" && (
-            <div className="p-12 text-center text-gray-400">
-              <p className="text-4xl mb-3">✅</p>
-              <p className="font-semibold text-gray-600">Không có vi phạm nào</p>
-              <p className="text-sm mt-1">Cửa hàng của bạn đang hoạt động tốt.</p>
-            </div>
-          )}
-
-          {/* ── Tab: Trang trí / Chính sách ── */}
-          {(activeTab === "decoration" || activeTab === "policy") && (
-            <div className="p-12 text-center text-gray-400">
-              <p className="text-4xl mb-3">🚧</p>
-              <p className="font-semibold text-gray-600">Tính năng đang phát triển</p>
-              <p className="text-sm mt-1">Sẽ ra mắt trong phiên bản tiếp theo.</p>
-            </div>
-          )}
-        </div>
+      {/* ════ TAB NAVIGATION ════ */}
+      <div className="flex gap-2 border-b border-gray-200">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-4 py-3 text-sm font-medium transition border-b-2 ${
+              activeTab === tab.id
+                ? "border-brand text-brand"
+                : "border-transparent text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            <span className="mr-2">{tab.icon}</span>
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      {/* ── Footer ── */}
-      <footer className="text-center text-xs text-gray-400 py-4 border-t border-gray-200 bg-white">
-        © 2024 Food Rescue System – Quản lý Cửa Hàng Tiện Lợi v2.1.0
-      </footer>
+      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="space-y-6">
+          <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+            {activeTab === "basic" && (
+              <>
+            <h2 className="text-lg font-semibold text-gray-900">Thông tin vận hành</h2>
+            <p className="mt-1 text-sm text-gray-500">Cập nhật tên shop, thông tin liên hệ và địa chỉ giao nhận.</p>
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <Field label="Tên cửa hàng *" value={form.shopName} onChange={setField("shopName")} />
+              <ReadOnlyField label="Slug cua hang" value={form.shopSlug || "—"} />
+              <Field label="Ten phap ly / ho kinh doanh *" value={form.legalName} onChange={setField("legalName")} />
+              <Field label="Loại hình kinh doanh *" value={form.businessType} onChange={setField("businessType")} />
+              <Field label="Người liên hệ *" value={form.contactName} onChange={setField("contactName")} />
+              <Field label="Số điện thoại *" value={form.phone} onChange={setField("phone")} inputMode="numeric" />
+            </div>
+            <div className="mt-4 space-y-3">
+              <div className="flex flex-col gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-emerald-800">Vi tri cua hang</p>
+                  <p className="mt-1 text-xs text-emerald-700">Luu toa do de tinh khoang cach tu khach hang den cua hang.</p>
+                  {form.latitude != null && form.longitude != null && (
+                    <p className="mt-2 text-xs text-gray-600">
+                      Toa do da luu: {Number(form.latitude).toFixed(6)}, {Number(form.longitude).toFixed(6)}
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleUseCurrentLocation}
+                  disabled={locating}
+                  className="inline-flex items-center justify-center rounded-xl border border-emerald-200 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-60"
+                >
+                  {locating ? "Dang lay vi tri..." : "Lay vi tri hien tai"}
+                </button>
+              </div>
+              <TextArea label="Dia chi lay hang / giao nhan *" value={form.pickupAddress} onChange={setField("pickupAddress")} rows={3} />
+            </div>
+
+            <TextArea
+              label="Địa chỉ lấy hàng / giao nhận *"
+              value={form.pickupAddress}
+              onChange={setField("pickupAddress")}
+              rows={3}
+              error={touched.pickupAddress ? validateField("pickupAddress", form.pickupAddress) : null}
+            />
+
+            <TextArea
+              label="Mô tả cửa hàng"
+              value={form.description}
+              onChange={setField("description")}
+              rows={4}
+              hint="Viết gì đó để khách hàng biết thêm về cửa hàng của bạn"
+            />
+          </>
+        )}
+
+        {/* TAB: Hồ sơ pháp lý */}
+        {activeTab === "legal" && (
+          <div className="space-y-5">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 mb-1">Hồ sơ pháp lý</h2>
+              <p className="text-sm text-gray-600">Những thông tin này cần khớp với hồ sơ đã nộp để admin đối chiếu khi cần.</p>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <Field
+                label="Mã số thuế *"
+                value={form.taxCode}
+                onChange={setField("taxCode")}
+                inputMode="numeric"
+                error={touched.taxCode ? validateField("taxCode", form.taxCode) : null}
+              />
+              <Field
+                label="Số giấy phép kinh doanh *"
+                value={form.businessLicenseNumber}
+                onChange={setField("businessLicenseNumber")}
+                error={touched.businessLicenseNumber ? validateField("businessLicenseNumber", form.businessLicenseNumber) : null}
+              />
+              <Field
+                label="Số CCCD/CMND đại diện *"
+                value={form.identityNumber}
+                onChange={setField("identityNumber")}
+                inputMode="numeric"
+                error={touched.identityNumber ? validateField("identityNumber", form.identityNumber) : null}
+              />
+            </div>
+
+            <div className="mt-4 rounded-2xl bg-blue-50 border border-blue-200 p-4">
+              <p className="text-xs text-blue-800">
+                <strong>Lưu ý:</strong> Nếu bạn cập nhật giấy phép hoặc CCCD, hãy cập nhật lại ảnh xác minh để tránh bị trễ duyệt sản phẩm.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* TAB: Tài khoản ngân hàng */}
+        {activeTab === "bank" && (
+          <div className="space-y-5">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 mb-1">Tài khoản ngân hàng</h2>
+              <p className="text-sm text-gray-600">Thông tin đối soát doanh thu và thanh toán cho cửa hàng.</p>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <Field
+                label="Tên ngân hàng *"
+                value={form.bankName}
+                onChange={setField("bankName")}
+                error={touched.bankName ? validateField("bankName", form.bankName) : null}
+              />
+              <Field
+                label="Chủ tài khoản *"
+                value={form.bankAccountName}
+                onChange={setField("bankAccountName")}
+                error={touched.bankAccountName ? validateField("bankAccountName", form.bankAccountName) : null}
+              />
+              <Field
+                label="Số tài khoản *"
+                value={form.bankAccountNumber}
+                onChange={setField("bankAccountNumber")}
+                inputMode="numeric"
+                error={touched.bankAccountNumber ? validateField("bankAccountNumber", form.bankAccountNumber) : null}
+              />
+            </div>
+
+            <div className="mt-4 rounded-2xl bg-blue-50 border border-blue-200 p-4">
+              <p className="text-xs text-blue-800">
+                <strong>Di chúc:</strong> Tài khoản ngân hàng phải trùng với người đại diện hoặc pháp nhân đã đăng ký seller. Hãy kiểm tra kỹ lưỡng trước khi lưu.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* TAB: Ảnh xác minh */}
+        {activeTab === "images" && (
+          <div className="space-y-5">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 mb-1">Ảnh xác minh và nhận diện</h2>
+              <p className="text-sm text-gray-600">Tải lại ảnh mới bất kỳ lúc nào nếu cần cập nhật hồ sơ.</p>
+            </div>
+
+            <div className="space-y-4">
+              {IMAGE_FIELDS.map((item) => (
+                <UploadCard
+                  key={item.key}
+                  label={item.label}
+                  hint={item.hint}
+                  value={form[item.key]}
+                  uploading={uploadingField === item.key}
+                  onFileChange={handleUpload(item.key)}
+                  required
+                />
+              ))}
+            </div>
+          </div>
+        )}
+          </section>
+      </div>
+
+      {/* ════ STICKY SAVE BUTTON ════ */}
+      </div>
+      <div className="sticky bottom-0 z-10 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-lg backdrop-blur">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-900">Lưu thay đổi</p>
+            <p className="text-xs text-gray-500">Bất kỳ thay đổi nào sẽ được gửi cho admin để xác minh lại.</p>
+          </div>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving || uploadingField !== ""}
+            className="inline-flex items-center justify-center rounded-2xl bg-brand px-6 py-3 text-sm font-semibold text-gray-900 transition hover:bg-brand-dark disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+          >
+            {saving ? (
+              <>
+                <span className="w-4 h-4 rounded-full border-2 border-gray-900 border-t-transparent animate-spin mr-2" />
+                Đang lưu...
+              </>
+            ) : (
+              "✓ Lưu hồ sơ"
+            )}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
 
-// ── Helper component ──────────────────────────────────────────────────────
-function Field({ label, value, editing, onChange, type = "text", options = [] }) {
+function StatCard({ label, value }) {
+  return (
+    <div className="rounded-2xl border border-white/20 bg-white/15 px-4 py-3 text-white backdrop-blur-sm">
+      <p className="text-xs uppercase tracking-wide text-white/75">{label}</p>
+      <p className="mt-1 text-xl font-bold">{value}</p>
+    </div>
+  );
+}
+
+function MetaItem({ label, value }) {
   return (
     <div>
-      <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1">{label}</label>
-      {!editing ? (
-        <p className="text-sm text-gray-800 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200 min-h-[38px]">
-          {value || <span className="text-gray-400">—</span>}
-        </p>
-      ) : type === "textarea" ? (
-        <textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          rows={3}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-300 resize-none"
-        />
-      ) : type === "select" ? (
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-300"
-        >
-          {options.map((o) => (
-            <option key={o}>{o}</option>
-          ))}
-        </select>
-      ) : (
-        <input
-          type={type}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-300"
-        />
+      <p className="text-xs font-medium uppercase tracking-wide text-gray-400">{label}</p>
+      <p className="mt-1 text-sm font-medium text-gray-800">{value}</p>
+    </div>
+  );
+}
+
+function MetaStack({ label, value }) {
+  return (
+    <div>
+      <p className="text-xs uppercase tracking-wide text-gray-400">{label}</p>
+      <p className="mt-1 text-sm text-gray-800">{value}</p>
+    </div>
+  );
+}
+
+function Field({ label, error, ...props }) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-sm font-medium text-gray-700">{label}</label>
+      <input
+        {...props}
+        className={`w-full rounded-xl border px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 transition ${
+          error
+            ? "border-red-300 bg-red-50 focus:ring-red-200"
+            : "border-gray-200 focus:ring-brand/40"
+        }`}
+      />
+      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+    </div>
+  );
+}
+
+function ReadOnlyField({ label, value }) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-sm font-medium text-gray-700">{label}</label>
+      <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">{value}</div>
+    </div>
+  );
+}
+
+function TextArea({ label, error, hint, ...props }) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-sm font-medium text-gray-700">{label}</label>
+      <textarea
+        {...props}
+        className={`w-full resize-none rounded-xl border px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 transition ${
+          error
+            ? "border-red-300 bg-red-50 focus:ring-red-200"
+            : "border-gray-200 focus:ring-brand/40"
+        }`}
+      />
+      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {hint && !error && <p className="mt-1 text-xs text-gray-500">{hint}</p>}
+    </div>
+  );
+}
+
+function UploadCard({ label, hint, value, uploading, onFileChange, required }) {
+  return (
+    <div className="rounded-2xl border border-gray-200 p-4 hover:bg-gray-50 transition">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold text-gray-800">
+            {label} {required && <span className="text-red-500">*</span>}
+          </p>
+          <p className="mt-1 text-xs text-gray-500">{hint}</p>
+          {value ? (
+            <div className="mt-2">
+              <span className="inline-flex items-center rounded-full bg-green-50 border border-green-200 px-2 py-1 text-xs font-medium text-green-700">
+                ✓ Đã tải
+              </span>
+            </div>
+          ) : required ? (
+            <div className="mt-2">
+              <span className="inline-flex items-center rounded-full bg-red-50 border border-red-200 px-2 py-1 text-xs font-medium text-red-700">
+                ⚠ Chưa tải
+              </span>
+            </div>
+          ) : null}
+        </div>
+        <label className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
+          <input type="file" accept="image/*" className="hidden" onChange={onFileChange} disabled={uploading} />
+          {uploading ? "Đang tải..." : value ? "Thay đổi" : "Tải ảnh"}
+        </label>
+      </div>
+
+      {value && (
+        <div className="mt-4 space-y-2">
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+            <img src={value} alt={label} className="h-32 w-full object-cover" />
+          </div>
+          <a href={value} target="_blank" rel="noreferrer" className="inline-block text-xs font-medium text-brand-dark hover:underline">
+            Xem ảnh gốc →
+          </a>
+        </div>
       )}
     </div>
   );

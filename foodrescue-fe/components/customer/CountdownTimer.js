@@ -4,28 +4,42 @@ import { useState, useEffect } from "react";
 /**
  * CountdownTimer - Đếm ngược đến thời điểm hết hạn
  * @param {string} targetTime - ISO string hoặc Date string của thời điểm hết hạn
- * @param {string} variant - "default" | "onRed" (nền đỏ, chữ trắng)
+ * @param {string} variant - "default" | "onRed" | "boxes" (4 ô NGÀY GIỜ PHÚT GIÂY, dùng trên nền đỏ)
+ * @param {boolean} onRedBackground - khi variant="boxes", ô số dùng viền trắng + chữ trắng
  */
-export default function CountdownTimer({ targetTime, variant = "default" }) {
-  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0, expired: false });
+const SECONDS_PER_DAY = 86400;
+const SECONDS_PER_HOUR = 3600;
+const SECONDS_PER_MINUTE = 60;
+
+export default function CountdownTimer({ targetTime, variant = "default", onRedBackground = false }) {
+  const [timeLeft, setTimeLeft] = useState({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+    expired: false,
+  });
 
   useEffect(() => {
+    if (!targetTime) return;
     const target = new Date(targetTime).getTime();
+    if (Number.isNaN(target)) return;
 
     const tick = () => {
       const now = Date.now();
       const diff = target - now;
 
       if (diff <= 0) {
-        setTimeLeft({ hours: 0, minutes: 0, seconds: 0, expired: true });
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, expired: true });
         return;
       }
 
       const totalSeconds = Math.floor(diff / 1000);
-      const hours = Math.floor(totalSeconds / 3600);
-      const minutes = Math.floor((totalSeconds % 3600) / 60);
-      const seconds = totalSeconds % 60;
-      setTimeLeft({ hours, minutes, seconds, expired: false });
+      const days = Math.floor(totalSeconds / SECONDS_PER_DAY);
+      const hours = Math.floor((totalSeconds % SECONDS_PER_DAY) / SECONDS_PER_HOUR);
+      const minutes = Math.floor((totalSeconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE);
+      const seconds = totalSeconds % SECONDS_PER_MINUTE;
+      setTimeLeft({ days, hours, minutes, seconds, expired: false });
     };
 
     tick();
@@ -34,6 +48,11 @@ export default function CountdownTimer({ targetTime, variant = "default" }) {
   }, [targetTime]);
 
   if (timeLeft.expired) {
+    if (variant === "boxes") {
+      return (
+        <div className="text-white/90 text-sm font-semibold">Đã hết hạn</div>
+      );
+    }
     return (
       <span className={`inline-flex items-center gap-1 text-sm font-semibold ${variant === "onRed" ? "text-white/90" : "text-gray-400"}`}>
         ⛔ Đã hết hạn
@@ -42,39 +61,68 @@ export default function CountdownTimer({ targetTime, variant = "default" }) {
   }
 
   const pad = (n) => String(n).padStart(2, "0");
-  const isurgent = timeLeft.hours < 2;
+  const totalHours = timeLeft.days * 24 + timeLeft.hours;
+  const isurgent = totalHours < 2;
+
+  const parts = [];
+  if (timeLeft.days > 0) parts.push({ value: String(timeLeft.days), label: "ngày" });
+  parts.push({ value: pad(timeLeft.hours), label: "giờ" });
+  parts.push({ value: pad(timeLeft.minutes), label: "phút" });
+  parts.push({ value: pad(timeLeft.seconds), label: "giây" });
+
+  if (variant === "boxes") {
+    const boxes = [
+      { value: String(timeLeft.days).padStart(2, "0"), label: "Ngày" },
+      { value: pad(timeLeft.hours), label: "Giờ" },
+      { value: pad(timeLeft.minutes), label: "Phút" },
+      { value: pad(timeLeft.seconds), label: "Giây" },
+    ];
+    const boxClass = onRedBackground
+      ? "bg-white rounded-lg w-10 h-10 flex items-center justify-center text-lg font-bold text-red-600 tabular-nums border border-white/50 shadow-sm"
+      : "bg-white rounded-lg w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center text-xl sm:text-2xl font-bold text-slate-800 tabular-nums";
+    const labelClass = onRedBackground ? "text-[9px] font-semibold mt-0.5 text-white/95 uppercase tracking-wide" : "text-[10px] font-semibold mt-1 text-white/90 uppercase tracking-wider";
+    return (
+      <div className="flex gap-2 sm:gap-2.5 flex-nowrap items-center shrink-0">
+        {boxes.map((b) => (
+          <div key={b.label} className="flex flex-col items-center shrink-0">
+            <div className={boxClass}>
+              {b.value}
+            </div>
+            <span className={labelClass}>{b.label}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
-    <div className={`inline-flex items-center gap-1.5 ${variant === "onRed" ? "text-white" : isurgent ? "text-red-600" : "text-orange-600"}`}>
-      <span className="text-base">⏰</span>
-      <span className="text-sm font-semibold">Còn lại:</span>
-      <div className="flex items-center gap-1">
-        {timeLeft.hours > 0 && (
-          <>
-            <TimeUnit value={pad(timeLeft.hours)} label="giờ" urgent={isurgent} variant={variant} />
-            <span className="font-bold pb-2">:</span>
-          </>
-        )}
-        <TimeUnit value={pad(timeLeft.minutes)} label="phút" urgent={isurgent} variant={variant} />
-        <span className="font-bold pb-2">:</span>
-        <TimeUnit value={pad(timeLeft.seconds)} label="giây" urgent={isurgent} variant={variant} />
+    <div
+      className={`inline-flex items-center gap-1.5 flex-nowrap shrink-0 min-w-0 ${variant === "onRed" ? "text-white" : isurgent ? "text-red-600" : "text-orange-600"}`}
+    >
+      <span className="text-sm shrink-0">⏰</span>
+      <span className="text-xs font-semibold shrink-0 whitespace-nowrap">Còn lại:</span>
+      <div className="inline-flex items-center gap-1 flex-nowrap min-w-0">
+        {parts.map((p, i) => (
+          <span key={p.label} className="inline-flex items-baseline gap-0.5 flex-nowrap">
+            <TimeUnitInline value={p.value} label={p.label} urgent={isurgent} variant={variant} />
+            {i < parts.length - 1 && <span className="text-[10px] opacity-70 mx-0.5">·</span>}
+          </span>
+        ))}
       </div>
     </div>
   );
 }
 
-function TimeUnit({ value, label, urgent, variant }) {
+function TimeUnitInline({ value, label, urgent, variant }) {
   const isOnRed = variant === "onRed";
   return (
-    <div className="flex flex-col items-center">
+    <span className="inline-flex items-baseline gap-0.5 flex-nowrap">
       <span
-        className={`text-lg font-bold tabular-nums px-1.5 py-0.5 rounded ${
-          isOnRed ? "bg-white/25 text-white" : urgent ? "bg-red-100 text-red-700" : "bg-orange-100 text-orange-700"
-        }`}
+        className={`text-xs font-bold tabular-nums px-1 py-0.5 rounded ${isOnRed ? "bg-white/25 text-white" : urgent ? "bg-red-100 text-red-700" : "bg-orange-100 text-orange-700"}`}
       >
         {value}
       </span>
-      <span className={`text-[10px] mt-0.5 ${isOnRed ? "text-white/80" : "text-gray-500"}`}>{label}</span>
-    </div>
+      <span className={`text-[10px] ${isOnRed ? "text-white/90" : "text-gray-600"}`}>{label}</span>
+    </span>
   );
 }
