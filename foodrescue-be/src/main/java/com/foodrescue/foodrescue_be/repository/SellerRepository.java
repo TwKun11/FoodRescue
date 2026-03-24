@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -13,19 +14,17 @@ import java.util.Optional;
 
 @Repository
 public interface SellerRepository extends JpaRepository<Seller, Long> {
+
     @EntityGraph(attributePaths = "user")
     Optional<Seller> findByUserEmail(String email);
 
-    @EntityGraph(attributePaths = "user")
-    Optional<Seller> findByUserId(Long userId);
-
     Optional<Seller> findByShopSlug(String shopSlug);
+    Optional<Seller> findByUserId(Long userId);
     boolean existsByUserEmail(String email);
-    boolean existsByShopSlug(String shopSlug);
+    boolean existsByUserId(Long userId);
 
-    @Query("SELECT COUNT(s) > 0 FROM Seller s WHERE LOWER(s.shopSlug) = LOWER(:shopSlug) " +
-            "AND (:excludeUserId IS NULL OR s.user.id <> :excludeUserId)")
-    boolean existsByShopSlug(@Param("shopSlug") String shopSlug, @Param("excludeUserId") Long excludeUserId);
+    @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END FROM Seller s WHERE s.shopSlug = :shopSlug AND s.user.id != :userId")
+    boolean existsByShopSlug(@Param("shopSlug") String shopSlug, @Param("userId") Long userId);
 
     @EntityGraph(attributePaths = "user")
     @Query("SELECT s FROM Seller s JOIN s.user u WHERE " +

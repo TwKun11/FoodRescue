@@ -1,7 +1,7 @@
 // FE03-003 – UI Quản lý sản phẩm (API-connected)
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { apiSellerGetProducts, apiSellerDeleteProduct, apiSellerAddVariant, apiSellerAddBatch } from "@/lib/api";
+import { apiSellerGetProducts, apiSellerAddVariant, apiSellerAddBatch, apiSellerUpdateProduct } from "@/lib/api";
 import ProductForm from "@/components/store/ProductForm";
 
 const VARIANT_UNITS = ["piece", "pack", "bag", "bundle", "loaf", "box", "tray", "bottle", "g", "kg"];
@@ -31,9 +31,24 @@ const EMPTY_VARIANT = {
 const TABS = [
   { id: "all", label: "Tất cả sản phẩm" },
   { id: "active", label: "Đang hoạt động" },
-  { id: "pending_approval", label: "Chờ duyệt" },
-  { id: "inactive", label: "Không hoạt động" },
+  { id: "expiring", label: "Sắp hết hạn" },
+  { id: "expired", label: "Hết hạn" },
 ];
+
+// Helper: Tính số ngày còn lại
+function calculateRemainingDays(createdAt, shelfLifeDays) {
+  if (!createdAt || shelfLifeDays === null || shelfLifeDays === undefined) {
+    return null;
+  }
+  const created = new Date(createdAt);
+  const expiryDate = new Date(created);
+  expiryDate.setDate(expiryDate.getDate() + shelfLifeDays);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  expiryDate.setHours(0, 0, 0, 0);
+  const remainingDays = Math.floor((expiryDate - today) / (1000 * 60 * 60 * 24));
+  return remainingDays;
+}
 
 const STATUS_MAP = {
   active: { label: "Đang bán", dot: "bg-brand", text: "text-brand-dark", bg: "bg-brand-bg" },
@@ -49,6 +64,20 @@ function mapProduct(p) {
   const totalStock = (p.variants || []).reduce((sum, v) => {
     return sum + (v.stockQuantity ?? v.stockAvailable ?? 0);
   }, 0);
+  
+  // Tính số ngày còn lại dựa trên createdAt + shelfLifeDays
+  const remainingDays = calculateRemainingDays(p.createdAt, p.shelfLifeDays);
+  
+  // Xác định trạng thái hạn sử dụng
+  let expiryStatus = null;
+  if (remainingDays !== null) {
+    if (remainingDays < 0) {
+      expiryStatus = "expired";        // Hết hạn
+    } else if (remainingDays <= 3) {
+      expiryStatus = "expiring";       // Sắp hết hạn (0-3 ngày)
+    }
+  }
+
   return {
     // UI display fields
     id: String(p.id),
@@ -60,17 +89,25 @@ function mapProduct(p) {
     quantity: totalStock,
     quantityLabel: totalStock === 0 ? "Hết hàng" : totalStock <= 5 ? `Còn ${totalStock}` : null,
     status: p.status || "draft",
+    expiryStatus: expiryStatus,
+    remainingDays: remainingDays,
+    shelfLifeDays: p.shelfLifeDays,
     // Fields needed for edit form
     productCode: p.productCode,
     slug: p.slug,
     categoryId: p.categoryId,
+    brandId: p.brandId,
     shortDescription: p.shortDescription,
     description: p.description,
     productType: p.productType,
     sellMode: p.sellMode,
     storageType: p.storageType,
     shelfLifeDays: p.shelfLifeDays,
+    minPreparationMinutes: p.minPreparationMinutes,
+    originCountry: p.originCountry,
+    originProvince: p.originProvince,
     primaryImageUrl: p.primaryImageUrl,
+    createdAt: p.createdAt,
     // original variants for variant modal
     variants: p.variants || [],
   };
@@ -240,12 +277,16 @@ export default function StoreProductsPage() {
 
   const handleConfirmDelete = (id) => {
     setDeleteTarget(null);
-    apiSellerDeleteProduct(id).then((res) => {
+    // Soft delete: mark as inactive instead of hard delete
+    const productToUpdate = products.find((p) => p.id === id);
+    if (!productToUpdate) return;
+    
+    apiSellerUpdateProduct(id, { status: "inactive" }).then((res) => {
       if (res.ok) {
-        setProducts((prev) => prev.filter((x) => x.id !== id));
-        showToast("Đã xóa sản phẩm thành công");
+        showToast("Đã vô hiệu hóa sản phẩm thành công");
+        loadProducts(page);
       } else {
-        showToast("Xóa sản phẩm thất bại, vui lòng thử lại", "error");
+        showToast("Vô hiệu hóa sản phẩm thất bại, vui lòng thử lại", "error");
       }
     });
   };
@@ -253,9 +294,13 @@ export default function StoreProductsPage() {
   var filteredProducts =
     activeTab === "all"
       ? products
-      : products.filter(function (p) {
-          return p.status === activeTab;
-        });
+      : activeTab === "active"
+        ? products.filter((p) => p.status === "active" && !p.expiryStatus)
+        : activeTab === "expiring"
+          ? products.filter((p) => p.expiryStatus === "expiring")
+          : activeTab === "expired"
+            ? products.filter((p) => p.expiryStatus === "expired")
+            : products;
 
   const toggleSelect = (id) =>
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -267,14 +312,14 @@ export default function StoreProductsPage() {
       {/* ── Toast Notification ── */}
       {toast && (
         <div
-          className={`fixed bottom-5 right-5 z-100 flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-sm font-semibold ${
+          className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg text-sm font-semibold whitespace-nowrap ${
             toast.type === "error" ? "bg-red-500 text-white" : "bg-brand text-gray-900"
           }`}
         >
           <span>
             {toast.type === "error" ? "✕" : "✓"} {toast.message}
           </span>
-          <button onClick={() => setToast(null)} className="ml-2 text-white/70 hover:text-white leading-none text-base">
+          <button onClick={() => setToast(null)} className="ml-1 text-white/70 hover:text-white leading-none text-base">
             ✕
           </button>
         </div>
@@ -299,7 +344,7 @@ export default function StoreProductsPage() {
               {/* Existing variants */}
               {variantList.length > 0 ? (
                 <div className="mb-5 overflow-x-auto rounded-lg border border-gray-100">
-                  <table className="w-full text-xs">
+                  <table className="w-full text-xs whitespace-nowrap">
                     <thead>
                       <tr className="bg-gray-50 text-gray-500 uppercase tracking-wide font-semibold">
                         <th className="px-3 py-2 text-left">Mã</th>
@@ -308,13 +353,18 @@ export default function StoreProductsPage() {
                         <th className="px-3 py-2 text-right">Tồn kho</th>
                         <th className="px-3 py-2 text-right">Giá niêm yết</th>
                         <th className="px-3 py-2 text-right">Giá bán</th>
+                        <th className="px-3 py-2 text-center">Mã vạch</th>
+                        <th className="px-3 py-2 text-right">SL tối thiểu</th>
+                        <th className="px-3 py-2 text-right">Bước SL</th>
+                        <th className="px-3 py-2 text-right">SL tối đa</th>
+                        <th className="px-3 py-2 text-center">Khối lượng</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
                       {variantList.map((v, i) => (
                         <tr key={v.id || i} className="hover:bg-gray-50">
                           <td className="px-3 py-2 font-mono text-gray-600">{v.variantCode}</td>
-                          <td className="px-3 py-2 text-gray-800">{v.name}</td>
+                          <td className="px-3 py-2 text-gray-800 font-medium">{v.name}</td>
                           <td className="px-3 py-2 text-gray-500">{v.unit}</td>
                           <td className="px-3 py-2 text-right">
                             {(() => {
@@ -335,10 +385,25 @@ export default function StoreProductsPage() {
                             })()}
                           </td>
                           <td className="px-3 py-2 text-right text-gray-500">
-                            {v.listPrice ? Number(v.listPrice).toLocaleString("vi-VN") + " đồng" : "—"}
+                            {v.listPrice ? Number(v.listPrice).toLocaleString("vi-VN") + "đ" : "—"}
                           </td>
                           <td className="px-3 py-2 text-right font-semibold text-green-600">
-                            {v.salePrice ? Number(v.salePrice).toLocaleString("vi-VN") + " đồng" : "—"}
+                            {v.salePrice ? Number(v.salePrice).toLocaleString("vi-VN") + "đ" : "—"}
+                          </td>
+                          <td className="px-3 py-2 text-center text-gray-500">
+                            {v.barcode || "—"}
+                          </td>
+                          <td className="px-3 py-2 text-right text-gray-600">
+                            {v.minOrderQty ?? 1}
+                          </td>
+                          <td className="px-3 py-2 text-right text-gray-600">
+                            {v.stepQty ?? 1}
+                          </td>
+                          <td className="px-3 py-2 text-right text-gray-600">
+                            {v.maxOrderQty ? v.maxOrderQty : "không giới hạn"}
+                          </td>
+                          <td className="px-3 py-2 text-center text-gray-600">
+                            {v.netWeightValue ? `${v.netWeightValue}${v.netWeightUnit}` : "—"}
                           </td>
                         </tr>
                       ))}
@@ -671,8 +736,12 @@ export default function StoreProductsPage() {
                 ) : null}
                 {filteredProducts.map((p) => {
                   const s = STATUS_MAP[p.status] || STATUS_MAP.active;
+                  const isInactive = p.status === "inactive";
                   return (
-                    <tr key={p.id} className="hover:bg-gray-50 transition">
+                    <tr 
+                      key={p.id} 
+                      className={`transition ${isInactive ? "opacity-50 bg-gray-50" : "hover:bg-gray-50"}`}
+                    >
                       <td className="px-4 py-4">
                         <input
                           type="checkbox"
@@ -712,10 +781,18 @@ export default function StoreProductsPage() {
                       </td>
                       <td className="px-4 py-4">
                         <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${s.bg} ${s.text}`}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                            isInactive
+                              ? "bg-gray-100 text-gray-600"
+                              : `${s.bg} ${s.text}`
+                          }`}
                         >
-                          <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`}></span>
-                          {s.label}
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              isInactive ? "bg-gray-400" : s.dot
+                            }`}
+                          ></span>
+                          {isInactive ? "Vô hiệu" : s.label}
                         </span>
                       </td>
                       <td className="px-4 py-4">
@@ -764,38 +841,68 @@ export default function StoreProductsPage() {
                               />
                             </svg>
                           </button>
-                          {/* Delete */}
-                          {deleteTarget === p.id ? (
-                            <div className="flex items-center gap-1">
-                              <span className="text-xs text-gray-500 whitespace-nowrap">Xóa?</span>
-                              <button
-                                onClick={() => handleConfirmDelete(p.id)}
-                                className="text-xs text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded-md transition"
-                              >
-                                Có
-                              </button>
-                              <button
-                                onClick={() => setDeleteTarget(null)}
-                                className="text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-md transition"
-                              >
-                                Không
-                              </button>
-                            </div>
-                          ) : (
+                          {/* Delete / Activate */}
+                          {isInactive ? (
+                            // Activate button for inactive products
                             <button
-                              className="w-8 h-8 flex items-center justify-center rounded-lg border border-red-200 text-red-400 hover:bg-red-50 transition"
-                              title="Xóa sản phẩm"
-                              onClick={() => setDeleteTarget(p.id)}
+                              className="w-8 h-8 flex items-center justify-center rounded-lg border border-green-200 text-green-600 hover:bg-green-50 transition"
+                              title="Kích hoạt sản phẩm"
+                              onClick={() => {
+                                apiSellerUpdateProduct(p.id, { status: "active" }).then((res) => {
+                                  if (res.ok) {
+                                    showToast("✓ Đã kích hoạt sản phẩm thành công");
+                                    loadProducts(page);
+                                  } else {
+                                    showToast("Kích hoạt sản phẩm thất bại, vui lòng thử lại", "error");
+                                  }
+                                });
+                              }}
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path
                                   strokeLinecap="round"
                                   strokeLinejoin="round"
                                   strokeWidth={2}
-                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                                 />
                               </svg>
                             </button>
+                          ) : (
+                            // Deactivate button for active products
+                            <>
+                              {deleteTarget === p.id ? (
+                                <div className="flex items-center gap-1">
+                                  <span className="text-xs text-gray-500 whitespace-nowrap">Vô hiệu?</span>
+                                  <button
+                                    onClick={() => handleConfirmDelete(p.id)}
+                                    className="text-xs text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded-md transition"
+                                  >
+                                    Có
+                                  </button>
+                                  <button
+                                    onClick={() => setDeleteTarget(null)}
+                                    className="text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-md transition"
+                                  >
+                                    Không
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-red-200 text-red-400 hover:bg-red-50 transition"
+                                  title="Vô hiệu hóa sản phẩm"
+                                  onClick={() => setDeleteTarget(p.id)}
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                    />
+                                  </svg>
+                                </button>
+                              )}
+                            </>
                           )}
                         </div>
                       </td>

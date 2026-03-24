@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 
 /**
  * Banner quảng cáo do Seller tạo, Admin duyệt.
- * Chỉ banner APPROVED và trong khoảng startDate–endDate mới hiển thị trên trang products.
+ * Chỉ banner APPROVED và chưa hết hạn (endDate >= now) mới hiển thị trên trang products.
  */
 @Entity
 @Table(name = "banner_ads")

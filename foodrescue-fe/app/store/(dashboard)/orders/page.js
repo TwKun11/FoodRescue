@@ -93,7 +93,6 @@ function normalizeOrders(content) {
         productName: row.productName ?? row.variantName,
         variantName: row.variantName,
         quantity: row.quantity,
-        listPrice: row.listPrice,
         unitPrice: row.unitPrice,
         lineTotal: row.lineTotal ?? (Number(row.quantity) || 0) * (Number(row.unitPrice) || 0),
       });
@@ -101,6 +100,8 @@ function normalizeOrders(content) {
   }
   return Array.from(byId.values());
 }
+
+// Mockdata đã xóa - chỉ sử dụng dữ liệu thực từ API
 
 function OrderDetailModal({ order, onClose }) {
   if (!order) return null;
@@ -111,7 +112,7 @@ function OrderDetailModal({ order, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <h3 className="text-lg font-bold text-gray-900">Chi tiết đơn hàng #{order.orderCode || order.id}</h3>
           <button type="button" onClick={onClose} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100">
@@ -132,11 +133,11 @@ function OrderDetailModal({ order, onClose }) {
             <tbody>
               {items.map((item) => {
                 const qty = Number(item.quantity) || 0;
-                const unitPrice = Number(item.unitPrice) || 0;
-                const listPrice = item.listPrice != null ? Number(item.listPrice) : null;
-                const originalUnitPrice = listPrice != null && listPrice > 0 ? listPrice : unitPrice;
-                const hasDiscount = listPrice != null && listPrice > 0 && unitPrice > 0 && unitPrice < listPrice;
-                const lineTotal = Number(item.lineTotal) || unitPrice * qty;
+                const originalUnitPrice = Number(
+                  item.listPrice ?? item.originalUnitPrice ?? item.unitPrice,
+                ) || 0;
+                const discountedUnitPrice = Number(item.unitPrice ?? originalUnitPrice) || 0;
+                const lineTotal = Number(item.lineTotal) || discountedUnitPrice * qty;
                 return (
                   <tr key={item.id || item.productId} className="border-b border-gray-100">
                     <td className="py-3 pr-2 text-gray-800">
@@ -146,23 +147,11 @@ function OrderDetailModal({ order, onClose }) {
                       )}
                     </td>
                     <td className="py-3 px-2 text-center text-gray-600">{qty}</td>
-                    <td className="py-3 px-2 text-right text-gray-500">
-                      {hasDiscount ? (
-                        <span className="line-through">
-                          {originalUnitPrice.toLocaleString("vi-VN")}₫
-                        </span>
-                      ) : (
-                        <span>{originalUnitPrice.toLocaleString("vi-VN")}₫</span>
-                      )}
+                    <td className="py-3 px-2 text-right text-gray-400 line-through">
+                      {originalUnitPrice.toLocaleString("vi-VN")}₫
                     </td>
-                    <td className="py-3 px-2 text-right">
-                      {hasDiscount ? (
-                        <span className="text-red-600 font-semibold">
-                          {unitPrice.toLocaleString("vi-VN")}₫
-                        </span>
-                      ) : (
-                        <span className="text-gray-400 text-xs">—</span>
-                      )}
+                    <td className="py-3 px-2 text-right text-red-600 font-semibold">
+                      {discountedUnitPrice.toLocaleString("vi-VN")}₫
                     </td>
                     <td className="py-3 pl-2 text-right font-semibold text-gray-800">
                       {lineTotal.toLocaleString("vi-VN")}₫
@@ -221,7 +210,20 @@ export default function StoreOrdersPage() {
             setTotalPages(data.totalPages ?? 1);
             setTotalElements(data.totalElements ?? content.length);
             setPage(nextPage ?? 0);
+          } else {
+            // Nếu API lỗi, hiển thị rỗng (không dùng mockdata)
+            setOrders([]);
+            setTotalPages(1);
+            setTotalElements(0);
+            setPage(0);
           }
+        })
+        .catch(() => {
+          // Khi API lỗi, hiển thị rỗng
+          setOrders([]);
+          setTotalPages(1);
+          setTotalElements(0);
+          setPage(0);
         })
         .finally(() => setLoading(false));
     },
@@ -239,8 +241,7 @@ export default function StoreOrdersPage() {
         if (res.ok) {
           setOrders((prev) => prev.map((order) => (order.id === sellerOrderId ? { ...order, status: newStatus } : order)));
         } else {
-          const msg = res.data?.message || res.data?.error || "Cập nhật trạng thái thất bại.";
-          alert(msg);
+          alert("Cập nhật trạng thái thất bại.");
         }
       })
       .finally(() => setUpdating(null));
@@ -291,9 +292,9 @@ export default function StoreOrdersPage() {
           )}
         </div>
 
-        <div className="px-4 pt-2 pb-1">
+        {/* <div className="px-4 pt-2 pb-1">
           <span className="text-gray-500 text-sm">Lọc theo trạng thái</span>
-        </div>
+        </div> */}
 
         <div className="flex overflow-x-auto border-b border-gray-100">
           {TABS.map((tab) => (
@@ -322,20 +323,19 @@ export default function StoreOrdersPage() {
                 <th className="text-left px-4 py-3 whitespace-nowrap">Trạng thái</th>
                 <th className="text-right px-4 py-3 whitespace-nowrap">Tổng tiền</th>
                 <th className="text-left px-4 py-3 whitespace-nowrap">Ngày tạo</th>
-                <th className="text-left px-4 py-3 whitespace-nowrap">Chi tiết đơn</th>
                 <th className="text-left px-4 py-3 whitespace-nowrap">Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={10} className="text-center py-12 text-gray-400">
+                  <td colSpan={9} className="text-center py-12 text-gray-400">
                     Đang tải...
                   </td>
                 </tr>
               ) : filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="text-center py-12 text-gray-400">
+                  <td colSpan={9} className="text-center py-12 text-gray-400">
                     Chưa có đơn hàng nào.
                   </td>
                 </tr>
@@ -344,14 +344,13 @@ export default function StoreOrdersPage() {
               {filteredOrders.map((order) => {
                 const statusLabel = STATUS_LABELS[order.status] || order.status;
                 const statusColor = STATUS_COLORS[order.status] || "bg-gray-50 text-gray-600 border border-gray-200";
+                const nextStatus = NEXT_STATUS[order.status];
                 const paymentStatusLabel = PAYMENT_LABELS[order.paymentStatus] || order.paymentStatus || "-";
-                const paymentMethodLabel = PAYMENT_METHOD_LABELS[order.paymentMethod?.toLowerCase?.()] || order.paymentMethod || "-";
+                const paymentMethodLabel = PAYMENT_METHOD_LABELS[order.paymentMethod?.toLowerCase()] || order.paymentMethod || "-";
                 const customerName = order.customerName || order.customer || "—";
                 const customerEmail = order.customerEmail || order.email || "—";
                 const customerPhone = order.customerPhone || order.phone || "—";
                 const totalDisplay = order.totalAmount ?? order.subtotal ?? 0;
-                const canConfirm = order.status === "pending";
-                const canCancel = order.status === "pending";
 
                 return (
                   <tr key={order.id} className="border-t border-gray-50 hover:bg-gray-50/50 transition">
@@ -373,43 +372,25 @@ export default function StoreOrdersPage() {
                       {order.createdAt ? new Date(order.createdAt).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
                     </td>
                     <td className="px-4 py-3">
-                      <button
-                        type="button"
-                        onClick={() => setDetailOrder(order)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition"
-                        title="Xem chi tiết đơn hàng"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                        <span>Chi tiết đơn</span>
-                      </button>
-                    </td>
-                    <td className="px-4 py-3">
-                      {canConfirm || canCancel ? (
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          {canConfirm && (
-                            <button
-                              disabled={updating === order.id}
-                              onClick={() => handleUpdateStatus(order.id, NEXT_STATUS.pending)}
-                              className="text-xs bg-brand hover:bg-brand-secondary text-gray-900 font-medium px-2.5 py-1.5 rounded-lg transition disabled:opacity-50 whitespace-nowrap"
-                            >
-                              {updating === order.id ? "..." : "Xác nhận đơn"}
-                            </button>
-                          )}
-                          {canCancel && (
-                            <button
-                              disabled={updating === order.id}
-                              onClick={() => handleUpdateStatus(order.id, "cancelled")}
-                              className="text-xs bg-red-50 hover:bg-red-100 text-red-600 font-medium px-2.5 py-1.5 rounded-lg border border-red-200 transition disabled:opacity-50 whitespace-nowrap"
-                            >
-                              {updating === order.id ? "..." : "Hủy đơn"}
-                            </button>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200">
-                          {STATUS_LABELS[order.status] || "Đã xử lý"}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => setDetailOrder(order)}
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300 transition"
+                          title="Xem chi tiết đơn hàng"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                        </button>
+                        {nextStatus && (
+                          <button
+                            disabled={updating === order.id}
+                            onClick={() => handleUpdateStatus(order.id, nextStatus)}
+                            className="text-xs bg-brand hover:bg-brand-secondary text-gray-900 font-medium px-2.5 py-1.5 rounded-lg transition disabled:opacity-50 whitespace-nowrap"
+                          >
+                            {updating === order.id ? "..." : STATUS_LABELS[nextStatus] || nextStatus}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
