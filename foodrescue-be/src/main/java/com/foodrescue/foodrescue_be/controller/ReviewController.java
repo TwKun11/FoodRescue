@@ -18,6 +18,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -233,5 +234,56 @@ public class ReviewController {
         result.add(p2);
         
         return ResponseData.ok(result);
+    }
+
+    /**
+     * Seller: Lấy tất cả sản phẩm với ratings/statistics (manual pagination)
+     */
+    @GetMapping("/seller/reviews/products")
+    @PreAuthorize("hasAnyRole('SELLER', 'ADMIN')")
+    public ResponseData<?> getSellerProductsWithRatings(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "15") int size
+    ) {
+        try {
+            return ResponseData.ok(reviewService.getSellerProductsWithRatingsManual(page, size));
+        } catch (Exception e) {
+            return ResponseData.error("Lỗi: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Seller: Lấy reviews cho 1 product cụ thể (của seller đó)
+     */
+    @GetMapping("/seller/reviews/product/{productId}")
+    @PreAuthorize("hasAnyRole('SELLER', 'ADMIN')")
+    public ResponseData<Page<ReviewResponse>> getSellerProductReviews(
+            @PathVariable Long productId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        try {
+            Pageable pageable = PageRequest.of(page, size);
+            return ResponseData.ok(reviewService.getSellerProductReviews(productId, pageable));
+        } catch (Exception e) {
+            return ResponseData.error("Lỗi: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Seller: Lấy tất cả reviews mà seller nhận được
+     */
+    @GetMapping("/seller/reviews/received")
+    @PreAuthorize("hasAnyRole('SELLER', 'ADMIN')")
+    public ResponseData<Page<ReviewResponse>> getSellerReceivedReviews(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        try {
+            Pageable pageable = PageRequest.of(page, size);
+            return ResponseData.ok(reviewService.getSellerReceivedReviews(pageable));
+        } catch (Exception e) {
+            return ResponseData.error("Lỗi: " + e.getMessage());
+        }
     }
 }
