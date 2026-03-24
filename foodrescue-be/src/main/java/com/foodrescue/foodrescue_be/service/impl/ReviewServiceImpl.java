@@ -319,6 +319,82 @@ public class ReviewServiceImpl implements ReviewService {
         return topProducts;
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ReviewResponse> getSellerReceivedReviews(Pageable pageable) {
+        log.info("=== getSellerReceivedReviews START ===");
+        User currentUser = getCurrentUser();
+        log.info("Current seller user ID: {}", currentUser.getId());
+        
+        Page<Review> reviews = reviewRepository.findSellerReceivedReviews(currentUser.getId(), pageable);
+        log.info("Found {} reviews for seller", reviews.getTotalElements());
+        
+        Page<ReviewResponse> result = reviews.map(this::mapToResponse);
+        log.info("=== getSellerReceivedReviews END ===");
+        return result;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ReviewResponse> getSellerProductReviews(Long productId, Pageable pageable) {
+        log.info("=== getSellerProductReviews START for productId: {} ===", productId);
+        User currentUser = getCurrentUser();
+        
+        // Verify product belongs to current seller
+        Product product = productRepository.findById(productId)
+            .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+        
+        if (!product.getSeller().getUser().getId().equals(currentUser.getId())) {
+            log.warn("Unauthorized access attempt: user {} tried to access product {} owned by {}", 
+                currentUser.getId(), productId, product.getSeller().getUser().getId());
+            throw new ResourceNotFoundException("Product not found");
+        }
+        
+        Page<Review> reviews = reviewRepository.findSellerProductReviews(productId, currentUser.getId(), pageable);
+        log.info("Found {} reviews for product {}", reviews.getTotalElements(), productId);
+        
+        Page<ReviewResponse> result = reviews.map(this::mapToResponse);
+        log.info("=== getSellerProductReviews END ===");
+        return result;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Map<String, Object>> getSellerProductsWithRatings(Pageable pageable) {
+        // Deprecated: Use getSellerProductsWithRatingsManual instead
+        // This method is kept for interface compatibility but not used
+        throw new UnsupportedOperationException("Use getSellerProductsWithRatingsManual instead");
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Object> getSellerProductsWithRatingsManual(int page, int size) {
+        log.info("=== getSellerProductsWithRatingsManual START - page: {}, size: {} ===", page, size);
+        User currentUser = getCurrentUser();
+        log.info("Current seller user ID: {}", currentUser.getId());
+        
+        int offset = page * size;
+        List<Map<String, Object>> content = reviewRepository.getSellerProductsWithRatingsManual(
+                currentUser.getId(), size, offset);
+        Long total = reviewRepository.countSellerProducts(currentUser.getId());
+        
+        log.info("Found {} products, total: {}", content.size(), total);
+        for (Map<String, Object> product : content) {
+            log.info("  - Product: {}", product);
+        }
+        
+        int totalPages = (int) Math.ceil((double) total / size);
+        Map<String, Object> result = new java.util.HashMap<>();
+        result.put("content", content);
+        result.put("totalElements", total);
+        result.put("totalPages", totalPages);
+        result.put("currentPage", page);
+        result.put("pageSize", size);
+        
+        log.info("=== getSellerProductsWithRatingsManual END ===");
+        return result;
+    }
+
     // ============ Helpers ============
 
     private ReviewResponse mapToResponse(Review review) {

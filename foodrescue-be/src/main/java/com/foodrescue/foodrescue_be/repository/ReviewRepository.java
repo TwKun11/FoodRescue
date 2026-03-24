@@ -92,4 +92,46 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
                    "ORDER BY COALESCE(AVG(r.rating), 0) DESC, COALESCE(COUNT(DISTINCT r.id), 0) DESC " +
                    "LIMIT :limit", nativeQuery = true)
     List<Map<String, Object>> getTopRatedProducts(@Param("productIds") List<Long> productIds, @Param("limit") int limit);
+
+    /**
+     * Lấy tất cả reviews được gửi cho sản phẩm của seller (pageable)
+     */
+    @Query("SELECT r FROM Review r JOIN r.product p JOIN p.seller s WHERE s.user.id = :userId ORDER BY r.createdAt DESC")
+    Page<Review> findSellerReceivedReviews(@Param("userId") Long userId, Pageable pageable);
+
+    /**
+     * Lấy reviews cho 1 sản phẩm cụ thể của seller (pageable, eager load user)
+     */
+    @Query("SELECT r FROM Review r JOIN r.product p JOIN p.seller s " +
+           "LEFT JOIN FETCH r.user WHERE p.id = :productId AND s.user.id = :userId " +
+           "ORDER BY r.createdAt DESC")
+    Page<Review> findSellerProductReviews(@Param("productId") Long productId, @Param("userId") Long userId, Pageable pageable);
+
+    /**
+     * Lấy tất cả sản phẩm của seller với rating stats (manual pagination)
+     */
+    @Query(value = "SELECT p.id as id, p.name as name, " +
+                   "COALESCE(MAX(pi.image_url), '') as primaryImageUrl, " +
+                   "ROUND(COALESCE(AVG(r.rating), 0), 1) as avgRating, " +
+                   "COALESCE(COUNT(DISTINCT r.id), 0) as reviewCount " +
+                   "FROM products p " +
+                   "LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = 1 " +
+                   "LEFT JOIN reviews r ON p.id = r.product_id " +
+                   "WHERE p.seller_id = (SELECT s.id FROM sellers s WHERE s.user_id = :userId) " +
+                   "GROUP BY p.id, p.name " +
+                   "ORDER BY COALESCE(AVG(r.rating), 0) DESC, COALESCE(COUNT(DISTINCT r.id), 0) DESC " +
+                   "LIMIT :limit OFFSET :offset",
+           nativeQuery = true)
+    List<Map<String, Object>> getSellerProductsWithRatingsManual(
+            @Param("userId") Long userId, 
+            @Param("limit") int limit, 
+            @Param("offset") int offset);
+
+    /**
+     * Count total products for pagination
+     */
+    @Query(value = "SELECT COUNT(DISTINCT p.id) FROM products p " +
+                   "WHERE p.seller_id = (SELECT s.id FROM sellers s WHERE s.user_id = :userId)",
+           nativeQuery = true)
+    Long countSellerProducts(@Param("userId") Long userId);
 }

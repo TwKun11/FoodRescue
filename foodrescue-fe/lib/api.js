@@ -485,6 +485,26 @@ export async function apiMockTopRatedSellerProducts(limit = 5) {
   return request(`/api/reviews/seller/mock/top-products?${params.toString()}`);
 }
 
+// Seller reviews management endpoints
+export async function apiSellerGetProductsWithRatings({ page = 0, size = 15 } = {}) {
+  // Get all seller's products with ratings and review statistics
+  // Returns Map with: content, totalElements, totalPages, currentPage, pageSize
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  return request(`/api/reviews/seller/reviews/products?${params.toString()}`);
+}
+
+export async function apiSellerGetProductReviews(productId, { page = 0, size = 10 } = {}) {
+  // Get all reviews for a specific seller's product
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  return request(`/api/reviews/seller/reviews/product/${productId}?${params.toString()}`);
+}
+
+export async function apiSellerGetReceivedReviews({ page = 0, size = 10 } = {}) {
+  // Get all reviews received by the seller
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  return request(`/api/reviews/seller/reviews/received?${params.toString()}`);
+}
+
 export async function apiSellerSetPrimaryImage(productId, imageId) {
   return request(`/api/seller/products/${productId}/images/${imageId}/primary`, { method: "PUT" });
 }

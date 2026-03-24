@@ -59,4 +59,24 @@ public interface ReviewService {
      * Lấy top 5 sản phẩm được đánh giá cao nhất của seller hiện tại
      */
     List<Map<String, Object>> getTopRatedSellerProducts(int limit);
+
+    /**
+     * Lấy tất cả reviews được gửi cho seller (pageable)
+     */
+    Page<ReviewResponse> getSellerReceivedReviews(Pageable pageable);
+
+    /**
+     * Lấy reviews của 1 sản phẩm cụ thể của seller (pageable)
+     */
+    Page<ReviewResponse> getSellerProductReviews(Long productId, Pageable pageable);
+
+    /**
+     * Lấy tất cả sản phẩm của seller với rating stats (pageable)
+     */
+    Page<Map<String, Object>> getSellerProductsWithRatings(Pageable pageable);
+
+    /**
+     * Lấy tất cả sản phẩm của seller với rating stats (manual pagination)
+     */
+    Map<String, Object> getSellerProductsWithRatingsManual(int page, int size);
 }
