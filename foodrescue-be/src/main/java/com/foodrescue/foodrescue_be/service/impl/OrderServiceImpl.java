@@ -38,6 +38,7 @@ public class OrderServiceImpl implements OrderService {
     private final ProductVariantRepository variantRepository;
     private final InventoryBatchRepository batchRepository;
     private final VoucherRepository voucherRepository;
+    private final UserVoucherRepository userVoucherRepository;
     private final PayOSGatewayService payOSGatewayService;
     private final OrderLifecycleProperties orderLifecycleProperties;
 
@@ -116,13 +117,14 @@ public class OrderServiceImpl implements OrderService {
             allItems.add(item);
         }
 
-        Voucher appliedVoucher = resolveApplicableVoucher(
+        AppliedVoucher appliedVoucher = resolveApplicableVoucher(
+            userId,
                 req.getVoucherCode(),
                 orderSubtotal,
                 totalQuantity,
                 address != null ? address.getProvince() : null
         );
-        BigDecimal orderDiscount = calculateVoucherDiscount(appliedVoucher, orderSubtotal);
+        BigDecimal orderDiscount = calculateVoucherDiscount(appliedVoucher != null ? appliedVoucher.voucher() : null, orderSubtotal);
         if (appliedVoucher != null && orderDiscount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Voucher không tạo ra giá trị giảm hợp lệ");
         }
@@ -160,9 +162,15 @@ public class OrderServiceImpl implements OrderService {
         order = orderRepository.save(order);
 
         if (appliedVoucher != null) {
-            Integer usedCount = appliedVoucher.getUsedCount() != null ? appliedVoucher.getUsedCount() : 0;
-            appliedVoucher.setUsedCount(usedCount + 1);
-            voucherRepository.save(appliedVoucher);
+            Voucher voucher = appliedVoucher.voucher();
+            Integer usedCount = voucher.getUsedCount() != null ? voucher.getUsedCount() : 0;
+            voucher.setUsedCount(usedCount + 1);
+            voucherRepository.save(voucher);
+
+            UserVoucher userVoucher = appliedVoucher.userVoucher();
+            userVoucher.setStatus(UserVoucher.Status.used);
+            userVoucher.setUsedAt(LocalDateTime.now());
+            userVoucherRepository.save(userVoucher);
         }
 
         OrderPayment payment = null;
@@ -392,7 +400,8 @@ public class OrderServiceImpl implements OrderService {
         }
     }
 
-    private Voucher resolveApplicableVoucher(
+        private AppliedVoucher resolveApplicableVoucher(
+            Long userId,
             String voucherCode,
             BigDecimal orderSubtotal,
             BigDecimal totalQuantity,
@@ -403,8 +412,11 @@ public class OrderServiceImpl implements OrderService {
         }
 
         String code = voucherCode.trim();
-        Voucher voucher = voucherRepository.findByCodeIgnoreCase(code)
-                .orElseThrow(() -> new IllegalArgumentException("Voucher không tồn tại"));
+        UserVoucher userVoucher = userVoucherRepository
+            .findByUserIdAndVoucher_CodeIgnoreCaseAndStatus(userId, code, UserVoucher.Status.claimed)
+            .orElseThrow(() -> new IllegalArgumentException("Bạn chưa nhận voucher này hoặc voucher đã được dùng"));
+
+        Voucher voucher = userVoucher.getVoucher();
 
         LocalDateTime now = LocalDateTime.now();
         if (voucher.getStatus() != Voucher.Status.active) {
@@ -446,7 +458,7 @@ public class OrderServiceImpl implements OrderService {
             throw new IllegalArgumentException("Voucher freeship chưa hỗ trợ cho luồng click and collect");
         }
 
-        return voucher;
+        return new AppliedVoucher(voucher, userVoucher);
     }
 
     private BigDecimal calculateVoucherDiscount(Voucher voucher, BigDecimal orderSubtotal) {
@@ -475,6 +487,8 @@ public class OrderServiceImpl implements OrderService {
         return discount;
     }
 
+    private record AppliedVoucher(Voucher voucher, UserVoucher userVoucher) {}
+
     private OrderSellerOrder createSellerOrder(Order order, Seller seller, Order.PaymentMethod paymentMethod) {
         return sellerOrderRepository.save(OrderSellerOrder.builder()
                 .order(order)
@@ -491,7 +505,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private BigDecimal resolveUnitPrice(ProductVariant variant) {
-        BigDecimal price = variant.getSalePrice() != null ? variant.getSalePrice() : variant.getListPrice();
+        BigDecimal price = variant.getListPrice() != null ? variant.getListPrice() : variant.getSalePrice();
         if (price == null || price.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("San pham " + variant.getName() + " chua co gia ban hop le");
         }
