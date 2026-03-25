@@ -96,9 +96,9 @@ function LocationPinIcon({ className }) {
 
 function mapProductFromApi(p) {
   const defaultSku = p.variants?.find((s) => s.isDefault) || p.variants?.[0];
-  const salePrice = defaultSku?.salePrice ?? 0;
-  const listPrice = defaultSku?.listPrice ?? salePrice;
-  const discountPercent = listPrice > 0 ? Math.round(((listPrice - salePrice) / listPrice) * 100) : 0;
+  const listPrice = defaultSku?.listPrice ?? defaultSku?.salePrice ?? 0;
+  const salePrice = listPrice;
+  const discountPercent = 0;
   const shelfDays = p.shelfLifeDays ?? 0;
   const expiryAt = shelfDays ? new Date(Date.now() + shelfDays * 24 * 60 * 60 * 1000).toISOString() : null;
   const address = p.sellerPickupAddress || [p.originProvince].filter(Boolean).join(", ") || "";

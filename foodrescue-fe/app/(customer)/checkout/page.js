@@ -3,9 +3,9 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Badge from "@/components/common/Badge";
-import { apiGetAddresses, apiPlaceOrder } from "@/lib/api";
+import { apiGetAddresses, apiGetMyVouchers, apiGetVoucherStore, apiPlaceOrder, apiPreviewVoucher } from "@/lib/api";
 import { clearCheckoutCart, getCheckoutItems, removeCheckoutItemsFromCart } from "@/lib/cart";
 
 const PAYMENT_METHODS = [
@@ -82,6 +82,7 @@ function PaymentLogo({ method, compact = false }) {
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [addresses, setAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState("");
   const [addressesLoading, setAddressesLoading] = useState(true);
@@ -92,6 +93,16 @@ export default function CheckoutPage() {
   const [orderId, setOrderId] = useState(null);
   const [placing, setPlacing] = useState(false);
   const [voucherCode, setVoucherCode] = useState("");
+  const [myVouchers, setMyVouchers] = useState([]);
+  const [eligibleVouchers, setEligibleVouchers] = useState([]);
+  const [voucherOptionsLoading, setVoucherOptionsLoading] = useState(false);
+  const [voucherLoadHint, setVoucherLoadHint] = useState("");
+  const [voucherPreview, setVoucherPreview] = useState({
+    loading: false,
+    discountAmount: 0,
+    finalTotal: null,
+    error: "",
+  });
   const isClient = useSyncExternalStore(subscribeClientSnapshot, () => true, () => false);
 
   useEffect(() => {
@@ -122,6 +133,36 @@ export default function CheckoutPage() {
         }
       })
       .finally(() => setAddressesLoading(false));
+
+    Promise.all([apiGetMyVouchers(), apiGetVoucherStore()]).then(([myRes, storeRes]) => {
+      const myList = myRes.ok ? (myRes.data?.data || []) : [];
+      const storeClaimedList = storeRes.ok ? (storeRes.data?.data || []).filter((item) => item.claimed) : [];
+
+      const mergedMap = new Map();
+      [...myList, ...storeClaimedList].forEach((item) => {
+        if (!item?.code) return;
+        const existing = mergedMap.get(item.code);
+        if (!existing) {
+          mergedMap.set(item.code, item);
+          return;
+        }
+        // Prefer item from /my because it usually has the latest user-voucher status.
+        if (existing.claimed !== true && item.claimed === true) {
+          mergedMap.set(item.code, item);
+        }
+      });
+
+      const merged = Array.from(mergedMap.values()).filter((item) => !item.usedAt);
+      setMyVouchers(merged);
+
+      if (merged.length === 0) {
+        setVoucherLoadHint("Bạn chưa có voucher đã nhận.");
+      } else if (myList.length === 0 && storeClaimedList.length > 0) {
+        setVoucherLoadHint(`Đã tải ${merged.length} voucher từ kho voucher.`);
+      } else {
+        setVoucherLoadHint("");
+      }
+    });
   }, [router]);
 
   const items = isClient ? getCheckoutItems() : [];
@@ -134,7 +175,129 @@ export default function CheckoutPage() {
   const voucherCodeTrimmed = voucherCode.trim();
   const lineCount = items.length;
   const qtyCount = items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+  const selectedAddress = addresses.find((address) => String(address.id) === selectedAddressId) || null;
+  const selectedProvince = selectedAddress?.province || "";
+  const voucherDiscount = Number(voucherPreview.discountAmount || 0);
+  const finalTotal = Math.max(0, subtotal - voucherDiscount);
   const selectedPayment = PAYMENT_METHODS.find((method) => method.id === paymentMethod) ?? PAYMENT_METHODS[0];
+
+  useEffect(() => {
+    const fromQuery = (searchParams.get("voucher") || "").trim().toUpperCase();
+    const fromStorage = typeof window !== "undefined"
+      ? (localStorage.getItem("checkoutVoucherCode") || "").trim().toUpperCase()
+      : "";
+    const prefill = fromQuery || fromStorage;
+    if (prefill && !voucherCodeTrimmed) {
+      setVoucherCode(prefill);
+    }
+    if (fromStorage && typeof window !== "undefined") {
+      localStorage.removeItem("checkoutVoucherCode");
+    }
+  }, [searchParams, voucherCodeTrimmed]);
+
+  useEffect(() => {
+    if (myVouchers.length === 0 || subtotal <= 0) {
+      setEligibleVouchers([]);
+      return;
+    }
+
+    let cancelled = false;
+    setVoucherOptionsLoading(true);
+
+    Promise.all(
+      myVouchers.map(async (voucher) => {
+        const res = await apiPreviewVoucher({
+          code: voucher.code,
+          orderValue: subtotal,
+          totalQuantity: qtyCount,
+          province: selectedProvince || undefined,
+        });
+        if (res.ok && res.data?.data) {
+          return {
+            id: voucher.id,
+            code: voucher.code,
+            name: voucher.name,
+            discountAmount: Number(res.data.data.discountAmount || 0),
+            finalTotal: Number(res.data.data.finalTotal || 0),
+          };
+        }
+        return null;
+      }),
+    )
+      .then((results) => {
+        if (cancelled) return;
+        const nextEligible = results
+          .filter(Boolean)
+          .sort((a, b) => (b.discountAmount || 0) - (a.discountAmount || 0));
+        setEligibleVouchers(nextEligible);
+
+        if (voucherCodeTrimmed && !nextEligible.some((item) => item.code === voucherCodeTrimmed)) {
+          setVoucherCode("");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setVoucherOptionsLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [myVouchers, subtotal, qtyCount, selectedProvince, voucherCodeTrimmed]);
+
+  useEffect(() => {
+    if (!voucherCodeTrimmed) {
+      setVoucherPreview({ loading: false, discountAmount: 0, finalTotal: null, error: "" });
+      return;
+    }
+    if (subtotal <= 0) {
+      return;
+    }
+
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      setVoucherPreview((prev) => ({ ...prev, loading: true, error: "" }));
+      apiPreviewVoucher({
+        code: voucherCodeTrimmed,
+        orderValue: subtotal,
+        totalQuantity: qtyCount,
+        province: selectedProvince || undefined,
+      })
+        .then((res) => {
+          if (cancelled) return;
+          if (res.ok && res.data?.data) {
+            setVoucherPreview({
+              loading: false,
+              discountAmount: Number(res.data.data.discountAmount || 0),
+              finalTotal: Number(res.data.data.finalTotal || 0),
+              error: "",
+            });
+            return;
+          }
+          setVoucherPreview({
+            loading: false,
+            discountAmount: 0,
+            finalTotal: null,
+            error: res.data?.message || "Mã voucher chưa áp dụng được.",
+          });
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setVoucherPreview({
+            loading: false,
+            discountAmount: 0,
+            finalTotal: null,
+            error: "Không thể kiểm tra voucher lúc này.",
+          });
+        });
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [voucherCodeTrimmed, subtotal, qtyCount, selectedProvince]);
 
   const handlePlaceOrder = () => {
     if (!selectedPayment?.enabled) {
@@ -166,6 +329,9 @@ export default function CheckoutPage() {
       .then((res) => {
         const order = res.data?.data;
         if (res.ok && order) {
+          if (voucherCodeTrimmed) {
+            window.dispatchEvent(new Event("voucher-wallet-updated"));
+          }
           if (order.paymentMethod === "payos") {
             if (order.payment?.checkoutUrl) {
               removeCheckoutItemsFromCart(items);
@@ -459,17 +625,27 @@ export default function CheckoutPage() {
             </div>
 
             <div className="mt-4 rounded-2xl border border-gray-100 bg-white p-4">
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-brand-dark">Mã voucher</label>
-              <input
-                type="text"
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-brand-dark">Voucher áp dụng</label>
+              <select
                 value={voucherCode}
-                onChange={(event) => setVoucherCode(event.target.value.toUpperCase())}
-                placeholder="Nhập mã voucher"
+                onChange={(event) => setVoucherCode(event.target.value)}
                 className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
-              />
+              >
+                <option value="">Không dùng voucher</option>
+                {eligibleVouchers.map((voucher) => (
+                  <option key={voucher.code} value={voucher.code}>
+                    {voucher.code} - {voucher.name} (giảm {formatCurrency(voucher.discountAmount)})
+                  </option>
+                ))}
+              </select>
               <p className="mt-2 text-xs text-gray-500">
-                Voucher được backend kiểm tra khi tạo đơn.
+                {voucherOptionsLoading
+                  ? "Đang tìm voucher phù hợp với sản phẩm và địa chỉ đã chọn..."
+                  : myVouchers.length > 0
+                    ? `Đã nhận ${myVouchers.length} voucher, có ${eligibleVouchers.length} voucher đủ điều kiện.`
+                    : "Bạn chưa nhận voucher nào."}
               </p>
+              {voucherLoadHint ? <p className="mt-1 text-xs text-amber-700">{voucherLoadHint}</p> : null}
             </div>
 
             <div className="mt-4 space-y-3">
@@ -508,14 +684,25 @@ export default function CheckoutPage() {
                 <span>-{formatCurrency(savings)}</span>
               </div>
               {voucherCodeTrimmed ? (
-                <div className="mt-2 flex justify-between text-emerald-700">
-                  <span>Voucher</span>
-                  <span>Đang áp: {voucherCodeTrimmed}</span>
-                </div>
+                <>
+                  <div className="mt-2 flex justify-between text-emerald-700">
+                    <span>Voucher</span>
+                    <span>{voucherPreview.loading ? "Đang kiểm tra..." : `Đang áp: ${voucherCodeTrimmed}`}</span>
+                  </div>
+                  {voucherDiscount > 0 ? (
+                    <div className="mt-2 flex justify-between text-emerald-700">
+                      <span>Giảm voucher</span>
+                      <span>-{formatCurrency(voucherDiscount)}</span>
+                    </div>
+                  ) : null}
+                  {voucherPreview.error ? (
+                    <p className="mt-2 text-xs text-red-500">{voucherPreview.error}</p>
+                  ) : null}
+                </>
               ) : null}
               <div className="mt-3 flex justify-between border-t border-gray-100 pt-3 text-base font-bold text-gray-900">
                 <span>Tổng cộng</span>
-                <span>{formatCurrency(subtotal)}</span>
+                <span>{formatCurrency(voucherPreview.finalTotal != null ? voucherPreview.finalTotal : finalTotal)}</span>
               </div>
               <p className="mt-2 text-xs text-gray-400">Giá trị thanh toán được backend chốt lại theo biến thể và tồn kho hiện tại.</p>
             </div>

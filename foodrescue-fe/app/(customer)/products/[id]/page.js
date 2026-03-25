@@ -57,9 +57,9 @@ function ImageGallery({ images, name, discountPercent }) {
 function mapProductDetail(p) {
   if (!p) return null;
   const variant = (p.variants || []).find((v) => v.isDefault) || p.variants?.[0] || {};
-  const listPrice = variant.listPrice ?? 0;
-  const salePrice = variant.salePrice ?? variant.listPrice ?? 0;
-  const discountPercent = listPrice > 0 ? Math.round((1 - salePrice / listPrice) * 100) : 0;
+  const listPrice = variant.listPrice ?? variant.salePrice ?? 0;
+  const salePrice = listPrice;
+  const discountPercent = 0;
   const remaining = variant.stockAvailable ?? variant.stockQuantity ?? 0;
   const shelfLifeDays = p.shelfLifeDays ?? 0;
   return {
@@ -95,9 +95,9 @@ function mapProductDetail(p) {
 
 function mapRelated(p) {
   const v = (p.variants || []).find((x) => x.isDefault) || p.variants?.[0] || {};
-  const listPrice = v.listPrice ?? 0;
-  const salePrice = v.salePrice ?? v.listPrice ?? 0;
-  const discountPercent = listPrice > 0 ? Math.round(((listPrice - salePrice) / listPrice) * 100) : 0;
+  const listPrice = v.listPrice ?? v.salePrice ?? 0;
+  const salePrice = listPrice;
+  const discountPercent = 0;
   const stock = v.stockAvailable ?? v.stockQuantity ?? 0;
   const shelfDays = p.shelfLifeDays ?? 0;
   return {
@@ -272,8 +272,8 @@ const [viewerLocation, setViewerLocation] = useState(null);
       name: product.name,
       variantName: selectedSku.name || selectedSku.unit || "",
       image: product.primaryImageUrl,
-      price: selectedSku.salePrice || selectedSku.listPrice || 0,
-      originalPrice: selectedSku.listPrice || 0,
+      price: selectedSku.listPrice || selectedSku.salePrice || 0,
+      originalPrice: selectedSku.listPrice || selectedSku.salePrice || 0,
       unit: selectedSku.unit || "",
       storeName: product.sellerName || "",
       quantity: Math.min(remaining, qty),
@@ -343,9 +343,9 @@ const [viewerLocation, setViewerLocation] = useState(null);
   }
 
   const displaySku = selectedSku || {};
-  const origP = displaySku.listPrice ?? product.originalPrice;
-  const discP = displaySku.salePrice ?? displaySku.listPrice ?? product.discountPrice;
-  const discPct = origP > 0 ? Math.round((1 - discP / origP) * 100) : 0;
+  const origP = displaySku.listPrice ?? displaySku.salePrice ?? product.originalPrice;
+  const discP = origP;
+  const discPct = 0;
   const remaining =
     (displaySku.stockAvailable ?? displaySku.stockQuantity) != null
       ? displaySku.stockAvailable ?? displaySku.stockQuantity

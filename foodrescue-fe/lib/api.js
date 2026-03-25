@@ -120,6 +120,30 @@ export async function apiSyncOrderPayment(orderId) {
 }
 
 // ============================================================
+// VOUCHERS (customer)
+// ============================================================
+export async function apiGetVoucherStore() {
+  return request("/api/vouchers/store");
+}
+
+export async function apiGetMyVouchers() {
+  return request("/api/vouchers/my");
+}
+
+export async function apiClaimVoucher(voucherId) {
+  return request(`/api/vouchers/${voucherId}/claim`, { method: "POST" });
+}
+
+export async function apiPreviewVoucher({ code, orderValue, totalQuantity, province } = {}) {
+  const params = new URLSearchParams();
+  if (code) params.set("code", code);
+  if (orderValue != null) params.set("orderValue", String(orderValue));
+  if (totalQuantity != null) params.set("totalQuantity", String(totalQuantity));
+  if (province) params.set("province", province);
+  return request(`/api/vouchers/preview?${params.toString()}`);
+}
+
+// ============================================================
 // SELLER APPLICATIONS
 // ============================================================
 export async function apiGetMySellerApplication() {
