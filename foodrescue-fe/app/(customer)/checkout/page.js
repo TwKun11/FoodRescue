@@ -10,12 +10,22 @@ import { clearCheckoutCart, getCheckoutItems, removeCheckoutItemsFromCart } from
 
 const PAYMENT_METHODS = [
   {
+    id: "cod",
+    label: "Thanh toán khi nhận hàng",
+    subtitle: "COD",
+    helper: "Khả dụng",
+    enabled: true,
+    tileClass: "border border-amber-200 bg-amber-100 text-amber-700",
+    shortLabel: "COD",
+  },
+  {
     id: "payos",
     label: "PayOS",
     subtitle: "QR / Chuyển khoản",
-    helper: "Đang hoạt động",
+    helper: "Cần cấu hình API key",
     enabled: true,
     tileClass: "border border-emerald-200 bg-emerald-100 text-emerald-700",
+    shortLabel: "PO",
   },
   {
     id: "momo",
@@ -63,8 +73,8 @@ function PaymentLogo({ method, compact = false }) {
   return (
     <div className={`flex items-center justify-center ${sizeClass} ${method.tileClass}`}>
       <div className="text-center">
-        <p className={`${compact ? "text-sm" : "text-lg"} font-black tracking-[0.2em]`}>PO</p>
-        {!compact ? <p className="text-[10px] font-semibold uppercase tracking-[0.24em]">PayOS</p> : null}
+        <p className={`${compact ? "text-sm" : "text-lg"} font-black tracking-[0.2em]`}>{method.shortLabel || "PM"}</p>
+        {!compact ? <p className="text-[10px] font-semibold uppercase tracking-[0.24em]">{method.subtitle}</p> : null}
       </div>
     </div>
   );
@@ -75,12 +85,13 @@ export default function CheckoutPage() {
   const [addresses, setAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState("");
   const [addressesLoading, setAddressesLoading] = useState(true);
-  const [paymentMethod, setPaymentMethod] = useState("payos");
+  const [paymentMethod, setPaymentMethod] = useState("cod");
   const [note, setNote] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [placed, setPlaced] = useState(false);
   const [orderId, setOrderId] = useState(null);
   const [placing, setPlacing] = useState(false);
+  const [voucherCode, setVoucherCode] = useState("");
   const isClient = useSyncExternalStore(subscribeClientSnapshot, () => true, () => false);
 
   useEffect(() => {
@@ -120,6 +131,7 @@ export default function CheckoutPage() {
     0,
   );
   const savings = Math.max(0, originalTotal - subtotal);
+  const voucherCodeTrimmed = voucherCode.trim();
   const lineCount = items.length;
   const qtyCount = items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
   const selectedPayment = PAYMENT_METHODS.find((method) => method.id === paymentMethod) ?? PAYMENT_METHODS[0];
@@ -148,6 +160,7 @@ export default function CheckoutPage() {
       addressId: selectedAddressId ? Number(selectedAddressId) : null,
       paymentMethod,
       note: note.trim() || null,
+      voucherCode: voucherCodeTrimmed || null,
       items: orderLines,
     })
       .then((res) => {
@@ -270,8 +283,8 @@ export default function CheckoutPage() {
             <h1 className="mt-2 text-3xl font-bold text-gray-900">Thanh toán</h1>
             <p className="mt-1 text-sm text-gray-500">Chọn cổng thanh toán và xác nhận đơn.</p>
           </div>
-          <Badge variant="default" className="w-fit bg-emerald-100 px-3 py-1 text-emerald-700">
-            PayOS đang hoạt động
+          <Badge variant="default" className="w-fit bg-amber-100 px-3 py-1 text-amber-700">
+            COD đang khả dụng
           </Badge>
         </div>
 
@@ -354,10 +367,10 @@ export default function CheckoutPage() {
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-dark">Bước 3</p>
                   <h2 className="text-base font-semibold text-gray-800">Phương thức thanh toán</h2>
-                  <p className="mt-1 text-sm text-gray-500">PayOS dùng được. MoMo và VNPay chỉ hiển thị.</p>
+                  <p className="mt-1 text-sm text-gray-500">COD đang hoạt động. PayOS cần cấu hình API key để sử dụng.</p>
                 </div>
                 <Badge variant="default" className="w-fit bg-slate-100 text-slate-600">
-                  1 cổng đang mở
+                  2 phương thức đang mở
                 </Badge>
               </div>
 
@@ -445,6 +458,20 @@ export default function CheckoutPage() {
               </div>
             </div>
 
+            <div className="mt-4 rounded-2xl border border-gray-100 bg-white p-4">
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-brand-dark">Mã voucher</label>
+              <input
+                type="text"
+                value={voucherCode}
+                onChange={(event) => setVoucherCode(event.target.value.toUpperCase())}
+                placeholder="Nhập mã voucher"
+                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
+              />
+              <p className="mt-2 text-xs text-gray-500">
+                Voucher được backend kiểm tra khi tạo đơn.
+              </p>
+            </div>
+
             <div className="mt-4 space-y-3">
               {items.map((item) => (
                 <div key={item.variantId} className="flex justify-between gap-3 text-sm">
@@ -480,6 +507,12 @@ export default function CheckoutPage() {
                 <span>Tiết kiệm</span>
                 <span>-{formatCurrency(savings)}</span>
               </div>
+              {voucherCodeTrimmed ? (
+                <div className="mt-2 flex justify-between text-emerald-700">
+                  <span>Voucher</span>
+                  <span>Đang áp: {voucherCodeTrimmed}</span>
+                </div>
+              ) : null}
               <div className="mt-3 flex justify-between border-t border-gray-100 pt-3 text-base font-bold text-gray-900">
                 <span>Tổng cộng</span>
                 <span>{formatCurrency(subtotal)}</span>
@@ -505,7 +538,11 @@ export default function CheckoutPage() {
               disabled={!agreed || placing || items.length === 0 || !selectedPayment?.enabled}
               className="mt-5 flex w-full items-center justify-center rounded-xl bg-brand px-6 py-3 text-sm font-semibold text-gray-900 transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {placing ? "Đang tạo đơn và mở PayOS..." : "Tạo đơn và chuyển sang PayOS"}
+              {placing
+                ? "Đang tạo đơn..."
+                : paymentMethod === "payos"
+                  ? "Tạo đơn và chuyển sang PayOS"
+                  : "Tạo đơn COD"}
             </button>
 
             <Link href="/cart" className="mt-3 block text-center text-sm text-gray-600 transition hover:text-brand-dark">

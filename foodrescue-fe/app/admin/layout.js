@@ -87,14 +87,32 @@ const NAV = [
     ),
   },
   {
-    label: "Phân tích chất thải",
+    href: "/admin/reviews",
+    label: "Quản lý đánh giá",
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.285 3.95a1 1 0 00.95.69h4.154c.969 0 1.371 1.24.588 1.81l-3.36 2.441a1 1 0 00-.364 1.118l1.285 3.95c.3.921-.755 1.688-1.54 1.118l-3.36-2.441a1 1 0 00-1.176 0l-3.36 2.44c-.784.57-1.838-.197-1.539-1.118l1.285-3.95a1 1 0 00-.364-1.118L2.98 9.377c-.783-.57-.38-1.81.588-1.81h4.154a1 1 0 00.95-.69l1.285-3.95z" />
+      </svg>
+    ),
+  },
+  {
+    href: "/admin/reports",
+    label: "Báo cáo vi phạm",
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M5.93 19h12.14c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L4.2 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+    ),
+  },
+  {
+    label: "Phân tích thực phẩm thừa",
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
       </svg>
     ),
     subItems: [
-      { href: "/admin/waste-analytics/early-warning", label: "Cảnh báo sớm" },
+      { href: "/admin/waste-analytics/early-warning", label: "Cảnh báo " },
       { href: "/admin/waste-analytics/action-center", label: "Trung tâm hành động" },
       { href: "/admin/waste-analytics/smart-matching", label: "Ghép cặp thông minh" },
       { href: "/admin/waste-analytics/top-categories", label: "Danh mục lãng phí" },

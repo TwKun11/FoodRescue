@@ -11,9 +11,14 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.time.LocalDateTime;
 
 @Repository
 public interface ReviewRepository extends JpaRepository<Review, Long> {
+
+        long countByIsSpamTrue();
+
+        long countByIsNegativeFlaggedTrue();
 
     /**
      * Tìm review của user cho product cụ thể (eager load user)
@@ -134,4 +139,50 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
                    "WHERE p.seller_id = (SELECT s.id FROM sellers s WHERE s.user_id = :userId)",
            nativeQuery = true)
     Long countSellerProducts(@Param("userId") Long userId);
+
+    @Query("""
+            SELECT r FROM Review r
+            JOIN FETCH r.user u
+            JOIN FETCH r.product p
+            JOIN FETCH p.seller s
+            WHERE (:search IS NULL OR :search = ''
+                OR LOWER(COALESCE(r.comment, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(COALESCE(s.shopName, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(COALESCE(u.email, '')) LIKE LOWER(CONCAT('%', :search, '%')))
+              AND (:minRating IS NULL OR r.rating >= :minRating)
+              AND (:maxRating IS NULL OR r.rating <= :maxRating)
+              AND (:spamOnly IS NULL OR r.isSpam = :spamOnly)
+              AND (:flaggedOnly IS NULL OR r.isNegativeFlagged = :flaggedOnly)
+            ORDER BY r.createdAt DESC
+            """)
+    Page<Review> findAllForAdmin(
+            @Param("search") String search,
+            @Param("minRating") Integer minRating,
+            @Param("maxRating") Integer maxRating,
+            @Param("spamOnly") Boolean spamOnly,
+            @Param("flaggedOnly") Boolean flaggedOnly,
+            Pageable pageable
+    );
+
+    @Query("""
+            SELECT p.seller.id, AVG(r.rating), COUNT(r.id)
+            FROM Review r
+            JOIN r.product p
+            WHERE p.seller.id IN :sellerIds
+            GROUP BY p.seller.id
+            """)
+    List<Object[]> getSellerRatingSnapshot(@Param("sellerIds") List<Long> sellerIds);
+
+    @Query("""
+            SELECT COUNT(r)
+            FROM Review r
+            WHERE r.product.id = :productId
+              AND r.rating <= 2
+              AND r.createdAt >= :since
+            """)
+    long countNegativeReviewsByProductSince(
+            @Param("productId") Long productId,
+            @Param("since") LocalDateTime since
+    );
 }

@@ -35,14 +35,14 @@ export default function WasteSmartMatchingPage() {
   return (
     <div className="space-y-5">
       <WastePageHero
-        title="Gợi ý ghép cặp thông minh"
+        title="Gợi ý khu vực và khung giờ đẩy hàng thông minh"
         subtitle="Gợi ý khu vực và khung giờ đẩy hàng dựa trên nhu cầu lịch sử và khả năng tiêu thụ."
         imageSrc="/images/landingpage/anhtraicay.jpg"
         imageAlt="Smart matching"
       />
 
       <section className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-        <h2 className="text-base font-bold text-gray-900">Bieu do do tin cay goi y</h2>
+        <h2 className="text-base font-bold text-gray-900">Biểu đồ độ tin cậy gợi ý</h2>
         <p className="mt-1 text-xs text-gray-500">Tỷ lệ độ tin cậy cho từng điểm phân phối đề xuất.</p>
         <div className="mt-4">
           <HorizontalBars rows={confidenceRows} colorClass="bg-sky-500" unit="%" emptyText="Chưa có dữ liệu gợi ý thông minh" />

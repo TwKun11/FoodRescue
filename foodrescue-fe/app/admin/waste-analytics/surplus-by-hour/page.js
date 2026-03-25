@@ -21,8 +21,8 @@ export default function WasteSurplusByHourPage() {
       />
 
       <section className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-        <h2 className="text-base font-bold text-gray-900">Bieu do du thua theo gio</h2>
-        <p className="mt-1 text-xs text-gray-500">Khung gio co ton that cao nhat trong ngay.</p>
+        <h2 className="text-base font-bold text-gray-900">Biểu đồ dư thừa theo giờ</h2>
+        <p className="mt-1 text-xs text-gray-500">Khung giờ có lượng thừa cao nhất trong ngày.</p>
         <div className="mt-4">
           <HorizontalBars rows={rows} colorClass="bg-indigo-500" unit="dv" emptyText="Chua co du lieu" />
         </div>

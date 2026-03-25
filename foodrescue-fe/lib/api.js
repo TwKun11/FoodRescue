@@ -480,6 +480,15 @@ export async function apiDeleteProductReview(reviewId) {
   return request(`/api/reviews/${reviewId}`, { method: "DELETE" });
 }
 
+export async function apiCreateViolationReport(body) {
+  return request("/api/reports", { method: "POST", body: JSON.stringify(body) });
+}
+
+export async function apiGetMyViolationReports({ page = 0, size = 20 } = {}) {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  return request(`/api/reports/me?${params.toString()}`);
+}
+
 export async function apiCheckCanReviewProduct(productId) {
   // Check if user has purchased this product (completed status)
   return request(`/api/reviews/product/${productId}/can-review`);
@@ -535,6 +544,61 @@ export async function apiSellerGetReceivedReviews({ page = 0, size = 10 } = {}) 
   // Get all reviews received by the seller
   const params = new URLSearchParams({ page: String(page), size: String(size) });
   return request(`/api/reviews/seller/reviews/received?${params.toString()}`);
+}
+
+export async function apiAdminGetReviews({
+  page = 0,
+  size = 20,
+  search = "",
+  minRating = "",
+  maxRating = "",
+  spamOnly,
+  flaggedOnly,
+} = {}) {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  if (search && search.trim()) params.set("search", search.trim());
+  if (minRating !== "" && minRating != null) params.set("minRating", String(minRating));
+  if (maxRating !== "" && maxRating != null) params.set("maxRating", String(maxRating));
+  if (spamOnly !== undefined && spamOnly !== null) params.set("spamOnly", String(spamOnly));
+  if (flaggedOnly !== undefined && flaggedOnly !== null) params.set("flaggedOnly", String(flaggedOnly));
+  return request(`/api/admin/reviews?${params.toString()}`);
+}
+
+export async function apiAdminMarkReviewSpam(reviewId, note = "") {
+  return request(`/api/admin/reviews/${reviewId}/mark-spam`, {
+    method: "PUT",
+    body: JSON.stringify({ note }),
+  });
+}
+
+export async function apiAdminFlagNegativeReview(reviewId, note = "") {
+  return request(`/api/admin/reviews/${reviewId}/flag-negative`, {
+    method: "PUT",
+    body: JSON.stringify({ note }),
+  });
+}
+
+export async function apiAdminDeleteReview(reviewId) {
+  return request(`/api/admin/reviews/${reviewId}`, { method: "DELETE" });
+}
+
+export async function apiAdminGetViolationReports({ page = 0, size = 20, search = "", type = "", status = "" } = {}) {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  if (search && search.trim()) params.set("search", search.trim());
+  if (type) params.set("type", type);
+  if (status) params.set("status", status);
+  return request(`/api/admin/reports?${params.toString()}`);
+}
+
+export async function apiAdminUpdateViolationReportStatus(id, body) {
+  return request(`/api/admin/reports/${id}/status`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function apiAdminGetModerationStats(topSellerLimit = 5) {
+  return request(`/api/admin/reports/stats?topSellerLimit=${encodeURIComponent(topSellerLimit)}`);
 }
 
 export async function apiSellerSetPrimaryImage(productId, imageId) {

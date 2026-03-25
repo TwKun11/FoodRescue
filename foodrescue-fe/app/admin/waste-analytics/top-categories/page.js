@@ -21,7 +21,7 @@ export default function WasteTopCategoriesPage() {
       />
 
       <section className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-        <h2 className="text-base font-bold text-gray-900">Bieu do danh muc lang phi</h2>
+        <h2 className="text-base font-bold text-gray-900">Biểu đồ danh mục lãng phí</h2>
         <p className="mt-1 text-xs text-gray-500">Khoi luong ton that theo tung danh muc.</p>
         <div className="mt-4">
           <HorizontalBars rows={rows} colorClass="bg-amber-500" unit="dv" emptyText="Chua co du lieu" />

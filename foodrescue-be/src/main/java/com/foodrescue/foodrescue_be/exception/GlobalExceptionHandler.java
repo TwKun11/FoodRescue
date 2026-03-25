@@ -36,4 +36,10 @@ public class GlobalExceptionHandler {
         ResponseData<Map<String, String>> response = new ResponseData<>(false, "Dữ liệu không hợp lệ", errors);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ResponseData<Object>> handleUnexpectedException(Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ResponseData.error(e.getMessage() != null ? e.getMessage() : "Lỗi hệ thống"));
+    }
 }

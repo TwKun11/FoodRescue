@@ -36,7 +36,7 @@ const priorityConfig = {
 export default function EarlyWarningPage() {
   const { loading, error, analytics } = useWasteAnalyticsData({ full: true });
 
-  if (loading) return <div className="text-gray-500">Đang tải hệ thống cảnh báo sớm...</div>;
+  if (loading) return <div className="text-gray-500">Đang tải hệ thống cảnh báo ...</div>;
   if (error) return <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-600">{error}</div>;
 
   const items = normalizeList(analytics?.wasteActionItems);
@@ -64,7 +64,7 @@ export default function EarlyWarningPage() {
   return (
     <div className="space-y-5">
       <WastePageHero
-        title="Hệ Thống Cảnh Báo Sớm"
+        title="Hệ Thống Cảnh báo "
         subtitle="Theo dõi các lô hàng sắp hết hạn để kịp thời xử lý. Càng sớm cảnh báo, càng có nhiều cơ hội cứu vãn."
         imageSrc="/images/landingpage/anhhoaqua.jpg"
         imageAlt="Early warning system"
@@ -166,7 +166,7 @@ export default function EarlyWarningPage() {
       {items.length === 0 && (
         <div className="rounded-xl border border-green-200 bg-green-50 p-6 text-center">
           <p className="text-sm font-semibold text-green-700">Tuyệt vời!</p>
-          <p className="text-xs text-green-600 mt-1">Không có lô hàng nào cần cảnh báo sớm.</p>
+          <p className="text-xs text-green-600 mt-1">Không có lô hàng nào cần cảnh báo .</p>
         </div>
       )}
     </div>

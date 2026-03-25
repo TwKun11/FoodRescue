@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { apiGetOrderDetail } from "@/lib/api";
+import ViolationReportForm from "@/components/customer/ViolationReportForm";
 
 const STATUS_STEPS = ["pending_payment", "pending", "confirmed", "packing", "shipping", "completed"];
 
@@ -265,6 +266,15 @@ export default function OrderDetailPage() {
                       <p className="font-medium">{item.productName || item.variantName || "—"}</p>
                       {item.variantName && item.variantName !== (item.productName || "") && (
                         <p className="text-xs text-gray-400 mt-0.5">{item.variantName}</p>
+                      )}
+                      {item.productId && (
+                        <div className="mt-2">
+                          <ViolationReportForm
+                            productId={item.productId}
+                            triggerLabel="Report vi pham"
+                            compact
+                          />
+                        </div>
                       )}
                     </td>
                     <td className="py-3 px-2 text-center text-gray-600">{qty}</td>

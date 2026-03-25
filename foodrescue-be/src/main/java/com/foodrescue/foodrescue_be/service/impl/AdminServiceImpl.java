@@ -272,6 +272,7 @@ public class AdminServiceImpl implements AdminService {
         return batches.stream()
                 .filter(b -> b.getExpiredAt() != null)
                 .map(batch -> toWasteActionItem(batch, now, imageByProduct))
+                .filter(item -> item != null && item.getHoursToExpire() > -24)  // Only items expired max 24h ago
                 .sorted((a, b) -> {
                     int byPriority = Integer.compare(priorityRank(a.getPriority()), priorityRank(b.getPriority()));
                     if (byPriority != 0) {
@@ -358,10 +359,10 @@ public class AdminServiceImpl implements AdminService {
             if (item.getOrder() == null || item.getOrder().getAddress() == null || item.getProduct() == null) {
                 continue;
             }
-            String province = safeText(item.getOrder().getAddress().getProvince());
+            String province = normalizeProvinceName(item.getOrder().getAddress().getProvince());
             String category = item.getProduct().getCategory() != null
                     ? safeText(item.getProduct().getCategory().getName())
-                    : "Khac";
+                    : "Khác";
             int hour = item.getCreatedAt() != null ? item.getCreatedAt().getHour() : 18;
             BigDecimal qty = safe(item.getQuantity());
             if (qty.compareTo(BigDecimal.ZERO) <= 0) {
@@ -374,6 +375,17 @@ public class AdminServiceImpl implements AdminService {
             return List.of();
         }
 
+        Map<String, BigDecimal> demandByProvince = new HashMap<>();
+        for (Map.Entry<DemandKey, BigDecimal> entry : demandByCategoryProvinceHour.entrySet()) {
+            String province = normalizeProvinceName(entry.getKey().province);
+            demandByProvince.merge(province, safe(entry.getValue()), BigDecimal::add);
+        }
+
+        List<String> rankedProvinces = demandByProvince.entrySet().stream()
+                .sorted((a, b) -> b.getValue().compareTo(a.getValue()))
+                .map(Map.Entry::getKey)
+                .toList();
+
         Set<Long> productIds = actionableBatches.stream()
                 .map(b -> b.getVariant() != null ? b.getVariant().getProduct() : null)
                 .filter(p -> p != null && p.getId() != null)
@@ -383,7 +395,7 @@ public class AdminServiceImpl implements AdminService {
 
         return actionableBatches.stream()
                 .filter(b -> b.getVariant() != null && b.getVariant().getProduct() != null)
-                .map(batch -> buildSuggestionForBatch(batch, now, demandByCategoryProvinceHour, productImageMap))
+            .map(batch -> buildSuggestionForBatch(batch, now, demandByCategoryProvinceHour, rankedProvinces, productImageMap))
                 .filter(s -> s != null)
                 .sorted((a, b) -> Integer.compare(safeInt(b.getConfidenceScore()), safeInt(a.getConfidenceScore())))
                 .limit(10)
@@ -394,41 +406,36 @@ public class AdminServiceImpl implements AdminService {
             InventoryBatch batch,
             LocalDateTime now,
             Map<DemandKey, BigDecimal> demandMap,
+            List<String> rankedProvinces,
             Map<Long, String> productImageMap
     ) {
         Product product = batch.getVariant().getProduct();
-        String category = product.getCategory() != null ? safeText(product.getCategory().getName()) : "Khac";
+        String category = product.getCategory() != null ? safeText(product.getCategory().getName()) : "Khác";
 
-        DemandKey best = demandMap.entrySet().stream()
-                .filter(e -> category.equalsIgnoreCase(e.getKey().category))
-                .max(Map.Entry.comparingByValue())
-                .map(Map.Entry::getKey)
-                .orElseGet(() -> demandMap.entrySet().stream()
-                        .max(Map.Entry.comparingByValue())
-                        .map(Map.Entry::getKey)
-                        .orElse(null));
+        String preferredProvince = pickProvinceForBatch(batch, rankedProvinces);
+        DemandKey best = pickBestDemandKeyForProvince(preferredProvince, category, demandMap);
 
         if (best == null) {
             return null;
         }
 
         BigDecimal demandScore = demandMap.getOrDefault(best, BigDecimal.ZERO);
-        int confidence = Math.min(95, 55 + demandScore.intValue());
         String hourLabel = String.format("%02d:00", best.hour);
         long hoursToExpire = Duration.between(now, batch.getExpiredAt()).toHours();
+        int confidence = computeConfidence(batch, best, demandScore, hoursToExpire);
 
         String suggestionText = String.format(
                 "%s đang dư %s, nên đẩy tới khu vực %s lúc %s",
                 batch.getSeller() != null ? safeText(batch.getSeller().getShopName()) : "Cửa hàng",
                 safeText(product.getName()),
-                best.province,
+            normalizeProvinceName(best.province),
                 hourLabel
         );
 
         String basis = String.format(
                 "Nhu cầu %s tại %s-%s cao trong 30 ngày gần nhất, lô còn %s và còn %d giờ đến hạn",
                 category,
-                best.province,
+            normalizeProvinceName(best.province),
                 hourLabel,
                 fmtQtyShort(batch.getQuantityAvailable()),
                 hoursToExpire
@@ -437,11 +444,11 @@ public class AdminServiceImpl implements AdminService {
         return AdminWasteAnalyticsResponse.SmartMatchingSuggestion.builder()
                 .batchId(batch.getId())
                 .batchCode(batch.getBatchCode())
-                .sellerName(batch.getSeller() != null ? safeText(batch.getSeller().getShopName()) : "Khong ro")
+            .sellerName(batch.getSeller() != null ? safeText(batch.getSeller().getShopName()) : "Không rõ")
                 .productId(product.getId())
                 .productName(safeText(product.getName()))
                 .category(category)
-                .targetProvince(best.province)
+                .targetProvince(normalizeProvinceName(best.province))
                 .suggestedTimeSlot(hourLabel)
                 .quantityAvailable(safe(batch.getQuantityAvailable()))
                 .estimatedValue(safe(batch.getQuantityAvailable()).multiply(safe(batch.getCostPrice())))
@@ -449,6 +456,61 @@ public class AdminServiceImpl implements AdminService {
                 .suggestionText(suggestionText)
                 .basis(basis)
                 .build();
+    }
+
+    private static int computeConfidence(InventoryBatch batch, DemandKey key, BigDecimal demandScore, long hoursToExpire) {
+        int demandBoost = Math.min(20, safe(demandScore).intValue());
+        int urgencyBoost = hoursToExpire <= 12 ? 14 : hoursToExpire <= 24 ? 11 : hoursToExpire <= 48 ? 8 : 5;
+        long seed = batch.getId() != null ? batch.getId() : (batch.getBatchCode() != null ? batch.getBatchCode().hashCode() : 0);
+        int provinceJitter = Math.floorMod((int) (seed * 17 + key.province.hashCode()), 12) - 6;
+        int hourJitter = Math.floorMod((int) (seed * 31 + key.hour * 7), 11) - 5;
+        return Math.max(52, Math.min(96, 56 + demandBoost + urgencyBoost + provinceJitter + hourJitter));
+    }
+
+    private static String pickProvinceForBatch(InventoryBatch batch, List<String> rankedProvinces) {
+        if (rankedProvinces == null || rankedProvinces.isEmpty()) {
+            return null;
+        }
+        long seed = batch.getId() != null ? batch.getId() : (batch.getBatchCode() != null ? batch.getBatchCode().hashCode() : 0);
+        int topWindow = Math.min(5, rankedProvinces.size());
+        int index = Math.floorMod((int) (seed * 13 + 7), topWindow);
+        return rankedProvinces.get(index);
+    }
+
+    private static DemandKey pickBestDemandKeyForProvince(
+            String province,
+            String category,
+            Map<DemandKey, BigDecimal> demandMap
+    ) {
+        if (demandMap == null || demandMap.isEmpty()) {
+            return null;
+        }
+
+        if (province != null && !province.isBlank()) {
+            DemandKey bestInProvinceAndCategory = demandMap.entrySet().stream()
+                    .filter(e -> normalizeProvinceName(e.getKey().province).equalsIgnoreCase(province))
+                    .filter(e -> category.equalsIgnoreCase(e.getKey().category))
+                    .max(Map.Entry.comparingByValue())
+                    .map(Map.Entry::getKey)
+                    .orElse(null);
+            if (bestInProvinceAndCategory != null) {
+                return bestInProvinceAndCategory;
+            }
+
+            DemandKey bestInProvinceAnyCategory = demandMap.entrySet().stream()
+                    .filter(e -> normalizeProvinceName(e.getKey().province).equalsIgnoreCase(province))
+                    .max(Map.Entry.comparingByValue())
+                    .map(Map.Entry::getKey)
+                    .orElse(null);
+            if (bestInProvinceAnyCategory != null) {
+                return bestInProvinceAnyCategory;
+            }
+        }
+
+        return demandMap.entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElse(null);
     }
 
     private static int priorityRank(String p) {
@@ -481,17 +543,18 @@ public class AdminServiceImpl implements AdminService {
 
         // Calculate monthly revenue for current year (12 months)
         List<BigDecimal> monthlyRevenue = new ArrayList<>();
-        LocalDate now_date = LocalDate.now();
+        int currentYear = LocalDate.now().getYear();
         Map<Integer, BigDecimal> byMonth = new HashMap<>();
-        for (Object[] row : orderRepository.sumCompletedRevenueByMonth(now_date.getYear())) {
-            if (row == null || row.length < 2 || row[0] == null) {
-            continue;
-            }
-            int month = ((Number) row[0]).intValue();
-            BigDecimal monthTotal = row[1] instanceof BigDecimal
-                ? (BigDecimal) row[1]
-                : new BigDecimal(String.valueOf(row[1]));
-            byMonth.put(month, monthTotal);
+
+        List<Order> completedOrdersInYear = orderRepository.findAll().stream()
+                .filter(o -> o.getOrderStatus() == Order.OrderStatus.completed)
+                .filter(o -> o.getCreatedAt() != null && o.getCreatedAt().getYear() == currentYear)
+                .toList();
+
+        for (Order order : completedOrdersInYear) {
+            int month = order.getCreatedAt().getMonthValue();
+            BigDecimal total = safe(order.getTotalAmount());
+            byMonth.merge(month, total, BigDecimal::add);
         }
 
         for (int month = 1; month <= 12; month++) {
@@ -573,7 +636,7 @@ public class AdminServiceImpl implements AdminService {
 
     private static String safeText(String value) {
         if (value == null || value.isBlank()) {
-            return "Khong ro";
+            return "Không rõ";
         }
         return value.trim();
     }
@@ -583,7 +646,29 @@ public class AdminServiceImpl implements AdminService {
     }
 
     private static String fmtQtyShort(BigDecimal qty) {
-        return safe(qty).stripTrailingZeros().toPlainString() + " don vi";
+        return safe(qty).stripTrailingZeros().toPlainString() + " đơn vị";
+    }
+
+    private static String normalizeProvinceName(String value) {
+        String raw = safeText(value);
+        String normalized = java.text.Normalizer.normalize(raw, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .toLowerCase()
+                .replace('.', ' ')
+                .trim()
+                .replaceAll("\\s+", " ");
+
+        return switch (normalized) {
+            case "ho chi minh", "tp ho chi minh", "tphcm", "tp hcm", "hcm" -> "TP. Hồ Chí Minh";
+            case "ha noi", "hn" -> "Hà Nội";
+            case "da nang" -> "Đà Nẵng";
+            case "can tho" -> "Cần Thơ";
+            case "hai phong" -> "Hải Phòng";
+            case "hue", "thua thien hue" -> "Huế";
+            case "da lat" -> "Đà Lạt";
+            case "lam dong" -> "Lâm Đồng";
+            default -> raw;
+        };
     }
 
     private Map<Long, String> resolvePrimaryImageByProductIds(Set<Long> productIds) {
