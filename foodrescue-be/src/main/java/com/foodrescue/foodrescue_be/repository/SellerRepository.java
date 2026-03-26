@@ -40,4 +40,7 @@ public interface SellerRepository extends JpaRepository<Seller, Long> {
             "OR LOWER(COALESCE(s.contactName, '')) LIKE LOWER(CONCAT('%', :search, '%'))) " +
             "AND (:status IS NULL OR s.status = :status)")
     Page<Seller> findAllApplicationsWithFilter(@Param("search") String search, @Param("status") Seller.Status status, Pageable pageable);
+
+        @Query("SELECT COUNT(s) FROM Seller s WHERE s.status = :status")
+        long countByStatus(@Param("status") Seller.Status status);
 }

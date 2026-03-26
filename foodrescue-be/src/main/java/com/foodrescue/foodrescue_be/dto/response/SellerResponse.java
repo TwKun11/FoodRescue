@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Getter
-@Builder
+@Builder(toBuilder = true)
 public class SellerResponse {
     private Long id;
     private Long userId;
@@ -38,6 +38,7 @@ public class SellerResponse {
     private String bankAccountNumber;
     private String status;
     private BigDecimal ratingAvg;
+    private Long reviewCount;
     private BigDecimal commissionRate;
     private Boolean isVerified;
     private String userFullName;

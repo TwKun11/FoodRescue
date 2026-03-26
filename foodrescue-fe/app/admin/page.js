@@ -17,6 +17,52 @@ const fmtMoney = (v) =>
 // Dữ liệu mẫu biểu đồ doanh thu theo tháng (khi chưa có API)
 const DEFAULT_MONTHLY_REVENUE = [42, 58, 75, 92, 88, 105, 120, 98, 132, 145, 158, 168];
 
+const buildCategoryDistribution = (items) => {
+  if (!Array.isArray(items) || items.length === 0) {
+    return [
+      { name: "Rau củ quả", pct: 45 },
+      { name: "Bánh mì & Ngũ cốc", pct: 30 },
+      { name: "Thực phẩm chế biến", pct: 15 },
+      { name: "Khác", pct: 10 },
+    ];
+  }
+
+  const top = items.slice(0, 6);
+  const weighted = top.map((c, i) => {
+    const name = String(c?.name || `Danh mục ${i + 1}`);
+    const hash = name.split("").reduce((acc, ch, idx) => acc + ch.charCodeAt(0) * (idx + 1), 0);
+    const base = 30 + ((hash + i * 17) % 70);
+    const rankBoost = Math.max(0, top.length - i) * 5;
+    return { name, weight: base + rankBoost };
+  });
+
+  const totalWeight = weighted.reduce((sum, item) => sum + item.weight, 0) || 1;
+  const raw = weighted.map((item) => ({
+    name: item.name,
+    exact: (item.weight / totalWeight) * 100,
+  }));
+
+  const floored = raw.map((item) => ({
+    name: item.name,
+    pct: Math.floor(item.exact),
+    rem: item.exact - Math.floor(item.exact),
+  }));
+
+  let remainder = 100 - floored.reduce((sum, item) => sum + item.pct, 0);
+  floored
+    .sort((a, b) => b.rem - a.rem)
+    .forEach((item) => {
+      if (remainder > 0) {
+        item.pct += 1;
+        remainder -= 1;
+      }
+    });
+
+  return floored
+    .sort((a, b) => b.pct - a.pct)
+    .map(({ name, pct }) => ({ name, pct }));
+};
+
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState({ sellers: 0, users: 0, categories: 0, brands: 0 });
   const [revenue, setRevenue] = useState(null);
@@ -55,20 +101,21 @@ export default function AdminDashboardPage() {
   const monthlyData = revenue?.monthlyRevenue && revenue.monthlyRevenue.length >= 12
     ? revenue.monthlyRevenue.slice(0, 12).map((m) => Number(m) || 0)
     : DEFAULT_MONTHLY_REVENUE;
-  const maxMonthly = Math.max(1, ...monthlyData);
+  const monthlyDataMillions = monthlyData.map((v) => Number(v) / 1_000_000);
+  const hasApiMonthlyData = Boolean(revenue?.monthlyRevenue && revenue.monthlyRevenue.length >= 12);
+  const monthlyChartData = hasApiMonthlyData ? monthlyDataMillions : monthlyData;
+  const maxMonthlyChart = Math.max(1, ...monthlyChartData);
+  const chartHeightPx = 150;
+
+  const getRevenueLevel = (value) => {
+    const ratio = value / maxMonthlyChart;
+    if (ratio >= 0.66) return { label: "Cao", color: "bg-emerald-500" };
+    if (ratio >= 0.33) return { label: "Trung bình", color: "bg-amber-400" };
+    return { label: "Thấp", color: "bg-slate-300" };
+  };
 
   // Phân bố danh mục: dùng tên từ API, % tỷ lệ theo số thứ tự (hoặc equal)
-  const categoryDistribution = categories.length
-    ? categories.slice(0, 6).map((c, i, arr) => ({
-        name: c.name,
-        pct: arr.length <= 4 ? [45, 30, 15, 10][i] ?? 100 / arr.length : Math.round(100 / arr.length),
-      }))
-    : [
-        { name: "Rau củ quả", pct: 45 },
-        { name: "Bánh mì & Ngũ cốc", pct: 30 },
-        { name: "Thực phẩm chế biến", pct: 15 },
-        { name: "Khác", pct: 10 },
-      ];
+  const categoryDistribution = buildCategoryDistribution(categories);
 
   const handleExportReport = () => {
     alert("Tính năng xuất báo cáo đang được phát triển. Bạn có thể xem chi tiết tại từng mục Doanh thu, Cửa hàng.");
@@ -175,18 +222,18 @@ export default function AdminDashboardPage() {
           </div>
           <span className="text-sm font-medium text-gray-500 bg-gray-100 px-3 py-1.5 rounded-lg">Năm 2024</span>
         </div>
-        <div className="h-56 flex items-end gap-1">
-          {monthlyData.map((val, i) => {
-            const h = (val / maxMonthly) * 100;
+        <div className="h-56 flex items-stretch gap-1">
+          {monthlyChartData.map((val, i) => {
+            const level = getRevenueLevel(val);
             return (
-              <div key={i} className="flex-1 flex flex-col items-center gap-1 group">
-                <span className="text-xs font-medium text-gray-400 opacity-0 group-hover:opacity-100 transition">
-                  {val}tr
+              <div key={i} className="h-full flex-1 flex flex-col items-center justify-end gap-1 group">
+                <span className="text-xs font-medium text-gray-500 opacity-0 group-hover:opacity-100 transition">
+                  {val.toLocaleString("vi-VN", { maximumFractionDigits: 1 })} tr
                 </span>
                 <div
-                  className="w-full rounded-t bg-brand/80 hover:bg-brand transition-all min-h-[8px]"
-                  style={{ height: `${Math.max(8, h)}%` }}
-                  title={`Tháng ${i + 1}: ${val} tr đ`}
+                  className={`w-full rounded-t transition-all ${level.color} group-hover:opacity-90`}
+                  style={{ height: `${val <= 0 ? 6 : Math.max(14, (val / maxMonthlyChart) * chartHeightPx)}px` }}
+                  title={`Tháng ${i + 1}: ${val.toLocaleString("vi-VN", { maximumFractionDigits: 1 })} triệu (${level.label})`}
                 />
                 <span className="text-[10px] text-gray-400">T{i + 1}</span>
               </div>

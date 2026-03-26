@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { CART_UPDATED_EVENT, getCartQuantityCount, readCart } from "@/lib/cart";
+import { apiGetMyVouchers } from "@/lib/api";
 
 function readUserFromStorage() {
   if (typeof window === "undefined") return null;
@@ -36,6 +37,7 @@ export default function Header() {
   const [mounted, setMounted] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
+  const [unusedVoucherCount, setUnusedVoucherCount] = useState(0);
   const dropdownRef = useRef(null);
 
   const isHome = pathname === "/";
@@ -62,6 +64,32 @@ export default function Header() {
       window.removeEventListener(CART_UPDATED_EVENT, syncHeaderState);
     };
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setUnusedVoucherCount(0);
+      return;
+    }
+
+    apiGetMyVouchers().then((res) => {
+      if (!res.ok) return;
+      const vouchers = res.data?.data || [];
+      const count = vouchers.filter((item) => !item.usedAt).length;
+      setUnusedVoucherCount(count);
+    });
+
+    const onVoucherUpdated = () => {
+      apiGetMyVouchers().then((res) => {
+        if (!res.ok) return;
+        const vouchers = res.data?.data || [];
+        const count = vouchers.filter((item) => !item.usedAt).length;
+        setUnusedVoucherCount(count);
+      });
+    };
+
+    window.addEventListener("voucher-wallet-updated", onVoucherUpdated);
+    return () => window.removeEventListener("voucher-wallet-updated", onVoucherUpdated);
+  }, [user, pathname]);
 
   useEffect(() => {
     if (!isHome) return;
@@ -153,6 +181,17 @@ export default function Header() {
         </nav>
 
         <div className="relative z-20 flex shrink-0 items-center gap-3">
+          <Link href="/vouchers" className="relative p-1" aria-label="Kho voucher">
+            <span className={`text-2xl transition-all duration-200 ${transparent ? "filter brightness-0 invert" : ""}`}>
+              🎟️
+            </span>
+            {unusedVoucherCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-500 px-1 text-xs font-bold text-white">
+                {unusedVoucherCount > 99 ? "99+" : unusedVoucherCount}
+              </span>
+            )}
+          </Link>
+
           <Link href="/cart" className="relative p-1" aria-label="Giỏ hàng">
             <span className={`text-2xl transition-all duration-200 ${transparent ? "filter brightness-0 invert" : ""}`}>
               🛒
@@ -210,6 +249,13 @@ export default function Header() {
                     onClick={() => setDropdownOpen(false)}
                   >
                     Đơn hàng của tôi
+                  </Link>
+                  <Link
+                    href="/vouchers"
+                    className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                    onClick={() => setDropdownOpen(false)}
+                  >
+                    Kho voucher{unusedVoucherCount > 0 ? ` (${unusedVoucherCount})` : ""}
                   </Link>
                   <Link
                     href="/profile/addresses"
@@ -290,6 +336,9 @@ export default function Header() {
               </Link>
               <Link href="/orders" onClick={() => setMenuOpen(false)}>
                 Đơn hàng của tôi
+              </Link>
+              <Link href="/vouchers" onClick={() => setMenuOpen(false)}>
+                Kho voucher{unusedVoucherCount > 0 ? ` (${unusedVoucherCount})` : ""}
               </Link>
               <Link href="/profile/addresses" onClick={() => setMenuOpen(false)}>
                 Địa chỉ giao hàng

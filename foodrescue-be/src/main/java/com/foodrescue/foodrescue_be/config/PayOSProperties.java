@@ -14,10 +14,17 @@ public class PayOSProperties {
     private String frontendBaseUrl = "http://localhost:3000";
 
     public boolean isConfigured() {
-        return hasText(clientId) && hasText(apiKey) && hasText(checksumKey);
+        return isRealValue(clientId) && isRealValue(apiKey) && isRealValue(checksumKey);
     }
 
-    private boolean hasText(String value) {
-        return value != null && !value.isBlank();
+    private boolean isRealValue(String value) {
+        if (value == null || value.isBlank()) {
+            return false;
+        }
+        String normalized = value.trim().toLowerCase();
+        return !normalized.startsWith("your-")
+                && !normalized.contains("your-payos")
+                && !normalized.contains("placeholder")
+                && !normalized.contains("change-me");
     }
 }

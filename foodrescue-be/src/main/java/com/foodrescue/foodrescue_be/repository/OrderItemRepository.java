@@ -23,4 +23,15 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
 
     @Query("SELECT oi FROM OrderItem oi WHERE oi.seller.id = :sellerId AND oi.sellerOrder.orderStatus = 'completed' AND oi.createdAt >= :since")
     List<OrderItem> findCompletedItemsBySince(@Param("sellerId") Long sellerId, @Param("since") LocalDateTime since);
+
+    @Query("""
+        SELECT oi FROM OrderItem oi
+        JOIN FETCH oi.order o
+        JOIN FETCH o.address a
+        JOIN FETCH oi.product p
+        LEFT JOIN FETCH p.category c
+        WHERE oi.sellerOrder.orderStatus = 'completed'
+          AND oi.createdAt >= :since
+    """)
+    List<OrderItem> findCompletedItemsWithDemandContextSince(@Param("since") LocalDateTime since);
 }

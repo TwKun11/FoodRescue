@@ -3,19 +3,29 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Badge from "@/components/common/Badge";
-import { apiGetAddresses, apiPlaceOrder } from "@/lib/api";
+import { apiGetAddresses, apiGetMyVouchers, apiGetVoucherStore, apiPlaceOrder, apiPreviewVoucher } from "@/lib/api";
 import { clearCheckoutCart, getCheckoutItems, removeCheckoutItemsFromCart } from "@/lib/cart";
 
 const PAYMENT_METHODS = [
   {
+    id: "cod",
+    label: "Thanh toán khi nhận hàng",
+    subtitle: "COD",
+    helper: "Khả dụng",
+    enabled: true,
+    tileClass: "border border-amber-200 bg-amber-100 text-amber-700",
+    shortLabel: "COD",
+  },
+  {
     id: "payos",
     label: "PayOS",
     subtitle: "QR / Chuyển khoản",
-    helper: "Đang hoạt động",
+    helper: "Cần cấu hình API key",
     enabled: true,
     tileClass: "border border-emerald-200 bg-emerald-100 text-emerald-700",
+    shortLabel: "PO",
   },
   {
     id: "momo",
@@ -63,8 +73,8 @@ function PaymentLogo({ method, compact = false }) {
   return (
     <div className={`flex items-center justify-center ${sizeClass} ${method.tileClass}`}>
       <div className="text-center">
-        <p className={`${compact ? "text-sm" : "text-lg"} font-black tracking-[0.2em]`}>PO</p>
-        {!compact ? <p className="text-[10px] font-semibold uppercase tracking-[0.24em]">PayOS</p> : null}
+        <p className={`${compact ? "text-sm" : "text-lg"} font-black tracking-[0.2em]`}>{method.shortLabel || "PM"}</p>
+        {!compact ? <p className="text-[10px] font-semibold uppercase tracking-[0.24em]">{method.subtitle}</p> : null}
       </div>
     </div>
   );
@@ -72,15 +82,27 @@ function PaymentLogo({ method, compact = false }) {
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [addresses, setAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState("");
   const [addressesLoading, setAddressesLoading] = useState(true);
-  const [paymentMethod, setPaymentMethod] = useState("payos");
+  const [paymentMethod, setPaymentMethod] = useState("cod");
   const [note, setNote] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [placed, setPlaced] = useState(false);
   const [orderId, setOrderId] = useState(null);
   const [placing, setPlacing] = useState(false);
+  const [voucherCode, setVoucherCode] = useState("");
+  const [myVouchers, setMyVouchers] = useState([]);
+  const [eligibleVouchers, setEligibleVouchers] = useState([]);
+  const [voucherOptionsLoading, setVoucherOptionsLoading] = useState(false);
+  const [voucherLoadHint, setVoucherLoadHint] = useState("");
+  const [voucherPreview, setVoucherPreview] = useState({
+    loading: false,
+    discountAmount: 0,
+    finalTotal: null,
+    error: "",
+  });
   const isClient = useSyncExternalStore(subscribeClientSnapshot, () => true, () => false);
 
   useEffect(() => {
@@ -111,6 +133,36 @@ export default function CheckoutPage() {
         }
       })
       .finally(() => setAddressesLoading(false));
+
+    Promise.all([apiGetMyVouchers(), apiGetVoucherStore()]).then(([myRes, storeRes]) => {
+      const myList = myRes.ok ? (myRes.data?.data || []) : [];
+      const storeClaimedList = storeRes.ok ? (storeRes.data?.data || []).filter((item) => item.claimed) : [];
+
+      const mergedMap = new Map();
+      [...myList, ...storeClaimedList].forEach((item) => {
+        if (!item?.code) return;
+        const existing = mergedMap.get(item.code);
+        if (!existing) {
+          mergedMap.set(item.code, item);
+          return;
+        }
+        // Prefer item from /my because it usually has the latest user-voucher status.
+        if (existing.claimed !== true && item.claimed === true) {
+          mergedMap.set(item.code, item);
+        }
+      });
+
+      const merged = Array.from(mergedMap.values()).filter((item) => !item.usedAt);
+      setMyVouchers(merged);
+
+      if (merged.length === 0) {
+        setVoucherLoadHint("Bạn chưa có voucher đã nhận.");
+      } else if (myList.length === 0 && storeClaimedList.length > 0) {
+        setVoucherLoadHint(`Đã tải ${merged.length} voucher từ kho voucher.`);
+      } else {
+        setVoucherLoadHint("");
+      }
+    });
   }, [router]);
 
   const items = isClient ? getCheckoutItems() : [];
@@ -120,9 +172,132 @@ export default function CheckoutPage() {
     0,
   );
   const savings = Math.max(0, originalTotal - subtotal);
+  const voucherCodeTrimmed = voucherCode.trim();
   const lineCount = items.length;
   const qtyCount = items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+  const selectedAddress = addresses.find((address) => String(address.id) === selectedAddressId) || null;
+  const selectedProvince = selectedAddress?.province || "";
+  const voucherDiscount = Number(voucherPreview.discountAmount || 0);
+  const finalTotal = Math.max(0, subtotal - voucherDiscount);
   const selectedPayment = PAYMENT_METHODS.find((method) => method.id === paymentMethod) ?? PAYMENT_METHODS[0];
+
+  useEffect(() => {
+    const fromQuery = (searchParams.get("voucher") || "").trim().toUpperCase();
+    const fromStorage = typeof window !== "undefined"
+      ? (localStorage.getItem("checkoutVoucherCode") || "").trim().toUpperCase()
+      : "";
+    const prefill = fromQuery || fromStorage;
+    if (prefill && !voucherCodeTrimmed) {
+      setVoucherCode(prefill);
+    }
+    if (fromStorage && typeof window !== "undefined") {
+      localStorage.removeItem("checkoutVoucherCode");
+    }
+  }, [searchParams, voucherCodeTrimmed]);
+
+  useEffect(() => {
+    if (myVouchers.length === 0 || subtotal <= 0) {
+      setEligibleVouchers([]);
+      return;
+    }
+
+    let cancelled = false;
+    setVoucherOptionsLoading(true);
+
+    Promise.all(
+      myVouchers.map(async (voucher) => {
+        const res = await apiPreviewVoucher({
+          code: voucher.code,
+          orderValue: subtotal,
+          totalQuantity: qtyCount,
+          province: selectedProvince || undefined,
+        });
+        if (res.ok && res.data?.data) {
+          return {
+            id: voucher.id,
+            code: voucher.code,
+            name: voucher.name,
+            discountAmount: Number(res.data.data.discountAmount || 0),
+            finalTotal: Number(res.data.data.finalTotal || 0),
+          };
+        }
+        return null;
+      }),
+    )
+      .then((results) => {
+        if (cancelled) return;
+        const nextEligible = results
+          .filter(Boolean)
+          .sort((a, b) => (b.discountAmount || 0) - (a.discountAmount || 0));
+        setEligibleVouchers(nextEligible);
+
+        if (voucherCodeTrimmed && !nextEligible.some((item) => item.code === voucherCodeTrimmed)) {
+          setVoucherCode("");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setVoucherOptionsLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [myVouchers, subtotal, qtyCount, selectedProvince, voucherCodeTrimmed]);
+
+  useEffect(() => {
+    if (!voucherCodeTrimmed) {
+      setVoucherPreview({ loading: false, discountAmount: 0, finalTotal: null, error: "" });
+      return;
+    }
+    if (subtotal <= 0) {
+      return;
+    }
+
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      setVoucherPreview((prev) => ({ ...prev, loading: true, error: "" }));
+      apiPreviewVoucher({
+        code: voucherCodeTrimmed,
+        orderValue: subtotal,
+        totalQuantity: qtyCount,
+        province: selectedProvince || undefined,
+      })
+        .then((res) => {
+          if (cancelled) return;
+          if (res.ok && res.data?.data) {
+            setVoucherPreview({
+              loading: false,
+              discountAmount: Number(res.data.data.discountAmount || 0),
+              finalTotal: Number(res.data.data.finalTotal || 0),
+              error: "",
+            });
+            return;
+          }
+          setVoucherPreview({
+            loading: false,
+            discountAmount: 0,
+            finalTotal: null,
+            error: res.data?.message || "Mã voucher chưa áp dụng được.",
+          });
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setVoucherPreview({
+            loading: false,
+            discountAmount: 0,
+            finalTotal: null,
+            error: "Không thể kiểm tra voucher lúc này.",
+          });
+        });
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [voucherCodeTrimmed, subtotal, qtyCount, selectedProvince]);
 
   const handlePlaceOrder = () => {
     if (!selectedPayment?.enabled) {
@@ -148,11 +323,15 @@ export default function CheckoutPage() {
       addressId: selectedAddressId ? Number(selectedAddressId) : null,
       paymentMethod,
       note: note.trim() || null,
+      voucherCode: voucherCodeTrimmed || null,
       items: orderLines,
     })
       .then((res) => {
         const order = res.data?.data;
         if (res.ok && order) {
+          if (voucherCodeTrimmed) {
+            window.dispatchEvent(new Event("voucher-wallet-updated"));
+          }
           if (order.paymentMethod === "payos") {
             if (order.payment?.checkoutUrl) {
               removeCheckoutItemsFromCart(items);
@@ -270,8 +449,8 @@ export default function CheckoutPage() {
             <h1 className="mt-2 text-3xl font-bold text-gray-900">Thanh toán</h1>
             <p className="mt-1 text-sm text-gray-500">Chọn cổng thanh toán và xác nhận đơn.</p>
           </div>
-          <Badge variant="default" className="w-fit bg-emerald-100 px-3 py-1 text-emerald-700">
-            PayOS đang hoạt động
+          <Badge variant="default" className="w-fit bg-amber-100 px-3 py-1 text-amber-700">
+            COD đang khả dụng
           </Badge>
         </div>
 
@@ -354,10 +533,10 @@ export default function CheckoutPage() {
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-dark">Bước 3</p>
                   <h2 className="text-base font-semibold text-gray-800">Phương thức thanh toán</h2>
-                  <p className="mt-1 text-sm text-gray-500">PayOS dùng được. MoMo và VNPay chỉ hiển thị.</p>
+                  <p className="mt-1 text-sm text-gray-500">COD đang hoạt động. PayOS cần cấu hình API key để sử dụng.</p>
                 </div>
                 <Badge variant="default" className="w-fit bg-slate-100 text-slate-600">
-                  1 cổng đang mở
+                  2 phương thức đang mở
                 </Badge>
               </div>
 
@@ -445,6 +624,30 @@ export default function CheckoutPage() {
               </div>
             </div>
 
+            <div className="mt-4 rounded-2xl border border-gray-100 bg-white p-4">
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-brand-dark">Voucher áp dụng</label>
+              <select
+                value={voucherCode}
+                onChange={(event) => setVoucherCode(event.target.value)}
+                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
+              >
+                <option value="">Không dùng voucher</option>
+                {eligibleVouchers.map((voucher) => (
+                  <option key={voucher.code} value={voucher.code}>
+                    {voucher.code} - {voucher.name} (giảm {formatCurrency(voucher.discountAmount)})
+                  </option>
+                ))}
+              </select>
+              <p className="mt-2 text-xs text-gray-500">
+                {voucherOptionsLoading
+                  ? "Đang tìm voucher phù hợp với sản phẩm và địa chỉ đã chọn..."
+                  : myVouchers.length > 0
+                    ? `Đã nhận ${myVouchers.length} voucher, có ${eligibleVouchers.length} voucher đủ điều kiện.`
+                    : "Bạn chưa nhận voucher nào."}
+              </p>
+              {voucherLoadHint ? <p className="mt-1 text-xs text-amber-700">{voucherLoadHint}</p> : null}
+            </div>
+
             <div className="mt-4 space-y-3">
               {items.map((item) => (
                 <div key={item.variantId} className="flex justify-between gap-3 text-sm">
@@ -480,9 +683,26 @@ export default function CheckoutPage() {
                 <span>Tiết kiệm</span>
                 <span>-{formatCurrency(savings)}</span>
               </div>
+              {voucherCodeTrimmed ? (
+                <>
+                  <div className="mt-2 flex justify-between text-emerald-700">
+                    <span>Voucher</span>
+                    <span>{voucherPreview.loading ? "Đang kiểm tra..." : `Đang áp: ${voucherCodeTrimmed}`}</span>
+                  </div>
+                  {voucherDiscount > 0 ? (
+                    <div className="mt-2 flex justify-between text-emerald-700">
+                      <span>Giảm voucher</span>
+                      <span>-{formatCurrency(voucherDiscount)}</span>
+                    </div>
+                  ) : null}
+                  {voucherPreview.error ? (
+                    <p className="mt-2 text-xs text-red-500">{voucherPreview.error}</p>
+                  ) : null}
+                </>
+              ) : null}
               <div className="mt-3 flex justify-between border-t border-gray-100 pt-3 text-base font-bold text-gray-900">
                 <span>Tổng cộng</span>
-                <span>{formatCurrency(subtotal)}</span>
+                <span>{formatCurrency(voucherPreview.finalTotal != null ? voucherPreview.finalTotal : finalTotal)}</span>
               </div>
               <p className="mt-2 text-xs text-gray-400">Giá trị thanh toán được backend chốt lại theo biến thể và tồn kho hiện tại.</p>
             </div>
@@ -505,7 +725,11 @@ export default function CheckoutPage() {
               disabled={!agreed || placing || items.length === 0 || !selectedPayment?.enabled}
               className="mt-5 flex w-full items-center justify-center rounded-xl bg-brand px-6 py-3 text-sm font-semibold text-gray-900 transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {placing ? "Đang tạo đơn và mở PayOS..." : "Tạo đơn và chuyển sang PayOS"}
+              {placing
+                ? "Đang tạo đơn..."
+                : paymentMethod === "payos"
+                  ? "Tạo đơn và chuyển sang PayOS"
+                  : "Tạo đơn COD"}
             </button>
 
             <Link href="/cart" className="mt-3 block text-center text-sm text-gray-600 transition hover:text-brand-dark">

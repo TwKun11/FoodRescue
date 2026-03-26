@@ -35,6 +35,18 @@ public class Review {
     @Column(name = "comment", columnDefinition = "TEXT")
     private String comment;
 
+    @Column(name = "is_spam", nullable = false)
+    private Boolean isSpam = false;
+
+    @Column(name = "is_negative_flagged", nullable = false)
+    private Boolean isNegativeFlagged = false;
+
+    @Column(name = "moderation_note", columnDefinition = "TEXT")
+    private String moderationNote;
+
+    @Column(name = "moderated_at")
+    private LocalDateTime moderatedAt;
+
     @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ReviewImage> images = new ArrayList<>();
 
@@ -46,6 +58,8 @@ public class Review {
 
     @PrePersist
     protected void onCreate() {
+        if (isSpam == null) isSpam = false;
+        if (isNegativeFlagged == null) isNegativeFlagged = false;
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
     }

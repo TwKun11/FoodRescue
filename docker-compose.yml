@@ -39,6 +39,9 @@ services:
       - ./backend.env
     environment:
       JAVA_OPTS: -Xms128m -Xmx256m -XX:MaxMetaspaceSize=128m -Djava.security.egd=file:/dev/./urandom
+      DB_URL: jdbc:mysql://mysql:3306/foodrescue?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8&serverTimezone=UTC
+      DB_USERNAME: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
     depends_on:
       mysql:
         condition: service_healthy
@@ -60,8 +63,8 @@ services:
       - --innodb-buffer-pool-size=64M
     env_file:
       - ./backend.env
-    expose:
-      - "3306"
+    ports:
+      - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:

@@ -37,6 +37,8 @@ public class OrderServiceImpl implements OrderService {
     private final CustomerAddressRepository addressRepository;
     private final ProductVariantRepository variantRepository;
     private final InventoryBatchRepository batchRepository;
+    private final VoucherRepository voucherRepository;
+    private final UserVoucherRepository userVoucherRepository;
     private final PayOSGatewayService payOSGatewayService;
     private final OrderLifecycleProperties orderLifecycleProperties;
 
@@ -72,6 +74,7 @@ public class OrderServiceImpl implements OrderService {
         Map<Long, BigDecimal> sellerSubtotalMap = new LinkedHashMap<>();
         List<OrderItem> allItems = new ArrayList<>();
         BigDecimal orderSubtotal = BigDecimal.ZERO;
+        BigDecimal totalQuantity = BigDecimal.ZERO;
 
         for (PlaceOrderRequest.OrderLineRequest line : req.getItems()) {
             ProductVariant variant = variantRepository.findById(line.getVariantId())
@@ -90,6 +93,7 @@ public class OrderServiceImpl implements OrderService {
             BigDecimal lineTotal = unitPrice.multiply(line.getQuantity());
             sellerSubtotalMap.merge(seller.getId(), lineTotal, BigDecimal::add);
             orderSubtotal = orderSubtotal.add(lineTotal);
+            totalQuantity = totalQuantity.add(line.getQuantity());
 
             OrderItem item = orderItemRepository.save(OrderItem.builder()
                     .order(order)
@@ -113,17 +117,61 @@ public class OrderServiceImpl implements OrderService {
             allItems.add(item);
         }
 
+        AppliedVoucher appliedVoucher = resolveApplicableVoucher(
+            userId,
+                req.getVoucherCode(),
+                orderSubtotal,
+                totalQuantity,
+                address != null ? address.getProvince() : null
+        );
+        BigDecimal orderDiscount = calculateVoucherDiscount(appliedVoucher != null ? appliedVoucher.voucher() : null, orderSubtotal);
+        if (appliedVoucher != null && orderDiscount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Voucher không tạo ra giá trị giảm hợp lệ");
+        }
+
+        BigDecimal allocatedDiscount = BigDecimal.ZERO;
+        int sellerIndex = 0;
+        int sellerSize = sellerOrderMap.size();
         for (Map.Entry<Long, OrderSellerOrder> entry : sellerOrderMap.entrySet()) {
             OrderSellerOrder sellerOrder = entry.getValue();
             BigDecimal subtotal = sellerSubtotalMap.getOrDefault(entry.getKey(), BigDecimal.ZERO);
+            BigDecimal sellerDiscount = BigDecimal.ZERO;
+            if (orderDiscount.compareTo(BigDecimal.ZERO) > 0 && orderSubtotal.compareTo(BigDecimal.ZERO) > 0) {
+                if (sellerIndex == sellerSize - 1) {
+                    sellerDiscount = orderDiscount.subtract(allocatedDiscount);
+                } else {
+                    sellerDiscount = subtotal
+                            .multiply(orderDiscount)
+                            .divide(orderSubtotal, 2, java.math.RoundingMode.HALF_UP);
+                    allocatedDiscount = allocatedDiscount.add(sellerDiscount);
+                }
+                if (sellerDiscount.compareTo(subtotal) > 0) {
+                    sellerDiscount = subtotal;
+                }
+            }
             sellerOrder.setSubtotal(subtotal);
-            sellerOrder.setTotalAmount(subtotal);
+            sellerOrder.setDiscountAmount(sellerDiscount);
+            sellerOrder.setTotalAmount(subtotal.subtract(sellerDiscount));
             sellerOrderRepository.save(sellerOrder);
+            sellerIndex++;
         }
 
         order.setSubtotal(orderSubtotal);
-        order.setTotalAmount(orderSubtotal);
+        order.setDiscountAmount(orderDiscount);
+        order.setTotalAmount(orderSubtotal.subtract(orderDiscount));
         order = orderRepository.save(order);
+
+        if (appliedVoucher != null) {
+            Voucher voucher = appliedVoucher.voucher();
+            Integer usedCount = voucher.getUsedCount() != null ? voucher.getUsedCount() : 0;
+            voucher.setUsedCount(usedCount + 1);
+            voucherRepository.save(voucher);
+
+            UserVoucher userVoucher = appliedVoucher.userVoucher();
+            userVoucher.setStatus(UserVoucher.Status.used);
+            userVoucher.setUsedAt(LocalDateTime.now());
+            userVoucherRepository.save(userVoucher);
+        }
 
         OrderPayment payment = null;
         if (isPayOS(paymentMethod)) {
@@ -352,6 +400,95 @@ public class OrderServiceImpl implements OrderService {
         }
     }
 
+        private AppliedVoucher resolveApplicableVoucher(
+            Long userId,
+            String voucherCode,
+            BigDecimal orderSubtotal,
+            BigDecimal totalQuantity,
+            String province
+    ) {
+        if (voucherCode == null || voucherCode.isBlank()) {
+            return null;
+        }
+
+        String code = voucherCode.trim();
+        UserVoucher userVoucher = userVoucherRepository
+            .findByUserIdAndVoucher_CodeIgnoreCaseAndStatus(userId, code, UserVoucher.Status.claimed)
+            .orElseThrow(() -> new IllegalArgumentException("Bạn chưa nhận voucher này hoặc voucher đã được dùng"));
+
+        Voucher voucher = userVoucher.getVoucher();
+
+        LocalDateTime now = LocalDateTime.now();
+        if (voucher.getStatus() != Voucher.Status.active) {
+            throw new IllegalArgumentException("Voucher không còn hoạt động");
+        }
+        if (voucher.getActiveFrom() != null && voucher.getActiveFrom().isAfter(now)) {
+            throw new IllegalArgumentException("Voucher chưa đến thời gian áp dụng");
+        }
+        if (voucher.getActiveUntil() != null && voucher.getActiveUntil().isBefore(now)) {
+            throw new IllegalArgumentException("Voucher đã hết hạn");
+        }
+
+        BigDecimal minOrderValue = voucher.getMinOrderValue() != null ? voucher.getMinOrderValue() : BigDecimal.ZERO;
+        if (orderSubtotal.compareTo(minOrderValue) < 0) {
+            throw new IllegalArgumentException("Đơn hàng chưa đạt giá trị tối thiểu để dùng voucher");
+        }
+
+        Integer maxUses = voucher.getMaxUses();
+        Integer usedCount = voucher.getUsedCount() != null ? voucher.getUsedCount() : 0;
+        if (maxUses != null && usedCount >= maxUses) {
+            throw new IllegalArgumentException("Voucher đã hết lượt sử dụng");
+        }
+
+        if (voucher.getComboItemThreshold() != null
+                && totalQuantity.compareTo(BigDecimal.valueOf(voucher.getComboItemThreshold())) < 0) {
+            throw new IllegalArgumentException("Đơn hàng chưa đủ số lượng sản phẩm để áp voucher");
+        }
+
+        if (voucher.getTargetProvince() != null && !voucher.getTargetProvince().isBlank()) {
+            if (province == null || province.isBlank()) {
+                throw new IllegalArgumentException("Voucher yêu cầu có địa chỉ giao hàng hợp lệ");
+            }
+            if (!voucher.getTargetProvince().trim().equalsIgnoreCase(province.trim())) {
+                throw new IllegalArgumentException("Voucher không áp dụng cho khu vực giao hàng hiện tại");
+            }
+        }
+
+        if (voucher.getDiscountType() == Voucher.DiscountType.freeship) {
+            throw new IllegalArgumentException("Voucher freeship chưa hỗ trợ cho luồng click and collect");
+        }
+
+        return new AppliedVoucher(voucher, userVoucher);
+    }
+
+    private BigDecimal calculateVoucherDiscount(Voucher voucher, BigDecimal orderSubtotal) {
+        if (voucher == null || orderSubtotal.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal discount;
+        if (voucher.getDiscountType() == Voucher.DiscountType.percentage) {
+            discount = orderSubtotal
+                    .multiply(voucher.getDiscountValue())
+                    .divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+            if (voucher.getMaxDiscountAmount() != null && voucher.getMaxDiscountAmount().compareTo(BigDecimal.ZERO) > 0) {
+                discount = discount.min(voucher.getMaxDiscountAmount());
+            }
+        } else {
+            discount = voucher.getDiscountValue();
+        }
+
+        if (discount == null || discount.compareTo(BigDecimal.ZERO) < 0) {
+            return BigDecimal.ZERO;
+        }
+        if (discount.compareTo(orderSubtotal) > 0) {
+            return orderSubtotal;
+        }
+        return discount;
+    }
+
+    private record AppliedVoucher(Voucher voucher, UserVoucher userVoucher) {}
+
     private OrderSellerOrder createSellerOrder(Order order, Seller seller, Order.PaymentMethod paymentMethod) {
         return sellerOrderRepository.save(OrderSellerOrder.builder()
                 .order(order)
@@ -368,7 +505,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private BigDecimal resolveUnitPrice(ProductVariant variant) {
-        BigDecimal price = variant.getSalePrice() != null ? variant.getSalePrice() : variant.getListPrice();
+        BigDecimal price = variant.getListPrice() != null ? variant.getListPrice() : variant.getSalePrice();
         if (price == null || price.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("San pham " + variant.getName() + " chua co gia ban hop le");
         }

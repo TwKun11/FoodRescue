@@ -1,5 +1,6 @@
 package com.foodrescue.foodrescue_be.controller;
 
+import com.foodrescue.foodrescue_be.dto.response.AdminStatsResponse;
 import com.foodrescue.foodrescue_be.dto.response.ResponseData;
 import com.foodrescue.foodrescue_be.dto.response.SellerResponse;
 import com.foodrescue.foodrescue_be.dto.response.UserResponse;
@@ -7,8 +8,10 @@ import com.foodrescue.foodrescue_be.model.Role;
 import com.foodrescue.foodrescue_be.model.Seller;
 import com.foodrescue.foodrescue_be.model.User;
 import com.foodrescue.foodrescue_be.model.UserStatus;
+import com.foodrescue.foodrescue_be.repository.ReviewRepository;
 import com.foodrescue.foodrescue_be.repository.SellerRepository;
 import com.foodrescue.foodrescue_be.repository.UserRepository;
+import com.foodrescue.foodrescue_be.service.AdminService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -21,6 +24,11 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
@@ -28,7 +36,14 @@ public class AdminController {
 
     private final UserRepository userRepository;
     private final SellerRepository sellerRepository;
+    private final ReviewRepository reviewRepository;
+    private final AdminService adminService;
     private final PasswordEncoder passwordEncoder;
+
+    @GetMapping("/stats")
+    public ResponseData<AdminStatsResponse> getStats() {
+        return ResponseData.ok(adminService.getAdminStats());
+    }
 
     // ── Users ──────────────────────────────────────────────────────────────
 
@@ -69,11 +84,38 @@ public class AdminController {
             @RequestParam(required = false) Seller.Status status
     ) {
         String searchTrimmed = (search != null && !search.isBlank()) ? search.trim() : null;
-        return ResponseData.ok(
-                sellerRepository.findAllWithFilter(searchTrimmed, status,
-                        PageRequest.of(page, size, Sort.by("createdAt").descending()))
-                        .map(SellerResponse::fromEntity)
-        );
+        Page<SellerResponse> basePage = sellerRepository.findAllWithFilter(
+                searchTrimmed,
+                status,
+                PageRequest.of(page, size, Sort.by("createdAt").descending())
+            )
+            .map(SellerResponse::fromEntity);
+
+        List<Long> sellerIds = basePage.getContent().stream()
+            .map(SellerResponse::getId)
+            .toList();
+
+        Map<Long, BigDecimal> avgBySeller = new HashMap<>();
+        Map<Long, Long> countBySeller = new HashMap<>();
+        if (!sellerIds.isEmpty()) {
+            for (Object[] row : reviewRepository.getSellerRatingSnapshot(sellerIds)) {
+            if (row == null || row.length < 3 || row[0] == null) continue;
+            Long sellerId = ((Number) row[0]).longValue();
+            BigDecimal avg = row[1] instanceof BigDecimal
+                ? (BigDecimal) row[1]
+                : new BigDecimal(String.valueOf(row[1]));
+            Long count = row[2] != null ? ((Number) row[2]).longValue() : 0L;
+            avgBySeller.put(sellerId, avg);
+            countBySeller.put(sellerId, count);
+            }
+        }
+
+        Page<SellerResponse> enrichedPage = basePage.map(item -> item.toBuilder()
+            .ratingAvg(avgBySeller.getOrDefault(item.getId(), BigDecimal.ZERO))
+            .reviewCount(countBySeller.getOrDefault(item.getId(), 0L))
+            .build());
+
+        return ResponseData.ok(enrichedPage);
     }
 
     @PostMapping("/sellers")
@@ -113,6 +155,17 @@ public class AdminController {
     ) {
         Seller seller = sellerRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Cửa hàng không tồn tại"));
+
+        User owner = seller.getUser();
+        if (owner != null) {
+            if (status == Seller.Status.suspended || status == Seller.Status.closed) {
+                owner.setStatus(UserStatus.LOCKED);
+            } else if (status == Seller.Status.active) {
+                owner.setStatus(UserStatus.ACTIVE);
+            }
+            userRepository.save(owner);
+        }
+
         seller.setStatus(status);
         return ResponseData.ok("Cập nhật trạng thái thành công", SellerResponse.fromEntity(sellerRepository.save(seller)));
     }

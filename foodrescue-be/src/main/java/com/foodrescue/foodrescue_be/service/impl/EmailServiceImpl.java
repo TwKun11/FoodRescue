@@ -51,9 +51,7 @@ public class EmailServiceImpl implements EmailService {
             message.setTo(email);
             message.setSubject("Dat lai mat khau - FoodRescue");
             message.setText("Chao ban,\n\nBan da yeu cau dat lai mat khau. Vui long bam vao link sau de tao mat khau moi:\n" + link + "\n\nLink co hieu luc trong 1 gio. Neu khong phai ban yeu cau, hay bo qua email nay.");
-            if (mailFrom != null && !mailFrom.isBlank()) {
-                message.setFrom(mailFrom);
-            }
+            message.setFrom("nhybui2312@gmail.com");
             mailSender.send(message);
             log.info("Password reset email sent to {}", email);
         } catch (Exception e) {
