@@ -35,6 +35,7 @@ public class DataSeeder implements CommandLineRunner {
     public void run(String... args) {
         seedAdmin();
         seedSeller();
+                seedCustomer();
         seedBannerAds();
     }
 
@@ -80,6 +81,32 @@ public class DataSeeder implements CommandLineRunner {
         sellerRepository.save(seller);
         log.info("Seeded seller account: {}", email);
     }
+
+        private void seedCustomer() {
+                String email = "phat123@gmail.com";
+                String rawPassword = "123456";
+
+                User user = userRepository.findByEmail(email).orElseGet(() -> User.builder()
+                                .email(email)
+                                .fullName("Người dùng Demo")
+                                .role(Role.CUSTOMER)
+                                .status(UserStatus.ACTIVE)
+                                .build());
+
+                if (user.getId() != null && user.getRole() != Role.CUSTOMER) {
+                        log.warn("Skip seeding customer {} because existing account has role {}", email, user.getRole());
+                        return;
+                }
+
+                user.setPassword(passwordEncoder.encode(rawPassword));
+                user.setStatus(UserStatus.ACTIVE);
+                if (user.getRole() == null) user.setRole(Role.CUSTOMER);
+                if (user.getFullName() == null || user.getFullName().isBlank()) user.setFullName("Người dùng Demo");
+
+                boolean isNew = user.getId() == null;
+                userRepository.save(user);
+                log.info("{} customer account: {}", isNew ? "Seeded" : "Reset password for", email);
+        }
 
     /** Seed banner ads: 4 APPROVED (carousel) + 3 PENDING (admin chờ duyệt). */
     private void seedBannerAds() {

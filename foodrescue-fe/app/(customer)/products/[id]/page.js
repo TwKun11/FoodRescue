@@ -9,6 +9,7 @@ import CountdownTimer from "@/components/customer/CountdownTimer";
 import ProductCardListing from "@/components/customer/ProductCardListing";
 import ReviewForm from "@/components/customer/ReviewForm";
 import ReviewDisplay from "@/components/customer/ReviewDisplay";
+import ViolationReportForm from "@/components/customer/ViolationReportForm";
 import { apiGetProduct, apiGetProducts, apiGetMyReviewForProduct, apiCheckCanReviewProduct } from "@/lib/api";
 import { addItemToCart, startDirectCheckout } from "@/lib/cart";
 import { formatDistanceMeters, getCurrentPosition, haversineDistanceMeters } from "@/lib/location";
@@ -56,9 +57,9 @@ function ImageGallery({ images, name, discountPercent }) {
 function mapProductDetail(p) {
   if (!p) return null;
   const variant = (p.variants || []).find((v) => v.isDefault) || p.variants?.[0] || {};
-  const listPrice = variant.listPrice ?? 0;
-  const salePrice = variant.salePrice ?? variant.listPrice ?? 0;
-  const discountPercent = listPrice > 0 ? Math.round((1 - salePrice / listPrice) * 100) : 0;
+  const listPrice = variant.listPrice ?? variant.salePrice ?? 0;
+  const salePrice = listPrice;
+  const discountPercent = 0;
   const remaining = variant.stockAvailable ?? variant.stockQuantity ?? 0;
   const shelfLifeDays = p.shelfLifeDays ?? 0;
   return {
@@ -94,9 +95,9 @@ function mapProductDetail(p) {
 
 function mapRelated(p) {
   const v = (p.variants || []).find((x) => x.isDefault) || p.variants?.[0] || {};
-  const listPrice = v.listPrice ?? 0;
-  const salePrice = v.salePrice ?? v.listPrice ?? 0;
-  const discountPercent = listPrice > 0 ? Math.round(((listPrice - salePrice) / listPrice) * 100) : 0;
+  const listPrice = v.listPrice ?? v.salePrice ?? 0;
+  const salePrice = listPrice;
+  const discountPercent = 0;
   const stock = v.stockAvailable ?? v.stockQuantity ?? 0;
   const shelfDays = p.shelfLifeDays ?? 0;
   return {
@@ -271,8 +272,8 @@ const [viewerLocation, setViewerLocation] = useState(null);
       name: product.name,
       variantName: selectedSku.name || selectedSku.unit || "",
       image: product.primaryImageUrl,
-      price: selectedSku.salePrice || selectedSku.listPrice || 0,
-      originalPrice: selectedSku.listPrice || 0,
+      price: selectedSku.listPrice || selectedSku.salePrice || 0,
+      originalPrice: selectedSku.listPrice || selectedSku.salePrice || 0,
       unit: selectedSku.unit || "",
       storeName: product.sellerName || "",
       quantity: Math.min(remaining, qty),
@@ -342,9 +343,9 @@ const [viewerLocation, setViewerLocation] = useState(null);
   }
 
   const displaySku = selectedSku || {};
-  const origP = displaySku.listPrice ?? product.originalPrice;
-  const discP = displaySku.salePrice ?? displaySku.listPrice ?? product.discountPrice;
-  const discPct = origP > 0 ? Math.round((1 - discP / origP) * 100) : 0;
+  const origP = displaySku.listPrice ?? displaySku.salePrice ?? product.originalPrice;
+  const discP = origP;
+  const discPct = 0;
   const remaining =
     (displaySku.stockAvailable ?? displaySku.stockQuantity) != null
       ? displaySku.stockAvailable ?? displaySku.stockQuantity
@@ -504,6 +505,14 @@ const [viewerLocation, setViewerLocation] = useState(null);
               <button type="button" className="w-12 h-12 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 hover:border-slate-300 hover:bg-slate-50 transition-colors group" aria-label="Yêu thích">
                 <svg className="w-5 h-5 group-hover:text-rose-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
               </button>
+            </div>
+
+            <div className="p-4 rounded-xl border border-red-100 bg-red-50/40 flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <p className="text-sm font-semibold text-red-800">Gap van de voi san pham?</p>
+                <p className="text-xs text-red-700 mt-0.5">Ban co the report truc tiep de admin kiem tra va xu ly.</p>
+              </div>
+              <ViolationReportForm productId={Number(product.id)} triggerLabel="Bao cao vi pham" />
             </div>
           </section>
         </div>

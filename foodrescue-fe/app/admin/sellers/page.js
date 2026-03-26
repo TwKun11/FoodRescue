@@ -117,6 +117,7 @@ export default function AdminSellersPage() {
                 <th className="px-4 py-3 text-left">Cửa hàng</th>
                 <th className="px-4 py-3 text-left">Email</th>
                 <th className="px-4 py-3 text-left">Trạng thái</th>
+                <th className="px-4 py-3 text-left">Rating</th>
                 <th className="px-4 py-3 text-left">Xác minh</th>
                 <th className="px-4 py-3 text-left">Hành động</th>
                 <th className="px-4 py-3 text-center w-12">Xem</th>
@@ -138,6 +139,10 @@ export default function AdminSellersPage() {
                       >
                         {st.label}
                       </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="text-sm font-semibold text-gray-800">{Number(s.ratingAvg || 0).toFixed(1)} / 5</p>
+                      <p className="text-xs text-gray-400">{Number(s.reviewCount || 0)} reviews</p>
                     </td>
                     <td className="px-4 py-3">
                       {s.isVerified ? (
@@ -270,6 +275,14 @@ function SellerDetailModal({ seller, onClose }) {
           <div>
             <dt className="text-gray-500 font-medium">Xác minh</dt>
             <dd className="text-gray-800 mt-0.5">{seller.isVerified ? "✓ Đã xác minh" : "Chưa xác minh"}</dd>
+          </div>
+          <div>
+            <dt className="text-gray-500 font-medium">Rating trung bình</dt>
+            <dd className="text-gray-800 mt-0.5">{Number(seller.ratingAvg || 0).toFixed(1)} / 5</dd>
+          </div>
+          <div>
+            <dt className="text-gray-500 font-medium">Tổng số review</dt>
+            <dd className="text-gray-800 mt-0.5">{Number(seller.reviewCount || 0)}</dd>
           </div>
         </dl>
         <div className="mt-6 pt-4 border-t border-gray-100">

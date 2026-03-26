@@ -23,6 +23,9 @@ public class PlaceOrderRequest {
     @Size(max = 500, message = "Ghi chu khong duoc vuot qua 500 ky tu")
     private String note;
 
+    @Size(max = 50, message = "Ma voucher khong duoc vuot qua 50 ky tu")
+    private String voucherCode;
+
     @NotNull(message = "Gio hang khong duoc de trong")
     @Size(min = 1, max = 100, message = "Gio hang phai co tu 1 den 100 dong san pham")
     @Valid

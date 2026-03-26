@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { GoogleLogin } from "@react-oauth/google";
 import toast from "react-hot-toast";
 import { getApiBaseUrl, getGoogleClientId } from "@/lib/runtime-config";
 
@@ -29,11 +28,13 @@ function validatePassword(value) {
 export default function LoginPage() {
   const router = useRouter();
   const linksPlaceholderRef = useRef(null);
+  const googleButtonRef = useRef(null);
   const [linkBoxRect, setLinkBoxRect] = useState(null);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({ email: "", password: "" });
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleReady, setGoogleReady] = useState(false);
 
   useEffect(() => {
     const measure = () => {
@@ -53,7 +54,7 @@ export default function LoginPage() {
     };
   }, []);
 
-  const handleGoogleSuccess = async (credentialResponse) => {
+  const handleGoogleSuccess = useCallback(async (credentialResponse) => {
     const idToken = credentialResponse?.credential;
     if (!idToken) return;
     setGoogleLoading(true);
@@ -85,7 +86,70 @@ export default function LoginPage() {
     } finally {
       setGoogleLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID || typeof window === "undefined") {
+      return;
+    }
+
+    let cancelled = false;
+
+    const initializeGoogle = () => {
+      if (cancelled || !window.google?.accounts?.id || !googleButtonRef.current) {
+        return;
+      }
+
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGoogleSuccess,
+      });
+
+      googleButtonRef.current.innerHTML = "";
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
+        type: "standard",
+        theme: "outline",
+        size: "large",
+        text: "continue_with",
+        shape: "rectangular",
+        width: 320,
+        logo_alignment: "left",
+        locale: "vi",
+      });
+      setGoogleReady(true);
+    };
+
+    if (window.google?.accounts?.id) {
+      initializeGoogle();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const scriptId = "google-identity-services";
+    const existingScript = document.getElementById(scriptId);
+
+    if (existingScript) {
+      existingScript.addEventListener("load", initializeGoogle);
+      return () => {
+        cancelled = true;
+        existingScript.removeEventListener("load", initializeGoogle);
+      };
+    }
+
+    const script = document.createElement("script");
+    script.id = scriptId;
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = initializeGoogle;
+    document.head.appendChild(script);
+
+    return () => {
+      cancelled = true;
+      script.onload = null;
+    };
+  }, [handleGoogleSuccess]);
 
   const setField = (field) => (e) => {
     const value = e.target.value;
@@ -256,20 +320,12 @@ export default function LoginPage() {
                     </svg>
                     Đăng nhập với Google
                   </div>
-                  <div className="absolute inset-0 z-10 opacity-0 [&_iframe]:w-full! [&_iframe]:h-full! [&_div]:min-w-0! [&_div]:min-h-0! overflow-hidden">
-                    <GoogleLogin
-                      onSuccess={handleGoogleSuccess}
-                      onError={() => toast.error("Đăng nhập Google không thành công.")}
-                      useOneTap={false}
-                      theme="outline"
-                      size="large"
-                      text="continue_with"
-                      shape="rectangular"
-                      width="320"
-                      locale="vi"
-                    />
-                  </div>
+                  <div
+                    ref={googleButtonRef}
+                    className="absolute inset-0 z-10 opacity-0 [&_iframe]:w-full! [&_iframe]:h-full! [&_div]:min-w-0! [&_div]:min-h-0! overflow-hidden"
+                  />
                 </div>
+                {!googleReady && <p className="text-center text-xs text-gray-400">Đang tải Google Sign-In...</p>}
                 {googleLoading && <p className="text-center text-sm text-gray-400">Đang xử lý đăng nhập Google...</p>}
               </div>
             )}
