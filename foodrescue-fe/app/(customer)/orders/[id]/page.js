@@ -6,14 +6,12 @@ import { useRouter, useParams } from "next/navigation";
 import { apiGetOrderDetail } from "@/lib/api";
 import ViolationReportForm from "@/components/customer/ViolationReportForm";
 
-const STATUS_STEPS = ["pending_payment", "pending", "confirmed", "packing", "shipping", "completed"];
+const STATUS_STEPS = ["pending_payment", "pending", "confirmed", "completed"];
 
 const STATUS_LABEL = {
   pending_payment: "Chờ thanh toán",
   pending: "Chờ xác nhận",
   confirmed: "Đã xác nhận",
-  packing: "Đang đóng gói",
-  shipping: "Đang giao hàng",
   completed: "Hoàn thành",
   cancelled: "Đã hủy",
 };
@@ -138,7 +136,7 @@ export default function OrderDetailPage() {
       acc.totalAfterDiscount += lineTotal;
       return acc;
     },
-    { subtotalBeforeDiscount: 0, totalAfterDiscount: 0 }
+    { subtotalBeforeDiscount: 0, totalAfterDiscount: 0 },
   );
   const discountAmountDisplay = Math.max(0, subtotalBeforeDiscount - totalAfterDiscount);
 
@@ -148,9 +146,7 @@ export default function OrderDetailPage() {
   const currentStep = STATUS_STEPS.indexOf(status);
   const paymentStyle = PAYMENT_STATUS_STYLE[paymentStatus];
   const showPayOSLink =
-    order.paymentMethod?.toLowerCase() === "payos" &&
-    paymentStatus === "pending" &&
-    order.payment?.checkoutUrl;
+    order.paymentMethod?.toLowerCase() === "payos" && paymentStatus === "pending" && order.payment?.checkoutUrl;
 
   return (
     <div className="max-w-5xl mx-auto px-6 sm:px-8 py-10">
@@ -220,9 +216,13 @@ export default function OrderDetailPage() {
             <p className="text-sm text-amber-700 mt-1">
               Thanh toán xong, hệ thống sẽ đợi webhook và chuyển đơn sang trạng thái chờ xác nhận.
             </p>
-            <p className="text-xs text-amber-700 mt-2">Backend se tu dong dong bo trang thai thanh toan tu DB va PayOS.</p>
+            <p className="text-xs text-amber-700 mt-2">
+              Backend se tu dong dong bo trang thai thanh toan tu DB va PayOS.
+            </p>
             {order.payment?.remainingSeconds != null && (
-              <p className="text-xs text-amber-700 mt-2">Thoi gian con lai: {formatRemaining(order.payment.remainingSeconds)}</p>
+              <p className="text-xs text-amber-700 mt-2">
+                Thoi gian con lai: {formatRemaining(order.payment.remainingSeconds)}
+              </p>
             )}
             {order.payment?.expiresAt && (
               <p className="text-xs text-amber-700 mt-2">Hết hạn lúc: {fmtDate(order.payment.expiresAt)}</p>
@@ -308,7 +308,11 @@ export default function OrderDetailPage() {
         <div className="space-y-2 text-sm">
           <Row label="Tổng tiền (trước giảm)" value={fmt(order.subtotal)} />
           {(Number(order.discountAmount) || 0) > 0 && (
-            <Row label="Tiền được giảm" value={`−${(Number(order.discountAmount) || 0).toLocaleString("vi-VN")}₫`} valueClass="text-green-600" />
+            <Row
+              label="Tiền được giảm"
+              value={`−${(Number(order.discountAmount) || 0).toLocaleString("vi-VN")}₫`}
+              valueClass="text-green-600"
+            />
           )}
           <div className="border-t border-gray-100 pt-2 mt-2">
             <Row label="Tổng sau giảm" value={fmt(order.totalAmount)} bold />
@@ -343,7 +347,9 @@ function Row({ label, value, bold, valueClass }) {
   return (
     <div className="flex items-center justify-between gap-4">
       <span className={bold ? "font-bold text-gray-800" : "text-gray-500"}>{label}</span>
-      <span className={`${bold ? "font-bold text-gray-800" : "text-gray-700"} text-right ${valueClass || ""}`}>{value}</span>
+      <span className={`${bold ? "font-bold text-gray-800" : "text-gray-700"} text-right ${valueClass || ""}`}>
+        {value}
+      </span>
     </div>
   );
 }

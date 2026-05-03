@@ -134,7 +134,7 @@ export default function StoreProductsPage() {
   const [variantList, setVariantList] = useState([]);
   const [toast, setToast] = useState(null); // { message, type: "success"|"error" }
   const toastTimer = useRef(null);
-  const [deleteTarget, setDeleteTarget] = useState(null); // product id pending delete
+  const [confirmDialog, setConfirmDialog] = useState(null); // { title, message, confirmText, tone, onConfirm }
 
   const showToast = useCallback((message, type = "success") => {
     setToast({ message, type });
@@ -147,8 +147,16 @@ export default function StoreProductsPage() {
     setShowForm(true);
   };
   const openEdit = (rawProduct) => {
-    setEditingProduct(rawProduct);
-    setShowForm(true);
+    setConfirmDialog({
+      title: "Xác nhận chỉnh sửa sản phẩm",
+      message: `Bạn có muốn mở form chỉnh sửa cho sản phẩm "${rawProduct.name}" không?`,
+      confirmText: "Chỉnh sửa",
+      tone: "primary",
+      onConfirm: () => {
+        setEditingProduct(rawProduct);
+        setShowForm(true);
+      },
+    });
   };
   const closeForm = () => {
     setShowForm(false);
@@ -275,19 +283,48 @@ export default function StoreProductsPage() {
     [loadProducts],
   );
 
-  const handleConfirmDelete = (id) => {
-    setDeleteTarget(null);
-    // Soft delete: mark as inactive instead of hard delete
-    const productToUpdate = products.find((p) => p.id === id);
-    if (!productToUpdate) return;
-    
-    apiSellerUpdateProduct(id, { status: "inactive" }).then((res) => {
-      if (res.ok) {
-        showToast("Đã vô hiệu hóa sản phẩm thành công");
-        loadProducts(page);
-      } else {
-        showToast("Vô hiệu hóa sản phẩm thất bại, vui lòng thử lại", "error");
-      }
+  const closeConfirmDialog = () => setConfirmDialog(null);
+
+  const handleConfirmAction = async () => {
+    if (!confirmDialog?.onConfirm) return;
+    const action = confirmDialog.onConfirm;
+    setConfirmDialog(null);
+    await action();
+  };
+
+  const requestDeactivateProduct = (product) => {
+    setConfirmDialog({
+      title: "Xác nhận vô hiệu hóa sản phẩm",
+      message: `Sản phẩm "${product.name}" sẽ bị chuyển sang trạng thái không hoạt động. Bạn có muốn tiếp tục không?`,
+      confirmText: "Vô hiệu hóa",
+      tone: "danger",
+      onConfirm: async () => {
+        const res = await apiSellerUpdateProduct(product.id, { status: "inactive" });
+        if (res.ok) {
+          showToast("Đã vô hiệu hóa sản phẩm thành công");
+          loadProducts(page);
+        } else {
+          showToast("Vô hiệu hóa sản phẩm thất bại, vui lòng thử lại", "error");
+        }
+      },
+    });
+  };
+
+  const requestActivateProduct = (product) => {
+    setConfirmDialog({
+      title: "Xác nhận kích hoạt sản phẩm",
+      message: `Bạn có muốn kích hoạt lại sản phẩm "${product.name}" không?`,
+      confirmText: "Kích hoạt",
+      tone: "primary",
+      onConfirm: async () => {
+        const res = await apiSellerUpdateProduct(product.id, { status: "active" });
+        if (res.ok) {
+          showToast("Đã kích hoạt sản phẩm thành công");
+          loadProducts(page);
+        } else {
+          showToast("Kích hoạt sản phẩm thất bại, vui lòng thử lại", "error");
+        }
+      },
     });
   };
 
@@ -322,6 +359,34 @@ export default function StoreProductsPage() {
           <button onClick={() => setToast(null)} className="ml-1 text-white/70 hover:text-white leading-none text-base">
             ✕
           </button>
+        </div>
+      )}
+      {confirmDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-gray-100 p-6">
+            <h3 className="text-lg font-bold text-gray-900">{confirmDialog.title}</h3>
+            <p className="mt-2 text-sm text-gray-600 leading-6">{confirmDialog.message}</p>
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={closeConfirmDialog}
+                className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmAction}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
+                  confirmDialog.tone === "danger"
+                    ? "bg-red-500 hover:bg-red-600 text-white"
+                    : "bg-brand hover:bg-brand-secondary text-gray-900"
+                }`}
+              >
+                {confirmDialog.confirmText}
+              </button>
+            </div>
+          </div>
         </div>
       )}
       <div className="flex-1 p-6 sm:p-8 space-y-6">
@@ -847,16 +912,7 @@ export default function StoreProductsPage() {
                             <button
                               className="w-8 h-8 flex items-center justify-center rounded-lg border border-green-200 text-green-600 hover:bg-green-50 transition"
                               title="Kích hoạt sản phẩm"
-                              onClick={() => {
-                                apiSellerUpdateProduct(p.id, { status: "active" }).then((res) => {
-                                  if (res.ok) {
-                                    showToast("✓ Đã kích hoạt sản phẩm thành công");
-                                    loadProducts(page);
-                                  } else {
-                                    showToast("Kích hoạt sản phẩm thất bại, vui lòng thử lại", "error");
-                                  }
-                                });
-                              }}
+                              onClick={() => requestActivateProduct(p)}
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path
@@ -869,40 +925,20 @@ export default function StoreProductsPage() {
                             </button>
                           ) : (
                             // Deactivate button for active products
-                            <>
-                              {deleteTarget === p.id ? (
-                                <div className="flex items-center gap-1">
-                                  <span className="text-xs text-gray-500 whitespace-nowrap">Vô hiệu?</span>
-                                  <button
-                                    onClick={() => handleConfirmDelete(p.id)}
-                                    className="text-xs text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded-md transition"
-                                  >
-                                    Có
-                                  </button>
-                                  <button
-                                    onClick={() => setDeleteTarget(null)}
-                                    className="text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-md transition"
-                                  >
-                                    Không
-                                  </button>
-                                </div>
-                              ) : (
-                                <button
-                                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-red-200 text-red-400 hover:bg-red-50 transition"
-                                  title="Vô hiệu hóa sản phẩm"
-                                  onClick={() => setDeleteTarget(p.id)}
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                    />
-                                  </svg>
-                                </button>
-                              )}
-                            </>
+                            <button
+                              className="w-8 h-8 flex items-center justify-center rounded-lg border border-red-200 text-red-400 hover:bg-red-50 transition"
+                              title="Vô hiệu hóa sản phẩm"
+                              onClick={() => requestDeactivateProduct(p)}
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                              </svg>
+                            </button>
                           )}
                         </div>
                       </td>

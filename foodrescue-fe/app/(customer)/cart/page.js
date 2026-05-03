@@ -131,7 +131,9 @@ export default function CartPage() {
         <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">Giỏ hàng</h1>
-            <p className="mt-1 text-sm text-gray-500">Chọn sản phẩm theo từng shop, gom đơn và thanh toán phần muốn mua.</p>
+            <p className="mt-1 text-sm text-gray-500">
+              Chọn sản phẩm theo từng shop, gom đơn và thanh toán phần muốn mua.
+            </p>
           </div>
           <div className="flex flex-wrap items-center gap-3 text-sm">
             <span className="rounded-full bg-white px-3 py-1.5 text-gray-600 shadow-sm">
@@ -156,7 +158,9 @@ export default function CartPage() {
               </svg>
             </div>
             <p className="text-lg font-semibold text-gray-800">Giỏ hàng đang trống</p>
-            <p className="mt-2 text-sm text-gray-500">Thêm vài món sắp hết hạn để tạo đơn và giảm lãng phí thực phẩm.</p>
+            <p className="mt-2 text-sm text-gray-500">
+              Thêm vài món sắp hết hạn để tạo đơn và giảm lãng phí thực phẩm.
+            </p>
             <Link
               href="/products"
               className="mt-6 inline-flex items-center justify-center rounded-xl bg-brand px-5 py-3 text-sm font-medium text-gray-900 transition hover:bg-brand-dark"
@@ -179,10 +183,18 @@ export default function CartPage() {
                 </label>
 
                 <div className="flex flex-wrap items-center gap-3 text-sm">
-                  <button type="button" onClick={handleRemoveSelected} className="font-medium text-red-500 transition hover:text-red-600">
+                  <button
+                    type="button"
+                    onClick={handleRemoveSelected}
+                    className="font-medium text-red-500 transition hover:text-red-600"
+                  >
                     Xóa đã chọn
                   </button>
-                  <button type="button" onClick={handleClearAll} className="font-medium text-gray-500 transition hover:text-gray-700">
+                  <button
+                    type="button"
+                    onClick={handleClearAll}
+                    className="font-medium text-gray-500 transition hover:text-gray-700"
+                  >
                     Xóa tất cả
                   </button>
                 </div>
@@ -191,10 +203,16 @@ export default function CartPage() {
               {groupedItems.map((group) => {
                 const storeSelected = group.items.every((item) => item.selected);
                 const storeQty = group.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
-                const storeTotal = group.items.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0), 0);
+                const storeTotal = group.items.reduce(
+                  (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
+                  0,
+                );
 
                 return (
-                  <section key={group.storeName} className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+                  <section
+                    key={group.storeName}
+                    className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm"
+                  >
                     <div className="flex flex-col gap-3 border-b border-gray-100 bg-gray-50/70 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                       <label className="flex items-center gap-3 text-sm font-semibold text-gray-800">
                         <input
@@ -205,7 +223,12 @@ export default function CartPage() {
                         />
                         <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-brand/20 text-brand-dark">
                           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M5 7l1 11a2 2 0 002 2h8a2 2 0 002-2l1-11M9 7V5a3 3 0 016 0v2" />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M3 7h18M5 7l1 11a2 2 0 002 2h8a2 2 0 002-2l1-11M9 7V5a3 3 0 016 0v2"
+                            />
                           </svg>
                         </span>
                         {group.storeName}
@@ -276,7 +299,9 @@ export default function CartPage() {
 
               <div className="mt-5 rounded-2xl bg-brand-bg p-4 text-xs text-gray-500">
                 <p className="font-semibold text-gray-700">Cách dùng nhanh</p>
-                <p className="mt-2">Chọn theo từng shop để checkout như marketplace. Các món không chọn sẽ được giữ lại trong giỏ.</p>
+                <p className="mt-2">
+                  Chọn theo từng shop để checkout như marketplace. Các món không chọn sẽ được giữ lại trong giỏ.
+                </p>
               </div>
             </aside>
           </div>

@@ -12,6 +12,8 @@ public interface ProductImageRepository extends JpaRepository<ProductImage, Long
     List<ProductImage> findByProductIdOrderBySortOrderAsc(Long productId);
     Optional<ProductImage> findByProductIdAndIsPrimaryTrue(Long productId);
     List<ProductImage> findByProductIdInOrderBySortOrderAsc(List<Long> productIds);
+    List<ProductImage> findByProductIdInAndIsPrimaryTrue(List<Long> productIds);
+    List<ProductImage> findByProductIdInOrderByProductIdAscSortOrderAsc(List<Long> productIds);
 
     @org.springframework.data.jpa.repository.Modifying
     @org.springframework.data.jpa.repository.Query("DELETE FROM ProductImage pi WHERE pi.product.id = :productId")

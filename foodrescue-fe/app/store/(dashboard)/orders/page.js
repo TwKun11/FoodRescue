@@ -17,8 +17,6 @@ const STATUS_LABELS = {
   pending_payment: "Chờ thanh toán",
   pending: "Chờ xác nhận",
   confirmed: "Đã xác nhận",
-  packing: "Đang đóng gói",
-  shipping: "Đang giao",
   completed: "Hoàn thành",
   cancelled: "Đã hủy",
   refunded: "Hoàn tiền",
@@ -28,8 +26,6 @@ const STATUS_COLORS = {
   pending_payment: "bg-amber-50 text-amber-700 border border-amber-200",
   pending: "bg-yellow-50 text-yellow-700 border border-yellow-200",
   confirmed: "bg-blue-50 text-blue-700 border border-blue-200",
-  packing: "bg-purple-50 text-purple-700 border border-purple-200",
-  shipping: "bg-indigo-50 text-indigo-700 border border-indigo-200",
   completed: "bg-brand-bg text-brand-dark border border-brand/40",
   cancelled: "bg-red-50 text-red-700 border border-red-200",
   refunded: "bg-gray-50 text-gray-600 border border-gray-200",
@@ -116,7 +112,8 @@ function OrderDetailModal({ order, onClose }) {
 
   const items = order.items || [];
   const subtotal =
-    order.subtotal ?? items.reduce((sum, item) => sum + (Number(item.lineTotal) || Number(item.unitPrice) * (item.quantity || 0)), 0);
+    order.subtotal ??
+    items.reduce((sum, item) => sum + (Number(item.lineTotal) || Number(item.unitPrice) * (item.quantity || 0)), 0);
   const discountAmount = Number(order.discountAmount) || 0;
   const totalAmount = order.totalAmount ?? order.subtotal ?? subtotal - discountAmount;
 
@@ -250,7 +247,9 @@ export default function StoreOrdersPage() {
     apiSellerUpdateOrderStatus(sellerOrderId, newStatus)
       .then((res) => {
         if (res.ok) {
-          setOrders((prev) => prev.map((order) => (order.id === sellerOrderId ? { ...order, status: newStatus } : order)));
+          setOrders((prev) =>
+            prev.map((order) => (order.id === sellerOrderId ? { ...order, status: newStatus } : order)),
+          );
         } else {
           const msg = res.data?.message || res.data?.error || "Cập nhật trạng thái thất bại.";
           alert(msg);
@@ -283,7 +282,11 @@ export default function StoreOrdersPage() {
         <h1 className="text-2xl font-bold text-gray-900">Đơn hàng</h1>
         <p className="text-sm text-gray-500">
           {totalElements} đơn hàng
-          {totalPages > 1 && <span className="ml-2 text-gray-400">· Trang {page + 1}/{totalPages}</span>}
+          {totalPages > 1 && (
+            <span className="ml-2 text-gray-400">
+              · Trang {page + 1}/{totalPages}
+            </span>
+          )}
         </p>
       </div>
 
@@ -473,7 +476,9 @@ export default function StoreOrdersPage() {
 
         {totalPages > 1 && (
           <div className="px-5 py-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-gray-500">Hiển thị {orders.length} / {totalElements} đơn hàng</p>
+            <p className="text-sm text-gray-500">
+              Hiển thị {orders.length} / {totalElements} đơn hàng
+            </p>
             <div className="flex items-center gap-2">
               <button
                 disabled={page === 0}

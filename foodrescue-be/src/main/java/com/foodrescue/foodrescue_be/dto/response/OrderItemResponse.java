@@ -12,6 +12,7 @@ public class OrderItemResponse {
     private Long id;
     private Long variantId;
     private Long productId;
+    private String primaryImageUrl;
     private String productName;
     private String variantName;
     private String variantCode;
@@ -23,7 +24,7 @@ public class OrderItemResponse {
     private BigDecimal lineTotal;
     private String note;
 
-    public static OrderItemResponse fromEntity(OrderItem item) {
+    public static OrderItemResponse fromEntity(OrderItem item, String primaryImageUrl) {
         BigDecimal listPrice = item.getListPrice();
         if (listPrice == null && item.getVariant() != null) {
             listPrice = item.getVariant().getListPrice();
@@ -32,6 +33,7 @@ public class OrderItemResponse {
                 .id(item.getId())
                 .variantId(item.getVariant() != null ? item.getVariant().getId() : null)
                 .productId(item.getProduct() != null ? item.getProduct().getId() : null)
+                .primaryImageUrl(primaryImageUrl)
                 .productName(item.getProductName())
                 .variantName(item.getVariantName())
                 .variantCode(item.getVariantCode())
@@ -43,5 +45,9 @@ public class OrderItemResponse {
                 .lineTotal(item.getLineTotal())
                 .note(item.getNote())
                 .build();
+    }
+
+    public static OrderItemResponse fromEntity(OrderItem item) {
+        return fromEntity(item, null);
     }
 }

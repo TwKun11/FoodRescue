@@ -82,7 +82,9 @@ export default function CartItem({ item, onToggle, onRemove, onQtyChange }) {
               <p className="line-clamp-2 font-semibold text-gray-800">{item?.name || "Sản phẩm"}</p>
               {variantLabel ? <p className="mt-1 text-xs text-gray-500">Phân loại: {variantLabel}</p> : null}
               <p className="mt-1 text-xs text-gray-500">{item?.storeName || "FoodRescue Store"}</p>
-              {item?.maxQty != null ? <p className="mt-1 text-xs text-gray-400">Còn tối đa {item.maxQty} sản phẩm</p> : null}
+              {item?.maxQty != null ? (
+                <p className="mt-1 text-xs text-gray-400">Còn tối đa {item.maxQty} sản phẩm</p>
+              ) : null}
             </div>
 
             <div className="text-left lg:text-right">
@@ -138,7 +140,9 @@ export default function CartItem({ item, onToggle, onRemove, onQtyChange }) {
               >
                 Xóa
               </button>
-              <p className="text-sm font-bold text-gray-900 sm:min-w-28 sm:text-right">{lineTotal.toLocaleString("vi-VN")} đồng</p>
+              <p className="text-sm font-bold text-gray-900 sm:min-w-28 sm:text-right">
+                {lineTotal.toLocaleString("vi-VN")} đồng
+              </p>
             </div>
           </div>
         </div>

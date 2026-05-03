@@ -39,8 +39,8 @@ export default function BannerCarousel({ banners = [] }) {
             />
             <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-transparent" />
             <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-              <p className="text-sm font-medium opacity-90">{b.storeName}</p>
-              <h2 className="text-2xl font-bold mt-1 drop-shadow-md">{b.title}</h2>
+              <p className="text-sm font-medium text-white drop-shadow-md">{b.storeName}</p>
+              <h2 className="mt-1 text-2xl font-bold text-white drop-shadow-md">{b.title}</h2>
             </div>
           </Link>
         ))}

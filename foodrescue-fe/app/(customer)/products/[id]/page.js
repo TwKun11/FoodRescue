@@ -13,6 +13,7 @@ import ViolationReportForm from "@/components/customer/ViolationReportForm";
 import { apiGetProduct, apiGetProducts, apiGetMyReviewForProduct, apiCheckCanReviewProduct } from "@/lib/api";
 import { addItemToCart, startDirectCheckout } from "@/lib/cart";
 import { formatDistanceMeters, getCurrentPosition, haversineDistanceMeters } from "@/lib/location";
+import { resolveVariantPricing } from "@/lib/product-pricing";
 
 function ImageGallery({ images, name, discountPercent }) {
   const [active, setActive] = useState(0);
@@ -57,9 +58,7 @@ function ImageGallery({ images, name, discountPercent }) {
 function mapProductDetail(p) {
   if (!p) return null;
   const variant = (p.variants || []).find((v) => v.isDefault) || p.variants?.[0] || {};
-  const listPrice = variant.listPrice ?? variant.salePrice ?? 0;
-  const salePrice = listPrice;
-  const discountPercent = 0;
+  const pricing = resolveVariantPricing(variant);
   const remaining = variant.stockAvailable ?? variant.stockQuantity ?? 0;
   const shelfLifeDays = p.shelfLifeDays ?? 0;
   return {
@@ -67,9 +66,9 @@ function mapProductDetail(p) {
     name: p.name,
     primaryImageUrl: p.primaryImageUrl || "/images/products/raucai.jpg",
     images: p.images?.length > 0 ? p.images : (p.primaryImageUrl ? [{ imageUrl: p.primaryImageUrl }] : []),
-    originalPrice: listPrice,
-    discountPrice: salePrice,
-    discountPercent,
+    originalPrice: pricing.originalPrice,
+    discountPrice: pricing.discountPrice,
+    discountPercent: pricing.discountPercent,
     unit: variant.unit || "",
     remaining,
     description: p.description || "",
@@ -95,18 +94,16 @@ function mapProductDetail(p) {
 
 function mapRelated(p) {
   const v = (p.variants || []).find((x) => x.isDefault) || p.variants?.[0] || {};
-  const listPrice = v.listPrice ?? v.salePrice ?? 0;
-  const salePrice = listPrice;
-  const discountPercent = 0;
+  const pricing = resolveVariantPricing(v);
   const stock = v.stockAvailable ?? v.stockQuantity ?? 0;
   const shelfDays = p.shelfLifeDays ?? 0;
   return {
     id: String(p.id),
     name: p.name,
     image: p.primaryImageUrl || "/images/products/raucai.jpg",
-    originalPrice: listPrice,
-    discountPrice: salePrice,
-    discountPercent,
+    originalPrice: pricing.originalPrice,
+    discountPrice: pricing.discountPrice,
+    discountPercent: pricing.discountPercent,
     expiryLabel: shelfDays ? `Hết hạn trong: ${shelfDays} ngày` : "",
     expiryAt: shelfDays ? new Date(Date.now() + shelfDays * 24 * 60 * 60 * 1000).toISOString() : null,
     stock,
@@ -265,6 +262,7 @@ const [viewerLocation, setViewerLocation] = useState(null);
     if (!product || !selectedSku) return null;
     const remaining = selectedSku.stockAvailable ?? selectedSku.stockQuantity ?? product.remaining ?? 0;
     if (remaining <= 0) return null;
+    const pricing = resolveVariantPricing(selectedSku);
 
     return {
       variantId: selectedSku.id,
@@ -272,8 +270,8 @@ const [viewerLocation, setViewerLocation] = useState(null);
       name: product.name,
       variantName: selectedSku.name || selectedSku.unit || "",
       image: product.primaryImageUrl,
-      price: selectedSku.listPrice || selectedSku.salePrice || 0,
-      originalPrice: selectedSku.listPrice || selectedSku.salePrice || 0,
+      price: pricing.discountPrice,
+      originalPrice: pricing.originalPrice,
       unit: selectedSku.unit || "",
       storeName: product.sellerName || "",
       quantity: Math.min(remaining, qty),
@@ -343,9 +341,10 @@ const [viewerLocation, setViewerLocation] = useState(null);
   }
 
   const displaySku = selectedSku || {};
-  const origP = displaySku.listPrice ?? displaySku.salePrice ?? product.originalPrice;
-  const discP = origP;
-  const discPct = 0;
+  const displayPricing = resolveVariantPricing(displaySku);
+  const origP = displayPricing.originalPrice || product.originalPrice;
+  const discP = displayPricing.discountPrice || product.discountPrice;
+  const discPct = displayPricing.discountPercent;
   const remaining =
     (displaySku.stockAvailable ?? displaySku.stockQuantity) != null
       ? displaySku.stockAvailable ?? displaySku.stockQuantity

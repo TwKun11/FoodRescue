@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Badge from "@/components/common/Badge";
+import VoucherPanel from "@/components/customer/VoucherPanel";
 import { apiGetAddresses, apiGetMyVouchers, apiGetVoucherStore, apiPlaceOrder, apiPreviewVoucher } from "@/lib/api";
 import { clearCheckoutCart, getCheckoutItems, removeCheckoutItemsFromCart } from "@/lib/cart";
 
@@ -103,7 +104,11 @@ export default function CheckoutPage() {
     finalTotal: null,
     error: "",
   });
-  const isClient = useSyncExternalStore(subscribeClientSnapshot, () => true, () => false);
+  const isClient = useSyncExternalStore(
+    subscribeClientSnapshot,
+    () => true,
+    () => false,
+  );
 
   useEffect(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
@@ -230,10 +235,6 @@ export default function CheckoutPage() {
           .filter(Boolean)
           .sort((a, b) => (b.discountAmount || 0) - (a.discountAmount || 0));
         setEligibleVouchers(nextEligible);
-
-        if (voucherCodeTrimmed && !nextEligible.some((item) => item.code === voucherCodeTrimmed)) {
-          setVoucherCode("");
-        }
       })
       .finally(() => {
         if (!cancelled) {
@@ -416,7 +417,9 @@ export default function CheckoutPage() {
             </svg>
           </div>
           <h1 className="text-xl font-bold text-gray-800">Không có sản phẩm để thanh toán</h1>
-          <p className="mt-2 text-sm text-gray-500">Hãy quay lại giỏ hàng và chọn các món muốn mua trước khi đặt đơn.</p>
+          <p className="mt-2 text-sm text-gray-500">
+            Hãy quay lại giỏ hàng và chọn các món muốn mua trước khi đặt đơn.
+          </p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
             <Link
               href="/cart"
@@ -475,7 +478,10 @@ export default function CheckoutPage() {
                   <p className="mt-2 text-xs text-gray-600">
                     Đơn hiện tại theo hình thức click and collect. Địa chỉ được dùng để lưu thông tin liên hệ khi cần.
                   </p>
-                  <Link href="/profile/addresses" className="mt-2 inline-flex text-xs font-medium text-brand-dark hover:underline">
+                  <Link
+                    href="/profile/addresses"
+                    className="mt-2 inline-flex text-xs font-medium text-brand-dark hover:underline"
+                  >
                     + Thêm địa chỉ mới
                   </Link>
                 </div>
@@ -485,7 +491,9 @@ export default function CheckoutPage() {
                     <label
                       key={address.id}
                       className={`block cursor-pointer rounded-xl border-2 p-4 transition ${
-                        String(address.id) === selectedAddressId ? "border-brand bg-brand-bg" : "border-gray-200 hover:border-gray-300"
+                        String(address.id) === selectedAddressId
+                          ? "border-brand bg-brand-bg"
+                          : "border-gray-200 hover:border-gray-300"
                       }`}
                     >
                       <div className="flex items-start gap-3">
@@ -502,7 +510,9 @@ export default function CheckoutPage() {
                             <p className="font-semibold text-gray-800">{address.receiverName}</p>
                             <span className="text-sm text-gray-400">{address.receiverPhone}</span>
                             {address.isDefault ? (
-                              <span className="rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-semibold text-green-700">Mặc định</span>
+                              <span className="rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-semibold text-green-700">
+                                Mặc định
+                              </span>
                             ) : null}
                           </div>
                           <p className="mt-1 text-sm text-gray-600">
@@ -583,7 +593,10 @@ export default function CheckoutPage() {
                           Đang được chọn
                         </Badge>
                       ) : (
-                        <Badge variant="default" className={method.enabled ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}>
+                        <Badge
+                          variant="default"
+                          className={method.enabled ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}
+                        >
                           {method.helper}
                         </Badge>
                       )}
@@ -592,7 +605,9 @@ export default function CheckoutPage() {
                 ))}
               </div>
 
-              <p className="mt-4 text-xs text-gray-400">MoMo và VNPay sẽ được mở khi backend có luồng thanh toán thật.</p>
+              <p className="mt-4 text-xs text-gray-400">
+                MoMo và VNPay sẽ được mở khi backend có luồng thanh toán thật.
+              </p>
             </div>
 
             <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
@@ -624,14 +639,76 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            <div className="mt-4 rounded-2xl border border-gray-100 bg-white p-4">
+            <VoucherPanel
+              voucherCode={voucherCode}
+              setVoucherCode={setVoucherCode}
+              voucherCodeTrimmed={voucherCodeTrimmed}
+              voucherPreview={voucherPreview}
+              voucherDiscount={voucherDiscount}
+              voucherOptionsLoading={voucherOptionsLoading}
+              myVouchers={myVouchers}
+              eligibleVouchers={eligibleVouchers}
+              voucherLoadHint={voucherLoadHint}
+              formatCurrency={formatCurrency}
+            />
+
+            <div className="hidden mt-4 rounded-2xl border border-gray-100 bg-white p-4">
               <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-brand-dark">Voucher áp dụng</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={voucherCode}
+                  onChange={(event) => setVoucherCode(event.target.value.toUpperCase())}
+                  placeholder="Nhập mã voucher"
+                  className={`flex-1 rounded-xl border px-3 py-2 text-sm uppercase transition focus:outline-none focus:ring-2 ${
+                    voucherPreview.error
+                      ? "border-red-300 bg-red-50 text-red-700 focus:border-red-400 focus:ring-red-200"
+                      : voucherDiscount > 0
+                        ? "border-emerald-300 bg-emerald-50 text-emerald-800 focus:border-emerald-400 focus:ring-emerald-200"
+                        : "border-gray-200 focus:border-brand focus:ring-brand/30"
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setVoucherCode("")}
+                  disabled={!voucherCodeTrimmed && !voucherPreview.loading}
+                  className="rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Xóa
+                </button>
+              </div>
+              {voucherCodeTrimmed ? (
+                <div
+                  className={`mt-2 rounded-xl border px-3 py-2 text-xs ${
+                    voucherPreview.loading
+                      ? "border-slate-200 bg-slate-50 text-slate-600"
+                      : voucherPreview.error
+                        ? "border-red-200 bg-red-50 text-red-700"
+                        : voucherDiscount > 0
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                          : "border-slate-200 bg-slate-50 text-slate-600"
+                  }`}
+                >
+                  {voucherPreview.loading
+                    ? `Đang kiểm tra mã ${voucherCodeTrimmed}...`
+                    : voucherPreview.error
+                      ? voucherPreview.error
+                      : voucherDiscount > 0
+                        ? `Áp dụng thành công. Giảm ${formatCurrency(voucherDiscount)}`
+                        : "Mã voucher chưa tạo ra giảm giá hợp lệ."}
+                </div>
+              ) : null}
               <select
                 value={voucherCode}
                 onChange={(event) => setVoucherCode(event.target.value)}
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
+                className="hidden"
               >
                 <option value="">Không dùng voucher</option>
+                {voucherCodeTrimmed && !eligibleVouchers.some((voucher) => String(voucher.code).toUpperCase() === voucherCodeTrimmed.toUpperCase()) ? (
+                  <option value={voucherCodeTrimmed}>
+                    {voucherCodeTrimmed} - Äang kiá»ƒm tra Ä‘iá»u kiá»‡n
+                  </option>
+                ) : null}
                 {eligibleVouchers.map((voucher) => (
                   <option key={voucher.code} value={voucher.code}>
                     {voucher.code} - {voucher.name} (giảm {formatCurrency(voucher.discountAmount)})
@@ -646,6 +723,27 @@ export default function CheckoutPage() {
                     : "Bạn chưa nhận voucher nào."}
               </p>
               {voucherLoadHint ? <p className="mt-1 text-xs text-amber-700">{voucherLoadHint}</p> : null}
+              {eligibleVouchers.length > 0 ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {eligibleVouchers.map((voucher) => {
+                    const active = String(voucher.code).toUpperCase() === voucherCodeTrimmed.toUpperCase();
+                    return (
+                      <button
+                        key={voucher.code}
+                        type="button"
+                        onClick={() => setVoucherCode(String(voucher.code || "").toUpperCase())}
+                        className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                          active
+                            ? "border-emerald-300 bg-emerald-100 text-emerald-800"
+                            : "border-gray-200 bg-white text-gray-700 hover:border-emerald-200 hover:bg-emerald-50"
+                        }`}
+                      >
+                        {voucher.code} - giảm {formatCurrency(voucher.discountAmount)}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
             </div>
 
             <div className="mt-4 space-y-3">
@@ -704,7 +802,9 @@ export default function CheckoutPage() {
                 <span>Tổng cộng</span>
                 <span>{formatCurrency(voucherPreview.finalTotal != null ? voucherPreview.finalTotal : finalTotal)}</span>
               </div>
-              <p className="mt-2 text-xs text-gray-400">Giá trị thanh toán được backend chốt lại theo biến thể và tồn kho hiện tại.</p>
+              <p className="mt-2 text-xs text-gray-400">
+                Giá trị thanh toán được backend chốt lại theo biến thể và tồn kho hiện tại.
+              </p>
             </div>
 
             <label className="mt-5 flex cursor-pointer items-start gap-2">
@@ -732,7 +832,10 @@ export default function CheckoutPage() {
                   : "Tạo đơn COD"}
             </button>
 
-            <Link href="/cart" className="mt-3 block text-center text-sm text-gray-600 transition hover:text-brand-dark">
+            <Link
+              href="/cart"
+              className="mt-3 block text-center text-sm text-gray-600 transition hover:text-brand-dark"
+            >
               ← Quay lại giỏ hàng
             </Link>
           </aside>

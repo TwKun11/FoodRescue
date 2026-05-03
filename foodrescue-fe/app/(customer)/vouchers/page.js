@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { apiClaimVoucher, apiGetVoucherStore } from "@/lib/api";
 
 function formatMoney(value) {
@@ -8,16 +9,18 @@ function formatMoney(value) {
 }
 
 function discountText(v) {
-  if (v.discountType === "percentage") {
+  const type = String(v.discountType || "").toLowerCase();
+  if (type === "percentage") {
     return `${Number(v.discountValue || 0)}%`;
   }
-  if (v.discountType === "freeship") {
+  if (type === "freeship") {
     return "Freeship";
   }
   return formatMoney(v.discountValue || 0);
 }
 
 export default function VoucherWalletPage() {
+  const router = useRouter();
   const [store, setStore] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState(null);
@@ -46,6 +49,13 @@ export default function VoucherWalletPage() {
     setBusyId(null);
   };
 
+  const useVoucherNow = (code) => {
+    if (!code || typeof window === "undefined") return;
+    const normalizedCode = code.trim().toUpperCase();
+    localStorage.setItem("checkoutVoucherCode", normalizedCode);
+    router.push(`/checkout?voucher=${encodeURIComponent(normalizedCode)}`);
+  };
+
   return (
     <div className="min-h-screen bg-brand-bg px-4 py-10">
       <div className="mx-auto max-w-6xl space-y-6">
@@ -64,25 +74,39 @@ export default function VoucherWalletPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-base font-semibold text-gray-900">{v.name}</p>
-                    <p className="text-xs text-gray-500">Mã: <span className="font-mono font-semibold text-brand-dark">{v.code}</span></p>
+                    <p className="text-xs text-gray-500">
+                      Mã: <span className="font-mono font-semibold text-brand-dark">{v.code}</span>
+                    </p>
                   </div>
-                  <span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700">{discountText(v)}</span>
+                  <span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700">
+                    {discountText(v)}
+                  </span>
                 </div>
                 <p className="mt-2 text-sm text-gray-600">Đơn tối thiểu: {formatMoney(v.minOrderValue || 0)}</p>
                 <p className="text-xs text-gray-500">Lượt dùng: {v.usedCount || 0}/{v.maxUses || "∞"}</p>
-                <button
-                  type="button"
-                  disabled={v.claimed || busyId === v.id}
-                  onClick={() => claim(v.id)}
-                  className="mt-3 rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {v.claimed ? "Đã nhận" : busyId === v.id ? "Đang nhận..." : "Nhận voucher"}
-                </button>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={v.claimed || busyId === v.id}
+                    onClick={() => claim(v.id)}
+                    className="rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {v.claimed ? "Đã nhận" : busyId === v.id ? "Đang nhận..." : "Nhận voucher"}
+                  </button>
+                  {v.claimed ? (
+                    <button
+                      type="button"
+                      onClick={() => useVoucherNow(v.code)}
+                      className="rounded-lg border border-brand px-3 py-2 text-sm font-semibold text-brand-dark transition hover:bg-brand-bg"
+                    >
+                      Dùng ngay
+                    </button>
+                  ) : null}
+                </div>
               </div>
             ))}
           </div>
         </section>
-
       </div>
     </div>
   );
