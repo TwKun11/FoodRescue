@@ -20,7 +20,9 @@ function formatRemaining(seconds) {
 }
 
 function normalizeStatus(value) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .trim()
+    .toLowerCase();
 }
 
 function getPaymentSummary(order) {
@@ -140,8 +142,8 @@ export default function PayOSReturnPage() {
 
         <h1 className="text-2xl font-bold text-gray-900">Đã quay lại từ PayOS</h1>
         <p className="mt-2 text-sm text-gray-600">
-          Trang này chủ động đối soát lại trạng thái thanh toán để xử lý các trường hợp webhook đến chậm, timeout
-          hoặc người dùng đóng gateway giữa chừng.
+          Trang này chủ động đối soát lại trạng thái thanh toán để xử lý các trường hợp webhook đến chậm, timeout hoặc
+          người dùng đóng gateway giữa chừng.
         </p>
 
         <div className={`mt-5 rounded-xl border p-4 text-sm ${toneClasses(summary.tone)}`}>

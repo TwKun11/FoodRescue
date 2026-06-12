@@ -466,16 +466,12 @@ export default function StoreDashboardPage() {
                 const statusLabels = {
                   pending: "Chờ xác nhận",
                   confirmed: "Đã xác nhận",
-                  packing: "Đang đóng gói",
-                  shipping: "Đang giao",
                   completed: "Hoàn thành",
                   cancelled: "Đã hủy",
                 };
                 const statusColors = {
                   pending: "bg-yellow-50 text-yellow-700",
                   confirmed: "bg-blue-50 text-blue-700",
-                  packing: "bg-purple-50 text-purple-700",
-                  shipping: "bg-indigo-50 text-indigo-700",
                   completed: "bg-brand-bg text-brand-dark",
                   cancelled: "bg-red-50 text-red-700",
                 };

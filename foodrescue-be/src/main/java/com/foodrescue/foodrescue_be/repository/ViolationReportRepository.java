@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-
+import java.util.List;
 @Repository
 public interface ViolationReportRepository extends JpaRepository<ViolationReport, Long> {
 
@@ -25,41 +25,39 @@ public interface ViolationReportRepository extends JpaRepository<ViolationReport
 
         @Query(value = """
                         SELECT
-                                s.id AS sellerId,
-                                s.shop_name AS sellerName,
-                                COUNT(vr.id) AS totalReports,
-                                SUM(CASE WHEN vr.status IN ('PENDING', 'IN_REVIEW') THEN 1 ELSE 0 END) AS openReports,
-                                SUM(CASE WHEN vr.status = 'RESOLVED' THEN 1 ELSE 0 END) AS resolvedReports
+                            s.id AS sellerId,
+                            s.shop_name AS sellerName,
+                            COUNT(vr.id) AS totalReports,
+                            SUM(CASE WHEN vr.status IN ('PENDING', 'IN_REVIEW') THEN 1 ELSE 0 END) AS openReports,
+                            SUM(CASE WHEN vr.status = 'RESOLVED' THEN 1 ELSE 0 END) AS resolvedReports
                         FROM violation_reports vr
                         JOIN products p ON p.id = vr.product_id
                         JOIN sellers s ON s.id = p.seller_id
                         GROUP BY s.id, s.shop_name
                         ORDER BY totalReports DESC, openReports DESC
-                        LIMIT :limit
                         """, nativeQuery = true)
-        java.util.List<Object[]> getTopSellerIssues(@Param("limit") int limit);
+        List<Object[]> getTopSellerIssues(Pageable pageable);
 
-    @EntityGraph(attributePaths = {"reporter", "product", "review"})
-    @Query("""
-            SELECT vr FROM ViolationReport vr
-            JOIN vr.reporter rp
-            JOIN vr.product p
-            WHERE (:search IS NULL OR :search = ''
-                OR LOWER(COALESCE(vr.description, '')) LIKE LOWER(CONCAT('%', :search, '%'))
-                OR LOWER(COALESCE(rp.email, '')) LIKE LOWER(CONCAT('%', :search, '%'))
-                OR LOWER(COALESCE(rp.fullName, '')) LIKE LOWER(CONCAT('%', :search, '%'))
-                OR LOWER(COALESCE(p.name, '')) LIKE LOWER(CONCAT('%', :search, '%')))
-              AND (:type IS NULL OR vr.type = :type)
-              AND (:status IS NULL OR vr.status = :status)
-            ORDER BY vr.createdAt DESC
-            """)
-    Page<ViolationReport> findAllForAdmin(
-            @Param("search") String search,
-            @Param("type") ViolationReport.ReportType type,
-            @Param("status") ViolationReport.Status status,
-            Pageable pageable
-    );
+        @EntityGraph(attributePaths = { "reporter", "product", "review" })
+        @Query("""
+                        SELECT vr FROM ViolationReport vr
+                        JOIN vr.reporter rp
+                        JOIN vr.product p
+                        WHERE (:search IS NULL OR :search = ''
+                            OR LOWER(COALESCE(vr.description, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                            OR LOWER(COALESCE(rp.email, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                            OR LOWER(COALESCE(rp.fullName, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                            OR LOWER(COALESCE(p.name, '')) LIKE LOWER(CONCAT('%', :search, '%')))
+                          AND (:type IS NULL OR vr.type = :type)
+                          AND (:status IS NULL OR vr.status = :status)
+                        ORDER BY vr.createdAt DESC
+                        """)
+        Page<ViolationReport> findAllForAdmin(
+                        @Param("search") String search,
+                        @Param("type") ViolationReport.ReportType type,
+                        @Param("status") ViolationReport.Status status,
+                        Pageable pageable);
 
-    @EntityGraph(attributePaths = {"reporter", "product", "review"})
-    Page<ViolationReport> findByReporterIdOrderByCreatedAtDesc(Long reporterId, Pageable pageable);
+        @EntityGraph(attributePaths = { "reporter", "product", "review" })
+        Page<ViolationReport> findByReporterIdOrderByCreatedAtDesc(Long reporterId, Pageable pageable);
 }

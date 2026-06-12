@@ -14,12 +14,9 @@ export default function RootLayout({ children }) {
       process.env.FRONTEND_API_BASE_URL ||
         process.env.NEXT_PUBLIC_API_BASE_URL ||
         process.env.NEXT_PUBLIC_API_URL ||
-        "/api"
+        "/api",
     ),
-    googleClientId:
-      process.env.GOOGLE_CLIENT_ID ||
-      process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
-      "",
+    googleClientId: process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "",
   };
   const runtimeConfigScript = `window.__FOODRESCUE_RUNTIME_CONFIG__=${JSON.stringify(runtimeConfig).replace(/</g, "\\u003c")};`;
 

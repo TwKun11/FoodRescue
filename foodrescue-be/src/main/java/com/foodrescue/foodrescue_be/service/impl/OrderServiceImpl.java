@@ -39,6 +39,7 @@ public class OrderServiceImpl implements OrderService {
     private final InventoryBatchRepository batchRepository;
     private final VoucherRepository voucherRepository;
     private final UserVoucherRepository userVoucherRepository;
+    private final ProductImageRepository productImageRepository;
     private final PayOSGatewayService payOSGatewayService;
     private final OrderLifecycleProperties orderLifecycleProperties;
 
@@ -118,15 +119,18 @@ public class OrderServiceImpl implements OrderService {
         }
 
         AppliedVoucher appliedVoucher = resolveApplicableVoucher(
-            userId,
+                userId,
                 req.getVoucherCode(),
                 orderSubtotal,
                 totalQuantity,
                 address != null ? address.getProvince() : null
         );
-        BigDecimal orderDiscount = calculateVoucherDiscount(appliedVoucher != null ? appliedVoucher.voucher() : null, orderSubtotal);
+        BigDecimal orderDiscount = calculateVoucherDiscount(
+                appliedVoucher != null ? appliedVoucher.voucher() : null,
+                orderSubtotal
+        );
         if (appliedVoucher != null && orderDiscount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Voucher không tạo ra giá trị giảm hợp lệ");
+            throw new IllegalArgumentException("Voucher khong tao ra gia tri giam hop le");
         }
 
         BigDecimal allocatedDiscount = BigDecimal.ZERO;
@@ -400,7 +404,7 @@ public class OrderServiceImpl implements OrderService {
         }
     }
 
-        private AppliedVoucher resolveApplicableVoucher(
+    private AppliedVoucher resolveApplicableVoucher(
             Long userId,
             String voucherCode,
             BigDecimal orderSubtotal,
@@ -413,49 +417,49 @@ public class OrderServiceImpl implements OrderService {
 
         String code = voucherCode.trim();
         UserVoucher userVoucher = userVoucherRepository
-            .findByUserIdAndVoucher_CodeIgnoreCaseAndStatus(userId, code, UserVoucher.Status.claimed)
-            .orElseThrow(() -> new IllegalArgumentException("Bạn chưa nhận voucher này hoặc voucher đã được dùng"));
+                .findByUserIdAndVoucher_CodeIgnoreCaseAndStatus(userId, code, UserVoucher.Status.claimed)
+                .orElseThrow(() -> new IllegalArgumentException("Ban chua nhan voucher nay hoac voucher da duoc dung"));
 
         Voucher voucher = userVoucher.getVoucher();
-
         LocalDateTime now = LocalDateTime.now();
+
         if (voucher.getStatus() != Voucher.Status.active) {
-            throw new IllegalArgumentException("Voucher không còn hoạt động");
+            throw new IllegalArgumentException("Voucher khong con hoat dong");
         }
         if (voucher.getActiveFrom() != null && voucher.getActiveFrom().isAfter(now)) {
-            throw new IllegalArgumentException("Voucher chưa đến thời gian áp dụng");
+            throw new IllegalArgumentException("Voucher chua den thoi gian ap dung");
         }
         if (voucher.getActiveUntil() != null && voucher.getActiveUntil().isBefore(now)) {
-            throw new IllegalArgumentException("Voucher đã hết hạn");
+            throw new IllegalArgumentException("Voucher da het han");
         }
 
         BigDecimal minOrderValue = voucher.getMinOrderValue() != null ? voucher.getMinOrderValue() : BigDecimal.ZERO;
         if (orderSubtotal.compareTo(minOrderValue) < 0) {
-            throw new IllegalArgumentException("Đơn hàng chưa đạt giá trị tối thiểu để dùng voucher");
+            throw new IllegalArgumentException("Don hang chua dat gia tri toi thieu de dung voucher");
         }
 
         Integer maxUses = voucher.getMaxUses();
         Integer usedCount = voucher.getUsedCount() != null ? voucher.getUsedCount() : 0;
         if (maxUses != null && usedCount >= maxUses) {
-            throw new IllegalArgumentException("Voucher đã hết lượt sử dụng");
+            throw new IllegalArgumentException("Voucher da het luot su dung");
         }
 
         if (voucher.getComboItemThreshold() != null
                 && totalQuantity.compareTo(BigDecimal.valueOf(voucher.getComboItemThreshold())) < 0) {
-            throw new IllegalArgumentException("Đơn hàng chưa đủ số lượng sản phẩm để áp voucher");
+            throw new IllegalArgumentException("Don hang chua du so luong san pham de ap voucher");
         }
 
         if (voucher.getTargetProvince() != null && !voucher.getTargetProvince().isBlank()) {
             if (province == null || province.isBlank()) {
-                throw new IllegalArgumentException("Voucher yêu cầu có địa chỉ giao hàng hợp lệ");
+                throw new IllegalArgumentException("Voucher yeu cau co dia chi giao hang hop le");
             }
             if (!voucher.getTargetProvince().trim().equalsIgnoreCase(province.trim())) {
-                throw new IllegalArgumentException("Voucher không áp dụng cho khu vực giao hàng hiện tại");
+                throw new IllegalArgumentException("Voucher khong ap dung cho khu vuc giao hang hien tai");
             }
         }
 
         if (voucher.getDiscountType() == Voucher.DiscountType.freeship) {
-            throw new IllegalArgumentException("Voucher freeship chưa hỗ trợ cho luồng click and collect");
+            throw new IllegalArgumentException("Voucher freeship chua ho tro cho luong click and collect");
         }
 
         return new AppliedVoucher(voucher, userVoucher);
@@ -487,8 +491,6 @@ public class OrderServiceImpl implements OrderService {
         return discount;
     }
 
-    private record AppliedVoucher(Voucher voucher, UserVoucher userVoucher) {}
-
     private OrderSellerOrder createSellerOrder(Order order, Seller seller, Order.PaymentMethod paymentMethod) {
         return sellerOrderRepository.save(OrderSellerOrder.builder()
                 .order(order)
@@ -505,7 +507,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private BigDecimal resolveUnitPrice(ProductVariant variant) {
-        BigDecimal price = variant.getListPrice() != null ? variant.getListPrice() : variant.getSalePrice();
+        BigDecimal price = variant.getSalePrice() != null ? variant.getSalePrice() : variant.getListPrice();
         if (price == null || price.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("San pham " + variant.getName() + " chua co gia ban hop le");
         }
@@ -857,9 +859,50 @@ public class OrderServiceImpl implements OrderService {
     private OrderResponse toCustomerResponse(Order order, List<OrderItem> items, OrderPayment payment) {
         return OrderResponse.fromEntity(
                 order,
-                items.stream().map(OrderItemResponse::fromEntity).toList(),
+                mapOrderItems(items),
                 OrderPaymentResponse.fromEntity(payment)
         );
+    }
+
+    private List<OrderItemResponse> mapOrderItems(List<OrderItem> items) {
+        if (items == null || items.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> productIds = items.stream()
+                .map(OrderItem::getProduct)
+                .filter(Objects::nonNull)
+                .map(Product::getId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        Map<Long, String> primaryImageByProductId = productImageRepository
+                .findByProductIdInAndIsPrimaryTrue(productIds)
+                .stream()
+                .filter(image -> image.getProduct() != null && image.getProduct().getId() != null)
+                .collect(java.util.stream.Collectors.toMap(
+                        image -> image.getProduct().getId(),
+                        ProductImage::getImageUrl,
+                        (left, right) -> left
+                ));
+
+        if (primaryImageByProductId.size() < productIds.size()) {
+            productImageRepository.findByProductIdInOrderByProductIdAscSortOrderAsc(productIds)
+                    .stream()
+                    .filter(image -> image.getProduct() != null && image.getProduct().getId() != null)
+                    .forEach(image -> primaryImageByProductId.putIfAbsent(
+                            image.getProduct().getId(),
+                            image.getImageUrl()
+                    ));
+        }
+
+        return items.stream()
+                .map(item -> OrderItemResponse.fromEntity(
+                        item,
+                        item.getProduct() != null ? primaryImageByProductId.get(item.getProduct().getId()) : null
+                ))
+                .toList();
     }
 
     private Optional<OrderPayment> findPayment(Long orderId) {
@@ -987,5 +1030,7 @@ public class OrderServiceImpl implements OrderService {
         LocalDateTime fallbackDeadline = now.minusMinutes(orderLifecycleProperties.getPendingPaymentTimeoutMinutes());
         return !payment.getCreatedAt().isAfter(fallbackDeadline);
     }
+
+    private record AppliedVoucher(Voucher voucher, UserVoucher userVoucher) {}
 
 }

@@ -40,7 +40,10 @@ export default function ProductCard({ product }) {
           }}
         />
         {discountPercent > 0 && !isOutOfStock && (
-          <Badge variant="discount" className="absolute top-2 left-2 text-xs">
+          <Badge
+            variant="discount"
+            className="absolute top-2 left-2 rounded-2xl bg-gradient-to-br from-red-500 via-orange-500 to-amber-400 px-3 py-2 text-base font-black shadow-xl shadow-red-900/30 ring-2 ring-white/90"
+          >
             -{discountPercent}%
           </Badge>
         )}

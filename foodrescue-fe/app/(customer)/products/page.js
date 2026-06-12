@@ -1,6 +1,5 @@
 // FE02-002 – Trang Danh sách sản phẩm (layout mới: carousel, thanh danh mục, lọc, grid 3x4, 12/trang)
 "use client";
-/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
@@ -8,10 +7,12 @@ import ProductCardListing from "@/components/customer/ProductCardListing";
 import BannerCarousel from "@/components/customer/BannerCarousel";
 import { apiGetProducts, apiGetCategories, apiGetActiveBannerAds } from "@/lib/api";
 import { formatDistanceMeters, getCurrentPosition, haversineDistanceMeters } from "@/lib/location";
+import { resolveVariantPricing } from "@/lib/product-pricing";
 import { fetchProvinces, fetchDistricts, fetchWards } from "@/lib/vn-locations";
 
 const PAGE_SIZE = 12;
 const VISIBLE_ROOT_CATEGORIES = 5;
+const NEARBY_RADIUS_METERS = 10000;
 
 const SORT_OPTIONS = [
   { value: "createdAt_desc", label: "Mới nhất" },
@@ -94,11 +95,17 @@ function LocationPinIcon({ className }) {
   );
 }
 
+function normalizeLocationText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
 function mapProductFromApi(p) {
   const defaultSku = p.variants?.find((s) => s.isDefault) || p.variants?.[0];
-  const listPrice = defaultSku?.listPrice ?? defaultSku?.salePrice ?? 0;
-  const salePrice = listPrice;
-  const discountPercent = 0;
+  const pricing = resolveVariantPricing(defaultSku);
   const shelfDays = p.shelfLifeDays ?? 0;
   const expiryAt = shelfDays ? new Date(Date.now() + shelfDays * 24 * 60 * 60 * 1000).toISOString() : null;
   const address = p.sellerPickupAddress || [p.originProvince].filter(Boolean).join(", ") || "";
@@ -106,9 +113,9 @@ function mapProductFromApi(p) {
     id: String(p.id),
     name: p.name,
     image: p.primaryImageUrl || "/images/products/raucai.jpg",
-    originalPrice: listPrice,
-    discountPrice: salePrice,
-    discountPercent,
+    originalPrice: pricing.originalPrice,
+    discountPrice: pricing.discountPrice,
+    discountPercent: pricing.discountPercent,
     storeName: p.sellerName || "",
     expiryAt,
     expiryLabel: shelfDays ? `Hết hạn trong: ${shelfDays} ngày` : "",
@@ -122,12 +129,12 @@ function mapProductFromApi(p) {
     distanceLabel: "",
     district: null,
     ward: null,
-    stock: defaultSku?.stockAvailable ?? 0,
+    stock: defaultSku?.stockAvailable ?? defaultSku?.stockQuantity ?? 0,
   };
 }
 
 export default function ProductsPage() {
-  const [banners, setBanners] = useState(DEFAULT_BANNERS);
+  const [banners, setBanners] = useState([]);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -244,6 +251,7 @@ export default function ProductsPage() {
     const minPrice = priceRange?.min ?? undefined;
     const maxPrice = priceRange?.max ?? undefined;
     const province = nearMe && selectedProvince ? selectedProvince : undefined;
+    const useClientLocationRefine = nearMe && (!!viewerLocation || (!!selectedProvince && (!!selectedDistrict || !!selectedWard)));
     apiGetProducts({
       categoryId: effectiveCategoryId,
       keyword: debouncedSearch || undefined,
@@ -251,30 +259,46 @@ export default function ProductsPage() {
       minPrice,
       maxPrice,
       province,
-      page: currentPage,
-      size: PAGE_SIZE,
+      page: useClientLocationRefine ? 0 : currentPage,
+      size: useClientLocationRefine ? 200 : PAGE_SIZE,
     })
       .then(({ ok, data }) => {
         if (ok && data?.data) {
           const page = data.data;
-          setProducts(
-            (page.content || []).map((item) => {
-              const product = mapProductFromApi(item);
-              const distanceMeters = viewerLocation
-                ? haversineDistanceMeters(viewerLocation, {
-                    latitude: product.sellerLatitude,
-                    longitude: product.sellerLongitude,
-                  })
-                : null;
-              return {
-                ...product,
-                distanceMeters,
-                distanceLabel: distanceMeters != null ? `Cách bạn ${formatDistanceMeters(distanceMeters)}` : "",
-              };
-            }),
-          );
-          setTotalPages(page.totalPages || 1);
-          setTotalElements(page.totalElements || 0);
+          const mappedProducts = (page.content || []).map((item) => {
+            const product = mapProductFromApi(item);
+            const distanceMeters = viewerLocation
+              ? haversineDistanceMeters(viewerLocation, {
+                  latitude: product.sellerLatitude,
+                  longitude: product.sellerLongitude,
+                })
+              : null;
+            return {
+              ...product,
+              distanceMeters,
+              distanceLabel: distanceMeters != null ? `Cách bạn ${formatDistanceMeters(distanceMeters)}` : "",
+            };
+          });
+
+          if (useClientLocationRefine) {
+            const districtNeedle = normalizeLocationText(selectedDistrict);
+            const wardNeedle = normalizeLocationText(selectedWard);
+            const refinedProducts = mappedProducts.filter((product) => {
+              const distanceOk = !viewerLocation || (product.distanceMeters != null && product.distanceMeters < NEARBY_RADIUS_METERS);
+              const haystack = normalizeLocationText([product.address, product.province].filter(Boolean).join(" "));
+              const districtOk = !districtNeedle || haystack.includes(districtNeedle);
+              const wardOk = !wardNeedle || haystack.includes(wardNeedle);
+              return distanceOk && districtOk && wardOk;
+            }).sort((a, b) => (a.distanceMeters ?? Infinity) - (b.distanceMeters ?? Infinity));
+            const start = currentPage * PAGE_SIZE;
+            setProducts(refinedProducts.slice(start, start + PAGE_SIZE));
+            setTotalPages(Math.max(1, Math.ceil(refinedProducts.length / PAGE_SIZE)));
+            setTotalElements(refinedProducts.length);
+          } else {
+            setProducts(mappedProducts);
+            setTotalPages(page.totalPages || 1);
+            setTotalElements(page.totalElements || 0);
+          }
         } else {
           setError(data?.message || "Không thể tải sản phẩm");
           setProducts([]);
@@ -285,7 +309,7 @@ export default function ProductsPage() {
         setProducts([]);
       })
       .finally(() => setLoading(false));
-  }, [categoryId, debouncedSearch, sort, currentPage, priceRangeId, nearMe, selectedProvince, viewerLocation]);
+  }, [categoryId, debouncedSearch, sort, currentPage, priceRangeId, nearMe, selectedProvince, selectedDistrict, selectedWard, viewerLocation]);
 
   useEffect(() => {
     fetchProducts();
@@ -479,7 +503,7 @@ export default function ProductsPage() {
                     <p className="text-xs font-semibold text-slate-600">Lọc theo địa điểm</p>
                     <select
                       value={selectedProvince}
-                      onChange={(e) => setSelectedProvince(e.target.value)}
+                      onChange={(e) => { setSelectedProvince(e.target.value); setCurrentPage(0); }}
                       className="w-full border border-slate-200 rounded-lg text-sm px-3 py-2 bg-white"
                     >
                       <option value="">Chọn tỉnh/thành</option>

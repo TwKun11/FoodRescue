@@ -6,7 +6,7 @@ import Button from "../common/Button";
 const STATUS_MAP = {
   pending: { label: "Chờ xác nhận", variant: "status_pending" },
   confirmed: { label: "Đã xác nhận", variant: "status_confirmed" },
-  done: { label: "Hoàn thành", variant: "status_done" },
+  completed: { label: "Hoàn thành", variant: "status_done" },
   cancelled: { label: "Đã hủy", variant: "status_cancelled" },
 };
 
@@ -14,7 +14,7 @@ const FILTER_OPTIONS = [
   { value: "all", label: "Tất cả" },
   { value: "pending", label: "Chờ xác nhận" },
   { value: "confirmed", label: "Đã xác nhận" },
-  { value: "done", label: "Hoàn thành" },
+  { value: "completed", label: "Hoàn thành" },
   { value: "cancelled", label: "Đã hủy" },
 ];
 

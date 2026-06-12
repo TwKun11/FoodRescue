@@ -13,12 +13,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -309,7 +309,9 @@ public class ReviewServiceImpl implements ReviewService {
         }
         
         // Lấy top products by average rating
-        List<Map<String, Object>> topProducts = reviewRepository.getTopRatedProducts(productIds, limit);
+        Pageable pageable = PageRequest.of(0, limit);
+        List<Map<String, Object>> topProducts =
+        reviewRepository.getTopRatedProducts(productIds, pageable);
         log.info("Found {} top rated products", topProducts.size());
         for (Map<String, Object> product : topProducts) {
             log.info("  - Product: {}", product);
@@ -373,9 +375,11 @@ public class ReviewServiceImpl implements ReviewService {
         User currentUser = getCurrentUser();
         log.info("Current seller user ID: {}", currentUser.getId());
         
-        int offset = page * size;
-        List<Map<String, Object>> content = reviewRepository.getSellerProductsWithRatingsManual(
-                currentUser.getId(), size, offset);
+        Pageable pageable = PageRequest.of(page, size);
+        List<Map<String, Object>> content =
+        reviewRepository.getSellerProductsWithRatingsManual(
+                currentUser.getId(),
+                pageable);
         Long total = reviewRepository.countSellerProducts(currentUser.getId());
         
         log.info("Found {} products, total: {}", content.size(), total);

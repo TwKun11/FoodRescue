@@ -6,7 +6,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { apiGetOrderDetail, apiSyncOrderPayment } from "@/lib/api";
 
 function normalizeStatus(value) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .trim()
+    .toLowerCase();
 }
 
 export default function PayOSCancelPage() {
@@ -91,7 +93,7 @@ export default function PayOSCancelPage() {
           }`}
         >
           {isCancelled
-            ? "Đơn hàng đã được đánh dấu hủy/thất bại ở backend. Trường hợp double payment hoặc thanh toán muộn sẽ bị bỏ qua."
+            ? "Đơn hàng đã được đánh dấu hủy. Trường hợp double payment hoặc thanh toán muộn sẽ bị bỏ qua."
             : "Giao dịch có thể vẫn đang chờ đối soát. Nếu PayOS xác nhận thành công, trạng thái sẽ được cập nhật ở trang chi tiết đơn hàng."}
         </div>
 

@@ -5,15 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiGetMyOrders } from "@/lib/api";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 5;
 
 const STATUS_TABS = [
   { id: "all", label: "Tất cả" },
   { id: "pending_payment", label: "Chờ thanh toán" },
   { id: "pending", label: "Chờ xác nhận" },
   { id: "confirmed", label: "Đã xác nhận" },
-  { id: "packing", label: "Đang đóng gói" },
-  { id: "shipping", label: "Đang giao" },
   { id: "completed", label: "Hoàn thành" },
   { id: "cancelled", label: "Đã hủy" },
 ];
@@ -22,8 +20,6 @@ const STATUS_STYLE = {
   pending_payment: { label: "Chờ thanh toán", bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-400" },
   pending: { label: "Chờ xác nhận", bg: "bg-yellow-50", text: "text-yellow-700", dot: "bg-yellow-400" },
   confirmed: { label: "Đã xác nhận", bg: "bg-blue-50", text: "text-blue-700", dot: "bg-blue-400" },
-  packing: { label: "Đang đóng gói", bg: "bg-orange-50", text: "text-orange-700", dot: "bg-orange-400" },
-  shipping: { label: "Đang giao", bg: "bg-purple-50", text: "text-purple-700", dot: "bg-purple-400" },
   completed: { label: "Hoàn thành", bg: "bg-green-50", text: "text-green-700", dot: "bg-green-500" },
   cancelled: { label: "Đã hủy", bg: "bg-red-50", text: "text-red-700", dot: "bg-red-400" },
 };
@@ -60,6 +56,33 @@ function getOrderSortTime(order) {
 
 function sortOrdersNewestFirst(items) {
   return [...items].sort((left, right) => getOrderSortTime(right) - getOrderSortTime(left));
+}
+
+function ProductThumb({ item }) {
+  const imageUrl = item?.primaryImageUrl;
+
+  return (
+    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-gray-100 border border-gray-200 shrink-0">
+      {imageUrl ? (
+        <img
+          src={imageUrl}
+          alt={item?.productName || "Sản phẩm"}
+          className="w-full h-full object-cover"
+          onError={(event) => {
+            event.currentTarget.style.display = "none";
+            const fallback = event.currentTarget.parentElement?.querySelector("[data-fallback='true']");
+            if (fallback) fallback.classList.remove("hidden");
+          }}
+        />
+      ) : null}
+      <div
+        data-fallback="true"
+        className={`w-full h-full items-center justify-center text-gray-400 text-xs ${imageUrl ? "hidden" : "flex"}`}
+      >
+        Chưa có ảnh
+      </div>
+    </div>
+  );
 }
 
 export default function OrdersPage() {
@@ -104,8 +127,18 @@ export default function OrdersPage() {
   );
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">Đơn hàng của tôi</h1>
+    <div className="max-w-5xl mx-auto px-4 py-8">
+      <div className="flex items-end justify-between gap-4 mb-6 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Đơn hàng của tôi</h1>
+          <p className="text-sm text-gray-500 mt-1">Mỗi trang hiển thị 5 đơn, bố cục ưu tiên ảnh sản phẩm.</p>
+        </div>
+        {totalPages > 1 && (
+          <p className="text-sm text-gray-400">
+            Trang {page + 1} / {totalPages}
+          </p>
+        )}
+      </div>
 
       <div className="flex gap-1 flex-wrap mb-5">
         {STATUS_TABS.map((tab) => (
@@ -132,7 +165,7 @@ export default function OrdersPage() {
           </Link>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-5">
           {filteredOrders.map((order) => {
             const status = STATUS_STYLE[order.status?.toLowerCase()] || {
               label: order.status,
@@ -143,8 +176,8 @@ export default function OrdersPage() {
             const paymentStatus = PAYMENT_STATUS[order.paymentStatus?.toLowerCase()];
 
             return (
-              <div key={order.id} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-sm transition">
-                <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div key={order.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+                <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/70 flex items-start justify-between gap-4 flex-wrap">
                   <div>
                     <p className="font-mono text-sm font-semibold text-gray-700">#{order.orderCode}</p>
                     <p className="text-xs text-gray-400 mt-0.5">{formatDate(order.createdAt)}</p>
@@ -156,41 +189,46 @@ export default function OrdersPage() {
                       <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`}></span>
                       {status.label}
                     </span>
-                    {paymentStatus && <span className={`text-xs font-medium ${paymentStatus.text}`}>{paymentStatus.label}</span>}
+                    {paymentStatus && (
+                      <span className={`text-xs font-medium ${paymentStatus.text}`}>{paymentStatus.label}</span>
+                    )}
                   </div>
                 </div>
 
-                {order.items && order.items.length > 0 && (
-                  <div className="mt-3 space-y-2">
-                    {order.items.slice(0, 2).map((item) => (
-                      <div key={item.id} className="flex items-center justify-between text-sm group">
-                        <div className="flex-1 min-w-0">
-                          <span className="text-gray-700 truncate max-w-[260px]">
-                            {item.productName}
-                            {item.variantName ? ` · ${item.variantName}` : ""}
-                          </span>
-                          <span className="text-gray-500 shrink-0 ml-2">
-                            x{item.quantity} · {fmt(item.lineTotal)}
-                          </span>
+                <div className="px-5 py-4 space-y-4">
+                  {(order.items || []).slice(0, 2).map((item) => (
+                    <div key={item.id} className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-4 min-w-0 flex-1">
+                        <ProductThumb item={item} />
+                        <div className="min-w-0 flex-1 pt-1">
+                          <p className="text-[15px] font-semibold text-gray-800 line-clamp-2">{item.productName}</p>
+                          {item.variantName && <p className="text-sm text-gray-500 mt-1">{item.variantName}</p>}
+                          <p className="text-sm text-gray-500 mt-2">Số lượng: {item.quantity}</p>
                         </div>
+                      </div>
+                      <div className="text-right shrink-0 pt-1">
+                        <p className="text-sm font-semibold text-brand-dark">{formatMoney(item.lineTotal)}</p>
                         {order.status?.toLowerCase() === "completed" && (
                           <Link
                             href={`/products/${item.productId}?tab=reviews`}
-                            className="ml-2 px-2.5 py-1 text-xs bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition font-medium whitespace-nowrap"
+                            className="inline-flex mt-3 px-3 py-1.5 text-xs bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition font-medium whitespace-nowrap"
                           >
-                            ⭐ Đánh giá
+                            Đánh giá
                           </Link>
                         )}
                       </div>
-                    ))}
-                    {order.items.length > 2 && <p className="text-xs text-gray-400">+{order.items.length - 2} sản phẩm khác</p>}
-                  </div>
-                )}
+                    </div>
+                  ))}
 
-                <div className="mt-4 flex items-center justify-between gap-3 flex-wrap">
+                  {(order.items || []).length > 2 && (
+                    <p className="text-sm text-gray-400">+{order.items.length - 2} sản phẩm khác</p>
+                  )}
+                </div>
+
+                <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between gap-3 flex-wrap bg-white">
                   <div className="text-sm">
                     <span className="text-gray-500">Tổng cộng: </span>
-                    <span className="font-bold text-gray-800">{formatMoney(order.totalAmount)}</span>
+                    <span className="font-bold text-[15px] text-gray-900">{formatMoney(order.totalAmount)}</span>
                   </div>
                   <Link href={`/orders/${order.id}`} className="text-sm text-green-600 font-medium hover:underline">
                     Xem chi tiết →

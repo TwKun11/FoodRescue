@@ -145,11 +145,11 @@ export default function Header() {
           }`}
         >
           <span className="text-2xl">🍃</span>
-          <span>FoodRescue</span>
+          <span>FoodSales</span>
         </Link>
 
         <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
-          {NAV_ITEMS.map((item) => {
+          {NAV_ITEMS.filter((item) => item.href !== "/store" || canAccessStore).map((item) => {
             const isStoreLink = item.href === "/store";
             if (isStoreLink && !canAccessStore) {
               return (
@@ -165,7 +165,6 @@ export default function Header() {
                 </span>
               );
             }
-
             return (
               <Link
                 key={item.href}
@@ -304,7 +303,7 @@ export default function Header() {
 
       {menuOpen && (
         <nav className="flex flex-col gap-3 border-t bg-white px-4 py-3 text-sm font-medium text-gray-600 md:hidden">
-          {NAV_ITEMS.map((item) => {
+          {NAV_ITEMS.filter((item) => item.href !== "/store" || canAccessStore).map((item) => {
             const isStoreLink = item.href === "/store";
             if (isStoreLink && !canAccessStore) {
               return (

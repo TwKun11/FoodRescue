@@ -55,8 +55,9 @@ export default function ProductCardListing({ product, onAddToCart }) {
               HẾT HÀNG
             </span>
           ) : discountPercent > 0 ? (
-            <span className="px-3 py-1 bg-emerald-600 text-white text-[10px] font-bold rounded-full shadow-md">
-              GIẢM {discountPercent}%
+            <span className="inline-flex min-w-16 flex-col items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 via-orange-500 to-amber-400 px-3 py-2 text-white shadow-xl shadow-red-900/30 ring-2 ring-white/90">
+              <span className="text-[9px] font-black uppercase leading-none tracking-wide">Giảm</span>
+              <span className="text-lg font-black leading-none">-{discountPercent}%</span>
             </span>
           ) : null}
           </div>
