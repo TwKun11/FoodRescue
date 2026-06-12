@@ -132,21 +132,14 @@ jobs:
           script: |
             set -euo pipefail
 
-            mkdir -p "$EC2_DEPLOY_PATH/nginx"
             cd "$EC2_DEPLOY_PATH"
-
-            cat > .deploy.env <<EOF
-            BACKEND_IMAGE=${BACKEND_IMAGE_NAME}:${IMAGE_TAG}
-            EOF
 
             echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
-            docker compose -p foodrescue --env-file .deploy.env -f docker-compose.yml pull
+            docker compose -p foodrescue --env-file .env -f docker-compose.yml pull
 
-            docker compose -p foodrescue --env-file .deploy.env -f docker-compose.yml up -d mysql
-
-            docker compose -p foodrescue --env-file .deploy.env -f docker-compose.yml up -d backend
-
-            docker compose -p foodrescue --env-file .deploy.env -f docker-compose.yml up -d nginx
+            docker compose -p foodrescue --env-file .env -f docker-compose.yml up -d mysql
+            docker compose -p foodrescue --env-file .env -f docker-compose.yml up -d backend
+            docker compose -p foodrescue --env-file .env -f docker-compose.yml up -d nginx
 
             docker image prune -af --filter "until=168h" || true
