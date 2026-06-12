@@ -38,6 +38,7 @@ services:
     env_file:
       - ./.env  # <-- Đã sửa từ ./backend.env thành ./.env
     environment:
+      SPRING_PROFILES_ACTIVE: prod
       JAVA_OPTS: -Xms128m -Xmx256m -XX:MaxMetaspaceSize=128m -Djava.security.egd=file:/dev/./urandom
     depends_on:
       mysql:
