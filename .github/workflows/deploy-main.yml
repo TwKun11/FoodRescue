@@ -131,13 +131,18 @@ jobs:
           envs: IMAGE_TAG,BACKEND_IMAGE_NAME,DOCKERHUB_USERNAME,DOCKERHUB_TOKEN,EC2_DEPLOY_PATH
           script: |
             set -euo pipefail
+
             mkdir -p "$EC2_DEPLOY_PATH/nginx"
             cd "$EC2_DEPLOY_PATH"
-            mv docker-compose.yml compose.prod.yml
+
             cat > .deploy.env <<EOF
             BACKEND_IMAGE=${BACKEND_IMAGE_NAME}:${IMAGE_TAG}
             EOF
+
             echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-            docker compose --env-file .deploy.env -f compose.prod.yml pull
-            docker compose --env-file .deploy.env -f compose.prod.yml up -d --remove-orphans
+
+            docker compose --env-file .deploy.env -f docker-compose.yml pull
+
+            docker compose --env-file .deploy.env -f docker-compose.yml up -d --remove-orphans
+
             docker image prune -af --filter "until=168h" || true
