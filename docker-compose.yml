@@ -11,7 +11,6 @@ services:
     image: nginx:1.27-alpine
     container_name: foodrescue-nginx
     restart: always
-    mem_limit: 64m
     depends_on:
       - backend
     ports:
@@ -33,13 +32,12 @@ services:
     container_name: foodrescue-backend
     restart: always
     init: true
-    mem_limit: 256m
     stop_grace_period: 30s
     env_file:
       - ./.env  # <-- Đã sửa từ ./backend.env thành ./.env
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      JAVA_OPTS: -Xms128m -Xmx256m -XX:MaxMetaspaceSize=128m -Djava.security.egd=file:/dev/./urandom
+      JAVA_OPTS: -Xms256m -Xmx512m -XX:MaxMetaspaceSize=128m -Djava.security.egd=file:/dev/./urandom
     depends_on:
       mysql:
         condition: service_healthy
@@ -53,7 +51,6 @@ services:
     image: mysql:8.0
     container_name: foodrescue-mysql
     restart: always
-    mem_limit: 512m
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
