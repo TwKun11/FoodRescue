@@ -72,6 +72,18 @@ services:
       - foodrescue-net
     logging: *default-logging
 
+  frontend:
+    image: ${FRONTEND_IMAGE:-your-dockerhub/foodrescue-fe:latest}
+    container_name: foodrescue-frontend
+    restart: always
+    mem_limit: 256m
+    expose:
+      - "3000"
+    networks:
+      - foodrescue-net
+    depends_on:
+      - backend
+
 networks:
   foodrescue-net:
     driver: bridge
