@@ -3,7 +3,7 @@ name: Deploy Master
 on:
   push:
     branches:
-      - master
+      - main
 
 env:
   BACKEND_IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/foodrescue-be
