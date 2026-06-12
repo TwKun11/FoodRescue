@@ -143,6 +143,10 @@ jobs:
 
             docker compose -p foodrescue --env-file .deploy.env -f docker-compose.yml pull
 
-            docker compose -p foodrescue --env-file .deploy.env -f docker-compose.yml up -d --remove-orphans
+            docker compose -p foodrescue --env-file .deploy.env -f docker-compose.yml up -d mysql
+
+            docker compose -p foodrescue --env-file .deploy.env -f docker-compose.yml up -d backend
+
+            docker compose -p foodrescue --env-file .deploy.env -f docker-compose.yml up -d nginx
 
             docker image prune -af --filter "until=168h" || true
