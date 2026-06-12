@@ -1,6 +1,5 @@
 // FE02-002 – Trang Danh sách sản phẩm (layout mới: carousel, thanh danh mục, lọc, grid 3x4, 12/trang)
 "use client";
-/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
@@ -13,6 +12,7 @@ import { fetchProvinces, fetchDistricts, fetchWards } from "@/lib/vn-locations";
 
 const PAGE_SIZE = 12;
 const VISIBLE_ROOT_CATEGORIES = 5;
+const NEARBY_RADIUS_METERS = 10000;
 
 const SORT_OPTIONS = [
   { value: "createdAt_desc", label: "Mới nhất" },
@@ -251,7 +251,7 @@ export default function ProductsPage() {
     const minPrice = priceRange?.min ?? undefined;
     const maxPrice = priceRange?.max ?? undefined;
     const province = nearMe && selectedProvince ? selectedProvince : undefined;
-    const useClientLocationRefine = nearMe && !!selectedProvince && (!!selectedDistrict || !!selectedWard);
+    const useClientLocationRefine = nearMe && (!!viewerLocation || (!!selectedProvince && (!!selectedDistrict || !!selectedWard)));
     apiGetProducts({
       categoryId: effectiveCategoryId,
       keyword: debouncedSearch || undefined,
@@ -265,51 +265,39 @@ export default function ProductsPage() {
       .then(({ ok, data }) => {
         if (ok && data?.data) {
           const page = data.data;
-          setProducts(
-            (page.content || []).map((item) => {
-              const product = mapProductFromApi(item);
-              const distanceMeters = viewerLocation
-                ? haversineDistanceMeters(viewerLocation, {
-                    latitude: product.sellerLatitude,
-                    longitude: product.sellerLongitude,
-                  })
-                : null;
-              return {
-                ...product,
-                distanceMeters,
-                distanceLabel: distanceMeters != null ? `Cách bạn ${formatDistanceMeters(distanceMeters)}` : "",
-              };
-            }),
-          );
-          setTotalPages(page.totalPages || 1);
-          setTotalElements(page.totalElements || 0);
+          const mappedProducts = (page.content || []).map((item) => {
+            const product = mapProductFromApi(item);
+            const distanceMeters = viewerLocation
+              ? haversineDistanceMeters(viewerLocation, {
+                  latitude: product.sellerLatitude,
+                  longitude: product.sellerLongitude,
+                })
+              : null;
+            return {
+              ...product,
+              distanceMeters,
+              distanceLabel: distanceMeters != null ? `Cách bạn ${formatDistanceMeters(distanceMeters)}` : "",
+            };
+          });
+
           if (useClientLocationRefine) {
-            const mappedProducts = (page.content || []).map((item) => {
-              const product = mapProductFromApi(item);
-              const distanceMeters = viewerLocation
-                ? haversineDistanceMeters(viewerLocation, {
-                    latitude: product.sellerLatitude,
-                    longitude: product.sellerLongitude,
-                  })
-                : null;
-              return {
-                ...product,
-                distanceMeters,
-                distanceLabel: distanceMeters != null ? `CÃ¡ch báº¡n ${formatDistanceMeters(distanceMeters)}` : "",
-              };
-            });
             const districtNeedle = normalizeLocationText(selectedDistrict);
             const wardNeedle = normalizeLocationText(selectedWard);
             const refinedProducts = mappedProducts.filter((product) => {
+              const distanceOk = !viewerLocation || (product.distanceMeters != null && product.distanceMeters < NEARBY_RADIUS_METERS);
               const haystack = normalizeLocationText([product.address, product.province].filter(Boolean).join(" "));
               const districtOk = !districtNeedle || haystack.includes(districtNeedle);
               const wardOk = !wardNeedle || haystack.includes(wardNeedle);
-              return districtOk && wardOk;
-            });
+              return distanceOk && districtOk && wardOk;
+            }).sort((a, b) => (a.distanceMeters ?? Infinity) - (b.distanceMeters ?? Infinity));
             const start = currentPage * PAGE_SIZE;
             setProducts(refinedProducts.slice(start, start + PAGE_SIZE));
             setTotalPages(Math.max(1, Math.ceil(refinedProducts.length / PAGE_SIZE)));
             setTotalElements(refinedProducts.length);
+          } else {
+            setProducts(mappedProducts);
+            setTotalPages(page.totalPages || 1);
+            setTotalElements(page.totalElements || 0);
           }
         } else {
           setError(data?.message || "Không thể tải sản phẩm");
