@@ -36,7 +36,7 @@ services:
     mem_limit: 256m
     stop_grace_period: 30s
     env_file:
-      - ./backend.env
+      - ./.env  # <-- Đã sửa từ ./backend.env thành ./.env
     environment:
       JAVA_OPTS: -Xms128m -Xmx256m -XX:MaxMetaspaceSize=128m -Djava.security.egd=file:/dev/./urandom
     depends_on:
@@ -59,7 +59,7 @@ services:
       - --skip-name-resolve
       - --innodb-buffer-pool-size=64M
     env_file:
-      - ./backend.env
+      - ./.env  # <-- Đã sửa từ ./backend.env thành ./.env
     ports:
       - "3306:3306"
     volumes:
