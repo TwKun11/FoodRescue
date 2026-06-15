@@ -2,79 +2,71 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="bg-gray-900 text-gray-400 text-sm mt-auto">
-      <div className="max-w-6xl mx-auto px-4 py-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
-        {/* Brand */}
+    <footer className="mt-auto bg-gray-900 text-sm text-gray-400">
+      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 py-10 sm:grid-cols-2 md:grid-cols-4">
         <div>
-          <p className="text-white text-lg font-bold mb-2">🍃 FoodRescue</p>
-          <p className="leading-relaxed">Giải cứu thực phẩm cuối ngày — giảm lãng phí, tiết kiệm chi phí.</p>
+          <p className="mb-2 text-lg font-bold text-white">Food Rescue</p>
+          <p className="leading-relaxed">
+            Kết nối người mua với cửa hàng có sản phẩm giảm giá/cuối ngày, ưu tiên thông tin rõ ràng và mua đúng nhu cầu.
+          </p>
         </div>
 
-        {/* Links */}
         <div>
-          <p className="text-white font-semibold mb-3">Mua sắm</p>
+          <p className="mb-3 font-semibold text-white">Người mua</p>
           <ul className="space-y-2">
             <li>
-              <Link href="/products" className="hover:text-orange-400 transition">
+              <Link href="/#deals" className="transition hover:text-brand">
+                Ưu đãi gần bạn
+              </Link>
+            </li>
+            <li>
+              <Link href="/#how-it-works" className="transition hover:text-brand">
+                Cách hoạt động
+              </Link>
+            </li>
+            <li>
+              <Link href="/products" className="transition hover:text-brand">
                 Tất cả sản phẩm
               </Link>
             </li>
+          </ul>
+        </div>
+
+        <div>
+          <p className="mb-3 font-semibold text-white">Cửa hàng</p>
+          <ul className="space-y-2">
             <li>
-              <Link href="/products?category=rau" className="hover:text-orange-400 transition">
-                Rau củ
+              <Link href="/#for-stores" className="transition hover:text-brand">
+                Dành cho cửa hàng
               </Link>
             </li>
             <li>
-              <Link href="/products?category=thit" className="hover:text-orange-400 transition">
-                Thịt tươi
+              <Link href="/#interest-form" className="transition hover:text-brand">
+                Đăng ký quan tâm
               </Link>
             </li>
             <li>
-              <Link href="/products?category=haisan" className="hover:text-orange-400 transition">
-                Hải sản
-              </Link>
-            </li>
-            <li>
-              <Link href="/products?category=banh" className="hover:text-orange-400 transition">
-                Bánh
+              <Link href="/store/login" className="transition hover:text-brand">
+                Đăng nhập cửa hàng
               </Link>
             </li>
           </ul>
         </div>
 
-        {/* Store */}
         <div>
-          <p className="text-white font-semibold mb-3">Cửa hàng</p>
+          <p className="mb-3 font-semibold text-white">Thông tin</p>
           <ul className="space-y-2">
             <li>
-              <Link href="/store/login" className="hover:text-orange-400 transition">
-                Đăng ký / Đăng nhập
+              <Link href="/#about-food-rescue" className="transition hover:text-brand">
+                Về Food Rescue
               </Link>
             </li>
-            <li>
-              <Link href="/store" className="hover:text-orange-400 transition">
-                Dashboard
-              </Link>
-            </li>
-            <li>
-              <Link href="/store/products" className="hover:text-orange-400 transition">
-                Quản lý sản phẩm
-              </Link>
-            </li>
-          </ul>
-        </div>
-
-        {/* Contact */}
-        <div>
-          <p className="text-white font-semibold mb-3">Liên hệ</p>
-          <ul className="space-y-2">
-            <li>📧 support@foodrescue.vn</li>
-            <li>📞 1800 9999</li>
-            <li>🕐 8:00 – 22:00 hàng ngày</li>
+            <li>Đang thử nghiệm tại trung tâm Đà Nẵng</li>
+            <li>support@foodrescue.vn</li>
           </ul>
         </div>
       </div>
-      <div className="border-t border-gray-800 text-center py-4 text-xs">© 2025 FoodRescue. All rights reserved.</div>
+      <div className="border-t border-gray-800 py-4 text-center text-xs">© 2026 Food Rescue. All rights reserved.</div>
     </footer>
   );
 }

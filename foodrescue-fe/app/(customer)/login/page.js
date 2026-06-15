@@ -217,21 +217,20 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-linear-to-br from-brand-dark/80 via-gray-900/60 to-gray-900/40" />
         <div className="absolute inset-0 flex flex-col justify-center px-14 xl:px-20 text-white">
           <Link href="/" className="inline-flex items-center gap-3 mb-12 group w-fit">
-            <span className="text-3xl">🍃</span>
-            <span className="text-2xl font-extrabold tracking-tight group-hover:text-brand transition">FoodRescue</span>
+            <span className="text-2xl font-extrabold tracking-tight group-hover:text-brand transition">Food Rescue</span>
           </Link>
           <h2 className="text-3xl xl:text-4xl font-extrabold leading-tight mb-4">
             Giải cứu thực phẩm,<br />
             <span className="text-brand">bảo vệ hành tinh</span>
           </h2>
           <p className="text-white/70 text-base leading-relaxed max-w-sm">
-            Kết nối cửa hàng với 50.000+ người tiêu dùng thông minh. Tiết kiệm đến 50% mỗi ngày.
+            Kết nối người mua với cửa hàng có sản phẩm giảm giá/cuối ngày trong giai đoạn thử nghiệm tại Đà Nẵng.
           </p>
           <div className="flex gap-6 mt-10">
             {[
-              { value: "500+", label: "Cửa hàng" },
-              { value: "50K+", label: "Khách hàng" },
-              { value: "5 tấn", label: "Thực phẩm cứu" },
+              { value: "50+", label: "Cửa hàng quan tâm" },
+              { value: "1k+", label: "Sản phẩm thử nghiệm" },
+              { value: "0.5t", label: "Cơ hội giảm lãng phí" },
             ].map((s) => (
               <div key={s.label}>
                 <p className="text-2xl font-extrabold text-brand">{s.value}</p>
@@ -247,8 +246,7 @@ export default function LoginPage() {
         {/* Mobile logo */}
         <div className="lg:hidden flex items-center gap-2 mb-10">
           <Link href="/" className="inline-flex items-center gap-2">
-            <span className="text-2xl">🍃</span>
-            <span className="text-xl font-extrabold text-brand-dark">FoodRescue</span>
+            <span className="text-xl font-extrabold text-brand-dark">Food Rescue</span>
           </Link>
         </div>
 

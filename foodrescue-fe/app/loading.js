@@ -6,7 +6,7 @@ export default function GlobalLoading() {
         <span className="bg-green-500 text-white rounded-xl w-12 h-12 flex items-center justify-center text-2xl shadow-lg">
           🥗
         </span>
-        <span className="text-gray-800 text-2xl font-extrabold tracking-tight">FoodRescue</span>
+        <span className="text-gray-800 text-2xl font-extrabold tracking-tight">Food Rescue</span>
       </div>
 
       {/* Spinner */}

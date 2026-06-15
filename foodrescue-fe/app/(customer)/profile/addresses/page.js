@@ -23,6 +23,23 @@ const EMPTY_FORM = {
   isDefault: false,
 };
 
+const DA_NANG_CITY = "Thành phố Đà Nẵng";
+const DA_NANG_DISTRICT_FALLBACK = "Đà Nẵng";
+const DA_NANG_WARDS = [
+  "Phường Hải Châu",
+  "Phường Thanh Khê",
+  "Phường An Hải Bắc",
+  "Phường An Hải Tây",
+  "Phường Mân Thái",
+  "Phường Mỹ An",
+  "Phường Hòa Cường Bắc",
+  "Phường Hòa Cường Nam",
+  "Phường Hòa Khánh Bắc",
+  "Phường Hòa Khánh Nam",
+  "Phường Hòa Xuân",
+  "Xã Hòa Vang",
+];
+
 function validatePhone(value) {
   const text = (value || "").trim();
   if (!text) return "Số điện thoại không được để trống";
@@ -96,7 +113,6 @@ export default function AddressesPage() {
     const phoneErr = validatePhone(form.receiverPhone);
     if (phoneErr) nextErrors.receiverPhone = phoneErr;
     if (!form.province.trim()) nextErrors.province = "Không được để trống";
-    if (!form.district.trim()) nextErrors.district = "Không được để trống";
     if (!form.ward.trim()) nextErrors.ward = "Không được để trống";
     if (!form.addressLine.trim()) nextErrors.addressLine = "Không được để trống";
     return nextErrors;
@@ -115,7 +131,7 @@ export default function AddressesPage() {
       receiverName: form.receiverName.trim(),
       receiverPhone: form.receiverPhone.trim(),
       province: form.province.trim(),
-      district: form.district.trim(),
+      district: form.district.trim() || DA_NANG_DISTRICT_FALLBACK,
       ward: form.ward.trim(),
       addressLine: form.addressLine.trim(),
       note: form.note.trim(),
@@ -159,6 +175,17 @@ export default function AddressesPage() {
     setErrors((prev) => ({ ...prev, [key]: "" }));
   };
 
+  const setProvince = (e) => {
+    const value = e.target.value;
+    setForm((prev) => ({
+      ...prev,
+      province: value,
+      district: value === DA_NANG_CITY ? DA_NANG_DISTRICT_FALLBACK : prev.district,
+      ward: value === DA_NANG_CITY && !DA_NANG_WARDS.includes(prev.ward) ? "" : prev.ward,
+    }));
+    setErrors((prev) => ({ ...prev, province: "", district: "", ward: "" }));
+  };
+
   const handleUseCurrentLocation = async () => {
     try {
       setLocating(true);
@@ -171,10 +198,12 @@ export default function AddressesPage() {
         throw new Error("Không đọc được địa chỉ phù hợp từ vị trí hiện tại.");
       }
 
+      const normalizedProvince = /đà nẵng|da nang/i.test(nextAddress.province || "") ? DA_NANG_CITY : nextAddress.province;
+
       setForm((prev) => ({
         ...prev,
-        province: nextAddress.province || prev.province,
-        district: nextAddress.district || prev.district,
+        province: normalizedProvince || prev.province,
+        district: normalizedProvince === DA_NANG_CITY ? DA_NANG_DISTRICT_FALLBACK : nextAddress.district || prev.district,
         ward: nextAddress.ward || prev.ward,
         addressLine: nextAddress.addressLine || prev.addressLine,
       }));
@@ -245,7 +274,7 @@ export default function AddressesPage() {
                     )}
                   </div>
                   <p className="mt-1 text-sm leading-relaxed text-gray-600">
-                    {addr.addressLine}, {addr.ward}, {addr.district}, {addr.province}
+                    {[addr.addressLine, addr.ward, addr.province].filter(Boolean).join(", ")}
                   </p>
                   {addr.note && <p className="mt-0.5 text-xs text-gray-400">Ghi chú: {addr.note}</p>}
                 </div>
@@ -327,33 +356,32 @@ export default function AddressesPage() {
                 </FormField>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <FormField label="Tỉnh/Thành phố *" error={errors.province}>
-                  <input
-                    type="text"
-                    value={form.province}
-                    onChange={set("province")}
-                    placeholder="TP. Hồ Chí Minh"
-                    className={inputCls(errors.province)}
-                  />
-                </FormField>
-                <FormField label="Quận/Huyện *" error={errors.district}>
-                  <input
-                    type="text"
-                    value={form.district}
-                    onChange={set("district")}
-                    placeholder="Quận 1"
-                    className={inputCls(errors.district)}
-                  />
+                  <select value={form.province} onChange={setProvince} className={inputCls(errors.province)}>
+                    <option value="">Chọn tỉnh/thành phố</option>
+                    <option value={DA_NANG_CITY}>{DA_NANG_CITY}</option>
+                  </select>
                 </FormField>
                 <FormField label="Phường/Xã *" error={errors.ward}>
-                  <input
-                    type="text"
-                    value={form.ward}
-                    onChange={set("ward")}
-                    placeholder="Phường Bến Nghé"
-                    className={inputCls(errors.ward)}
-                  />
+                  {form.province === DA_NANG_CITY ? (
+                    <select value={form.ward} onChange={set("ward")} className={inputCls(errors.ward)}>
+                      <option value="">Chọn phường/xã</option>
+                      {DA_NANG_WARDS.map((ward) => (
+                        <option key={ward} value={ward}>
+                          {ward}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={form.ward}
+                      onChange={set("ward")}
+                      placeholder="Phường/Xã"
+                      className={inputCls(errors.ward)}
+                    />
+                  )}
                 </FormField>
               </div>
 
