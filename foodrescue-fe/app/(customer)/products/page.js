@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import ProductCardListing from "@/components/customer/ProductCardListing";
 import BannerCarousel from "@/components/customer/BannerCarousel";
 import { apiGetProducts, apiGetCategories, apiGetActiveBannerAds } from "@/lib/api";
+import { addItemToCart } from "@/lib/cart";
 import { formatDistanceMeters, getCurrentPosition, haversineDistanceMeters } from "@/lib/location";
 import { resolveVariantPricing } from "@/lib/product-pricing";
 import { fetchProvinces, fetchDistricts, fetchWards } from "@/lib/vn-locations";
@@ -111,6 +112,7 @@ function mapProductFromApi(p) {
   const address = p.sellerPickupAddress || [p.originProvince].filter(Boolean).join(", ") || "";
   return {
     id: String(p.id),
+    variantId: defaultSku?.id ?? null,
     name: p.name,
     image: p.primaryImageUrl || "/images/products/raucai.jpg",
     originalPrice: pricing.originalPrice,
@@ -130,6 +132,8 @@ function mapProductFromApi(p) {
     district: null,
     ward: null,
     stock: defaultSku?.stockAvailable ?? defaultSku?.stockQuantity ?? 0,
+    unit: defaultSku?.unit || "",
+    variantName: defaultSku?.name || defaultSku?.unit || "",
   };
 }
 
@@ -328,11 +332,31 @@ export default function ProductsPage() {
   };
 
   const handleAddToCart = (product) => {
+    if (!product?.variantId) {
+      toast.error("Sản phẩm chưa có phân loại để thêm vào giỏ.");
+      return;
+    }
+    if (Number(product.stock) <= 0) {
+      toast.error("Sản phẩm đã hết hàng.");
+      return;
+    }
+    addItemToCart({
+      variantId: product.variantId,
+      productId: product.id,
+      name: product.name,
+      variantName: product.variantName,
+      image: product.image,
+      price: product.discountPrice,
+      originalPrice: product.originalPrice,
+      unit: product.unit,
+      storeName: product.storeName,
+      quantity: 1,
+      maxQty: Number(product.stock) || null,
+    });
     toast.success(`Đã thêm "${product.name}" vào giỏ hàng`, {
       duration: 3500,
       icon: "🛒",
     });
-    // TODO: gọi API / state giỏ hàng khi có backend
   };
 
   return (

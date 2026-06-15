@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/common/Header";
 import Footer from "@/components/common/Footer";
 import ScrollReveal from "@/components/common/ScrollReveal";
+import { apiGetProducts } from "@/lib/api";
+import { resolveVariantPricing } from "@/lib/product-pricing";
 
 const PRODUCTS_ROUTE = "/products"; // TODO: support deep-linking near-me filter when products page reads query params.
 const STORE_SIGNUP_URL = "https://foodrescue.store/become-seller";
@@ -47,33 +49,6 @@ const DEMO_STATS = [
   { value: "1k+", label: "Sản phẩm được đăng thử nghiệm", icon: BasketIcon },
   { value: "500+", label: "Người dùng tiếp cận", icon: UsersIcon },
   { value: "0.5t", label: "Thực phẩm có cơ hội được cứu", icon: SproutIcon },
-];
-
-const DEAL_CARDS = [
-  {
-    category: "Rau củ",
-    title: "Rau củ cuối ngày",
-    info: "Cửa hàng thực phẩm · Còn trong hôm nay",
-    label: "Giá tốt hơn",
-    image: "/images/products/raucai.jpg",
-    area: "Gần trung tâm Đà Nẵng",
-  },
-  {
-    category: "Bánh",
-    title: "Bánh trong ngày",
-    info: "Tiệm bánh gần bạn · Số lượng có hạn",
-    label: "Ưu đãi cuối ngày",
-    image: "/images/products/banhmi.jpg",
-    area: "Khu Hải Châu",
-  },
-  {
-    category: "Đồ ăn sẵn",
-    title: "Món ăn sẵn",
-    info: "Quán ăn gần khu vực · Nhận tại cửa hàng",
-    label: "Giảm giá sâu",
-    image: "/images/landingpage/anhbuaan.jpg",
-    area: "Khu Thanh Khê",
-  },
 ];
 
 const BUYER_STEPS = [
@@ -119,11 +94,67 @@ const EMPTY_INTEREST_FORM = {
   contact: "",
 };
 
+function mapHomepageDeal(product) {
+  const variant = product?.variants?.find((item) => item.isDefault) || product?.variants?.[0] || {};
+  const pricing = resolveVariantPricing(variant);
+  const stock = Number(variant.stockAvailable ?? variant.stockQuantity ?? 0);
+  const shelfLifeDays = Number(product?.shelfLifeDays ?? 0);
+  const timeLabel = shelfLifeDays > 0 ? `Còn ${shelfLifeDays} ngày` : "Còn trong hôm nay";
+  const area = product?.sellerPickupAddress || product?.originProvince || "Chưa cập nhật khu vực";
+
+  return {
+    id: product?.id,
+    category: product?.categoryName || "Sản phẩm",
+    title: product?.name || "Sản phẩm",
+    image: product?.primaryImageUrl || "/images/products/raucai.jpg",
+    originalPrice: pricing.originalPrice,
+    discountPrice: pricing.discountPrice,
+    discountPercent: pricing.discountPercent,
+    storeName: product?.sellerName || "Food Rescue",
+    area,
+    stock,
+    status: product?.status,
+    label: stock <= 0 ? "Hết hàng" : pricing.discountPercent > 0 ? `Giảm ${pricing.discountPercent}%` : "Deal đang bán",
+    info: [product?.sellerName, stock > 0 ? timeLabel : "Hết hàng"].filter(Boolean).join(" · "),
+  };
+}
+
+function isDisplayableDeal(product) {
+  const status = String(product?.status || "").toLowerCase();
+  if (status && status !== "active") return false;
+  const variant = product?.variants?.find((item) => item.isDefault) || product?.variants?.[0] || {};
+  const stock = Number(variant.stockAvailable ?? variant.stockQuantity ?? 0);
+  return Boolean(product?.id) && stock > 0;
+}
+
 export default function HomePage() {
   const [audience, setAudience] = useState("buyer");
   const [form, setForm] = useState(EMPTY_INTEREST_FORM);
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
+  const [dealProducts, setDealProducts] = useState([]);
+  const [dealsLoading, setDealsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setDealsLoading(true);
+    apiGetProducts({ sort: "discount_desc", page: 0, size: 6 })
+      .then((res) => {
+        if (cancelled) return;
+        const content = res.ok && res.data?.data ? res.data.data.content || res.data.data : [];
+        const mapped = Array.isArray(content) ? content.filter(isDisplayableDeal).slice(0, 3).map(mapHomepageDeal) : [];
+        setDealProducts(mapped);
+      })
+      .catch(() => {
+        if (!cancelled) setDealProducts([]);
+      })
+      .finally(() => {
+        if (!cancelled) setDealsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const updateField = (field) => (event) => {
     const value = event.target.value;
@@ -283,29 +314,55 @@ export default function HomePage() {
               </Link>
             </ScrollReveal>
 
-            <div className="grid gap-5 md:grid-cols-3">
-              {DEAL_CARDS.map((deal, index) => (
-                <ScrollReveal key={deal.title} direction="up" delay={index * 90}>
-                  <article className="h-full overflow-hidden rounded-xl border border-emerald-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
-                    <div className="aspect-[4/3] overflow-hidden bg-emerald-50">
-                      <img src={deal.image} alt={deal.title} className="h-full w-full object-cover transition duration-300 hover:scale-105" />
+            {dealsLoading ? (
+              <div className="grid gap-5 md:grid-cols-3">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <div key={index} className="h-80 animate-pulse rounded-xl border border-emerald-100 bg-white shadow-sm">
+                    <div className="h-40 rounded-t-xl bg-emerald-50" />
+                    <div className="space-y-3 p-5">
+                      <div className="h-4 w-24 rounded bg-gray-100" />
+                      <div className="h-6 w-3/4 rounded bg-gray-100" />
+                      <div className="h-4 w-full rounded bg-gray-100" />
                     </div>
-                    <div className="p-5">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">{deal.category}</span>
-                        <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">{deal.label}</span>
+                  </div>
+                ))}
+              </div>
+            ) : dealProducts.length > 0 ? (
+              <div className="grid gap-5 md:grid-cols-3">
+                {dealProducts.map((deal, index) => (
+                  <ScrollReveal key={deal.id} direction="up" delay={index * 90}>
+                    <article className="h-full overflow-hidden rounded-xl border border-emerald-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+                      <div className="aspect-[4/3] overflow-hidden bg-emerald-50">
+                        <img src={deal.image} alt={deal.title} className="h-full w-full object-cover transition duration-300 hover:scale-105" />
                       </div>
-                      <h3 className="mt-4 text-xl font-bold text-gray-900">{deal.title}</h3>
-                      <p className="mt-2 text-sm leading-6 text-gray-600">{deal.info}</p>
-                      <p className="mt-1 text-sm text-gray-500">{deal.area}</p>
-                      <Link href="/products" className="mt-5 inline-flex text-sm font-semibold text-emerald-700 hover:text-emerald-900">
-                        Xem chi tiết
-                      </Link>
-                    </div>
-                  </article>
-                </ScrollReveal>
-              ))}
-            </div>
+                      <div className="p-5">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">{deal.category}</span>
+                          <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">{deal.label}</span>
+                        </div>
+                        <h3 className="mt-4 text-xl font-bold text-gray-900">{deal.title}</h3>
+                        <p className="mt-2 text-sm leading-6 text-gray-600">{deal.info}</p>
+                        <p className="mt-1 text-sm text-gray-500">{deal.area}</p>
+                        <div className="mt-4">
+                          {deal.originalPrice > deal.discountPrice && (
+                            <span className="mr-2 text-sm text-gray-400 line-through">{deal.originalPrice.toLocaleString("vi-VN")} đồng</span>
+                          )}
+                          <span className="font-extrabold text-emerald-700">{deal.discountPrice.toLocaleString("vi-VN")} đồng</span>
+                        </div>
+                        <p className="mt-1 text-xs text-gray-500">Còn {deal.stock} sản phẩm</p>
+                        <Link href={`https://foodrescue.store/products/${deal.id}`} className="mt-5 inline-flex text-sm font-semibold text-emerald-700 hover:text-emerald-900">
+                          Xem chi tiết
+                        </Link>
+                      </div>
+                    </article>
+                  </ScrollReveal>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-emerald-100 bg-white px-5 py-12 text-center text-sm font-semibold text-gray-600 shadow-sm">
+                Chưa có deal phù hợp. Food Rescue sẽ cập nhật thêm sản phẩm gần bạn sớm.
+              </div>
+            )}
           </div>
         </section>
 
