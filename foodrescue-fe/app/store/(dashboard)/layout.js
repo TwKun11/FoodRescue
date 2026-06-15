@@ -1,12 +1,13 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Sidebar from "@/components/store/Sidebar";
 import StoreGuard from "@/components/store/StoreGuard";
 import { apiGetMyShop } from "@/lib/api";
 
 export default function DashboardLayout({ children }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [shopName, setShopName] = useState("");
   const [contactName, setContactName] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -30,6 +31,10 @@ export default function DashboardLayout({ children }) {
     localStorage.removeItem("user");
     setDropdownOpen(false);
     router.push("/login");
+  };
+
+  const handleAddProduct = () => {
+    router.push("/store/products?create=1");
   };
 
   useEffect(() => {
@@ -73,7 +78,12 @@ export default function DashboardLayout({ children }) {
             </div>
             <div className="flex items-center gap-3 ml-auto">
               {/* Add button */}
-              <button className="flex items-center gap-2 bg-brand hover:bg-brand-secondary text-gray-900 text-sm font-semibold px-4 py-2 rounded-lg transition">
+              <button
+                type="button"
+                onClick={handleAddProduct}
+                className="flex items-center gap-2 bg-brand hover:bg-brand-secondary text-gray-900 text-sm font-semibold px-4 py-2 rounded-lg transition"
+                aria-current={pathname === "/store/products" ? "page" : undefined}
+              >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
