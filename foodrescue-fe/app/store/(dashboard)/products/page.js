@@ -1,10 +1,24 @@
 // FE03-003 – UI Quản lý sản phẩm (API-connected)
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { apiSellerGetProducts, apiSellerAddVariant, apiSellerAddBatch, apiSellerUpdateProduct } from "@/lib/api";
 import ProductForm from "@/components/store/ProductForm";
 
-const VARIANT_UNITS = ["piece", "pack", "bag", "bundle", "loaf", "box", "tray", "bottle", "g", "kg"];
+const VARIANT_UNITS = [
+  { value: "piece", label: "Cái" },
+  { value: "pack", label: "Gói" },
+  { value: "bag", label: "Túi" },
+  { value: "bundle", label: "Bó" },
+  { value: "loaf", label: "Ổ" },
+  { value: "box", label: "Hộp" },
+  { value: "tray", label: "Khay" },
+  { value: "bottle", label: "Chai" },
+  { value: "g", label: "Gram (g)" },
+  { value: "kg", label: "Kilogram (kg)" },
+];
+
+const VARIANT_UNIT_LABELS = Object.fromEntries(VARIANT_UNITS.map((unit) => [unit.value, unit.label]));
 
 function genVariantCode() {
   const ts = Date.now().toString(36).toUpperCase();
@@ -57,6 +71,28 @@ const STATUS_MAP = {
   draft: { label: "Nháp", dot: "bg-yellow-400", text: "text-yellow-700", bg: "bg-yellow-50" },
   rejected: { label: "Bị từ chối", dot: "bg-red-400", text: "text-red-700", bg: "bg-red-50" },
 };
+
+function getSellerDealStatus(product) {
+  if (product.status === "inactive") {
+    return { label: "Tạm ẩn", dot: "bg-gray-400", text: "text-gray-600", bg: "bg-gray-100" };
+  }
+  if (product.status === "draft") {
+    return STATUS_MAP.draft;
+  }
+  if (Number(product.quantity) <= 0) {
+    return { label: "Hết hàng", dot: "bg-red-500", text: "text-red-700", bg: "bg-red-50" };
+  }
+  if (product.remainingDays != null && product.remainingDays < 0) {
+    return { label: "Hết hạn", dot: "bg-red-500", text: "text-red-700", bg: "bg-red-50" };
+  }
+  if (product.remainingDays === 0) {
+    return { label: "Còn trong hôm nay", dot: "bg-orange-500", text: "text-orange-700", bg: "bg-orange-50" };
+  }
+  if (product.remainingDays != null && product.remainingDays <= 3) {
+    return { label: "Sắp hết thời gian đặt giữ", dot: "bg-amber-500", text: "text-amber-700", bg: "bg-amber-50" };
+  }
+  return STATUS_MAP[product.status] || STATUS_MAP.active;
+}
 
 function mapProduct(p) {
   const sku = (p.variants && p.variants[0]) || {};
@@ -114,6 +150,7 @@ function mapProduct(p) {
 }
 
 export default function StoreProductsPage() {
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState("all");
   const [products, setProducts] = useState([]);
   const [selected, setSelected] = useState([]);
@@ -283,6 +320,12 @@ export default function StoreProductsPage() {
     [loadProducts],
   );
 
+  useEffect(() => {
+    if (searchParams?.get("create") === "1") {
+      openCreate();
+    }
+  }, [searchParams]);
+
   const closeConfirmDialog = () => setConfirmDialog(null);
 
   const handleConfirmAction = async () => {
@@ -430,7 +473,7 @@ export default function StoreProductsPage() {
                         <tr key={v.id || i} className="hover:bg-gray-50">
                           <td className="px-3 py-2 font-mono text-gray-600">{v.variantCode}</td>
                           <td className="px-3 py-2 text-gray-800 font-medium">{v.name}</td>
-                          <td className="px-3 py-2 text-gray-500">{v.unit}</td>
+                          <td className="px-3 py-2 text-gray-500">{VARIANT_UNIT_LABELS[v.unit] || v.unit}</td>
                           <td className="px-3 py-2 text-right">
                             {(() => {
                               const qty = v.stockQuantity ?? v.stockAvailable ?? 0;
@@ -534,8 +577,8 @@ export default function StoreProductsPage() {
                       className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-dark"
                     >
                       {VARIANT_UNITS.map((u) => (
-                        <option key={u} value={u}>
-                          {u}
+                        <option key={u.value} value={u.value}>
+                          {u.label}
                         </option>
                       ))}
                     </select>
@@ -800,7 +843,7 @@ export default function StoreProductsPage() {
                   </tr>
                 ) : null}
                 {filteredProducts.map((p) => {
-                  const s = STATUS_MAP[p.status] || STATUS_MAP.active;
+                  const s = getSellerDealStatus(p);
                   const isInactive = p.status === "inactive";
                   return (
                     <tr 
@@ -857,7 +900,7 @@ export default function StoreProductsPage() {
                               isInactive ? "bg-gray-400" : s.dot
                             }`}
                           ></span>
-                          {isInactive ? "Vô hiệu" : s.label}
+                          {s.label}
                         </span>
                       </td>
                       <td className="px-4 py-4">

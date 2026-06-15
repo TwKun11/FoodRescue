@@ -11,6 +11,7 @@ import com.foodrescue.foodrescue_be.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -29,6 +30,9 @@ public class DataSeeder implements CommandLineRunner {
     private final SellerRepository sellerRepository;
     private final BannerAdRepository bannerAdRepository;
     private final PasswordEncoder passwordEncoder;
+
+    @Value("${app.seed.reset-demo-accounts:false}")
+    private boolean resetDemoAccounts;
 
     @Override
     @Transactional
@@ -56,7 +60,13 @@ public class DataSeeder implements CommandLineRunner {
 
     private void seedSeller() {
         String email = "seller@foodrescue.vn";
-        if (userRepository.existsByEmail(email)) return;
+        User existingSellerUser = userRepository.findByEmail(email).orElse(null);
+        if (existingSellerUser != null) {
+            if (resetDemoAccounts) {
+                resetSellerDemoAccount(existingSellerUser);
+            }
+            return;
+        }
 
         User sellerUser = User.builder()
                 .email(email)
@@ -80,6 +90,29 @@ public class DataSeeder implements CommandLineRunner {
                 .build();
         sellerRepository.save(seller);
         log.info("Seeded seller account: {}", email);
+    }
+
+    private void resetSellerDemoAccount(User sellerUser) {
+        sellerUser.setPassword(passwordEncoder.encode("Seller@123"));
+        sellerUser.setRole(Role.SELLER);
+        sellerUser.setStatus(UserStatus.ACTIVE);
+        if (sellerUser.getFullName() == null || sellerUser.getFullName().isBlank()) {
+            sellerUser.setFullName("Cua hang Demo");
+        }
+        User savedSellerUser = userRepository.save(sellerUser);
+
+        Seller seller = sellerRepository.findByUserId(savedSellerUser.getId())
+                .orElseGet(() -> Seller.builder().user(savedSellerUser).build());
+        seller.setCode("SELLER001");
+        seller.setShopName("Cua hang Demo Food Rescue");
+        seller.setShopSlug("demo-foodrescue");
+        seller.setContactName("Cua hang Demo");
+        seller.setPhone("0901234567");
+        seller.setCommissionRate(java.math.BigDecimal.ZERO);
+        seller.setStatus(Seller.Status.active);
+        seller.setIsVerified(true);
+        sellerRepository.save(seller);
+        log.info("Reset password for seller account: {}", savedSellerUser.getEmail());
     }
 
         private void seedCustomer() {
