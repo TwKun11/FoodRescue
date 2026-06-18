@@ -12,7 +12,6 @@ import {
   apiSellerSetPrimaryImage,
   apiSellerAddVariant,
   apiSellerAddBatch,
-  apiSellerGetProducts,
 } from "@/lib/api";
 
 const VARIANT_UNITS = [
@@ -58,15 +57,6 @@ const SELL_MODES = [
   { value: "mixed", label: "Kết hợp" },
 ];
 
-const QUICK_SUGGESTIONS = [
-  { keyword: "rau", names: ["Rau cải", "Rau muống", "Xà lách", "Combo rau củ", "Rau củ cuối ngày"], productType: "vegetable" },
-  { keyword: "bánh", names: ["Bánh mì", "Bánh ngọt", "Bánh sandwich", "Combo bánh cuối ngày"], productType: "bread" },
-  { keyword: "banh", names: ["Bánh mì", "Bánh ngọt", "Bánh sandwich", "Combo bánh cuối ngày"], productType: "bread" },
-  { keyword: "cơm", names: ["Cơm hộp", "Cơm trưa", "Combo cơm cuối ngày"], productType: "ready_to_eat" },
-  { keyword: "com", names: ["Cơm hộp", "Cơm trưa", "Combo cơm cuối ngày"], productType: "ready_to_eat" },
-  { keyword: "nước", names: ["Trà sữa", "Cà phê", "Nước ép", "Đồ uống cuối ngày"], productType: "beverage" },
-  { keyword: "đồ uống", names: ["Trà sữa", "Cà phê", "Nước ép", "Đồ uống cuối ngày"], productType: "beverage" },
-];
 
 function genProductCode() {
   const ts = Date.now().toString(36).toUpperCase();
@@ -97,8 +87,6 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
   const [galleryImages, setGalleryImages] = useState([]);
   const [galleryFileQueue, setGalleryFileQueue] = useState([]); // {file, previewUrl} pending add
   const [galleryUploading, setGalleryUploading] = useState(false);
-  const [savedProducts, setSavedProducts] = useState([]);
-  const [selectedSavedProductId, setSelectedSavedProductId] = useState("");
   const createImgQueueRef = useRef([]);
   const galleryFileQueueRef = useRef([]);
 
@@ -140,12 +128,6 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
     apiGetBrands().then((res) => {
       if (res.ok && res.data?.data) setBrands(res.data.data);
     });
-    if (!isEdit) {
-      apiSellerGetProducts({ page: 0, size: 50 }).then((res) => {
-        const content = res.ok && res.data?.data ? res.data.data.content || res.data.data : [];
-        if (Array.isArray(content)) setSavedProducts(content);
-      }).catch(() => setSavedProducts([]));
-    }
     if (isEdit && initialProductId) {
       apiSellerGetProductImages(initialProductId).then((res) => {
         if (res.ok && res.data?.data) setGalleryImages(res.data.data);
@@ -225,54 +207,6 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
   const handleFieldBlur = (fieldName) => (e) => {
     validateFieldRealtime(fieldName, e.target.value);
   };
-
-  const applySavedProduct = (productId) => {
-    setSelectedSavedProductId(productId);
-    if (!productId) return;
-    const product = savedProducts.find((item) => String(item.id) === String(productId));
-    if (!product) return;
-    const variant = product.variants?.find((item) => item.isDefault) || product.variants?.[0] || {};
-    setForm((prev) => ({
-      ...prev,
-      name: product.name || prev.name,
-      slug: product.slug || slugify(product.name || prev.name),
-      categoryId: product.categoryId ? String(product.categoryId) : prev.categoryId,
-      shortDescription: product.shortDescription || prev.shortDescription,
-      description: product.description || prev.description,
-      productType: product.productType || prev.productType,
-      sellMode: product.sellMode || prev.sellMode,
-      storageType: product.storageType || prev.storageType,
-      shelfLifeDays: product.shelfLifeDays ?? prev.shelfLifeDays,
-      originCountry: product.originCountry || prev.originCountry,
-      originProvince: product.originProvince || prev.originProvince,
-      brandId: product.brandId ? String(product.brandId) : prev.brandId,
-    }));
-    setInitVariant((prev) => ({
-      ...prev,
-      name: variant.name || variant.unit || prev.name,
-      unit: variant.unit || prev.unit,
-      listPrice: variant.listPrice ?? prev.listPrice,
-      salePrice: variant.salePrice ?? prev.salePrice,
-    }));
-  };
-
-  const applySuggestion = (suggestion) => {
-    setForm((prev) => ({
-      ...prev,
-      name: suggestion.name,
-      slug: slugify(suggestion.name),
-      productType: suggestion.productType,
-    }));
-    if (!initVariant.name) {
-      setInitVariant((prev) => ({ ...prev, name: "Phần tiêu chuẩn" }));
-    }
-  };
-
-  const quickSuggestions = form.name.trim()
-    ? QUICK_SUGGESTIONS.filter((group) => form.name.toLowerCase().includes(group.keyword))
-        .flatMap((group) => group.names.map((name) => ({ name, productType: group.productType })))
-        .slice(0, 5)
-    : QUICK_SUGGESTIONS.slice(0, 2).flatMap((group) => group.names.slice(0, 2).map((name) => ({ name, productType: group.productType })));
 
   const handleCreateImgAdd = (e) => {
     const files = Array.from(e.target.files || []);
@@ -471,42 +405,6 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
         <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-4 py-3">{error}</div>
       )}
 
-      {!isEdit && (
-        <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 space-y-3">
-          <div>
-            <p className="text-sm font-semibold text-gray-800">Đăng nhanh từ sản phẩm đã lưu</p>
-            <p className="text-xs text-gray-500 mt-0.5">
-              Chọn sản phẩm cũ để tự điền thông tin cơ bản, sau đó chỉ cập nhật giá ưu đãi, số lượng và trạng thái.
-            </p>
-          </div>
-          <select
-            value={selectedSavedProductId}
-            onChange={(e) => applySavedProduct(e.target.value)}
-            className="w-full border border-emerald-100 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-300"
-          >
-            <option value="">-- Chọn sản phẩm đã lưu --</option>
-            {savedProducts.map((product) => (
-              <option key={product.id} value={product.id}>
-                {product.name}
-              </option>
-            ))}
-          </select>
-          {quickSuggestions.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {quickSuggestions.map((suggestion) => (
-                <button
-                  key={`${suggestion.productType}-${suggestion.name}`}
-                  type="button"
-                  onClick={() => applySuggestion(suggestion)}
-                  className="rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition"
-                >
-                  {suggestion.name}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Hình ảnh */}
       <div>

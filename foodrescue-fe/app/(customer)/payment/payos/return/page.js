@@ -41,7 +41,7 @@ function getPaymentSummary(order) {
     return {
       tone: "red",
       title: "Giao dịch đã bị hủy",
-      description: "PayOS đã trả về kết quả hủy giao dịch. Đơn hàng này sẽ không tiếp tục xử lý.",
+      description: "Bạn đã hủy thanh toán online. Đơn hàng này sẽ không tiếp tục xử lý.",
     };
   }
 
@@ -57,21 +57,21 @@ function getPaymentSummary(order) {
     return {
       tone: "red",
       title: "Thanh toán thất bại",
-      description: "Gateway đã trả về trạng thái thất bại. Vui lòng kiểm tra lại trước khi đặt đơn mới.",
+      description: "Thanh toán chưa thành công. Vui lòng kiểm tra lại hoặc đặt đơn mới.",
     };
   }
 
   if (paymentStatus === "pending" || orderStatus === "pending_payment") {
     return {
       tone: "amber",
-      title: "Đang chờ đối soát thanh toán",
-      description: "Hệ thống đang đồng bộ trạng thái từ PayOS để xử lý các trường hợp timeout hoặc phản hồi chậm.",
+      title: "Đang kiểm tra thanh toán",
+      description: "Giao dịch đang được kiểm tra. Nếu bạn đã thanh toán, trạng thái đơn hàng sẽ được cập nhật sau ít phút.",
     };
   }
 
   return {
     tone: "slate",
-    title: "Đã nhận phản hồi từ PayOS",
+    title: "Đã nhận thông tin thanh toán",
     description: "Bạn có thể mở chi tiết đơn hàng để kiểm tra trạng thái mới nhất.",
   };
 }
@@ -140,10 +140,9 @@ export default function PayOSReturnPage() {
           <span className="text-2xl">🏦</span>
         </div>
 
-        <h1 className="text-2xl font-bold text-gray-900">Đã quay lại từ PayOS</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Kết quả thanh toán online</h1>
         <p className="mt-2 text-sm text-gray-600">
-          Trang này chủ động đối soát lại trạng thái thanh toán để xử lý các trường hợp webhook đến chậm, timeout hoặc
-          người dùng đóng gateway giữa chừng.
+          Food Rescue đang kiểm tra kết quả thanh toán và cập nhật trạng thái đơn hàng của bạn.
         </p>
 
         <div className={`mt-5 rounded-xl border p-4 text-sm ${toneClasses(summary.tone)}`}>

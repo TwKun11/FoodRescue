@@ -21,12 +21,11 @@ const PAYMENT_METHODS = [
   },
   {
     id: "payos",
-    label: "PayOS",
-    subtitle: "QR / Chuyển khoản",
-    helper: "Cần cấu hình API key",
+    label: "Thanh toán online",
+    subtitle: "Quét QR hoặc chuyển khoản qua PayOS",
+    helper: "Thanh toán ngay",
     enabled: true,
-    tileClass: "border border-emerald-200 bg-emerald-100 text-emerald-700",
-    shortLabel: "PO",
+    logoSrc: "/images/payos.jpg",
   },
   {
     id: "momo",
@@ -339,7 +338,7 @@ export default function CheckoutPage() {
               window.location.assign(order.payment.checkoutUrl);
               return;
             }
-            window.alert("Đơn PayOS đã tạo thành công nhưng backend chưa trả checkoutUrl.");
+            window.alert("Chưa thể mở trang thanh toán online. Vui lòng chọn thanh toán khi nhận hàng hoặc thử lại sau.");
             return;
           }
 
@@ -450,10 +449,10 @@ export default function CheckoutPage() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-dark">Checkout</p>
             <h1 className="mt-2 text-3xl font-bold text-gray-900">Thanh toán</h1>
-            <p className="mt-1 text-sm text-gray-500">Chọn cổng thanh toán và xác nhận đơn.</p>
+            <p className="mt-1 text-sm text-gray-500">Chọn cách thanh toán phù hợp và xác nhận đơn hàng.</p>
           </div>
           <Badge variant="default" className="w-fit bg-amber-100 px-3 py-1 text-amber-700">
-            COD đang khả dụng
+            Thanh toán an toàn
           </Badge>
         </div>
 
@@ -543,10 +542,12 @@ export default function CheckoutPage() {
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-dark">Bước 3</p>
                   <h2 className="text-base font-semibold text-gray-800">Phương thức thanh toán</h2>
-                  <p className="mt-1 text-sm text-gray-500">COD đang hoạt động. PayOS cần cấu hình API key để sử dụng.</p>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Bạn có thể trả tiền khi nhận hàng hoặc thanh toán online bằng mã QR/chuyển khoản.
+                  </p>
                 </div>
                 <Badge variant="default" className="w-fit bg-slate-100 text-slate-600">
-                  2 phương thức đang mở
+                  2 lựa chọn
                 </Badge>
               </div>
 
@@ -606,7 +607,7 @@ export default function CheckoutPage() {
               </div>
 
               <p className="mt-4 text-xs text-gray-400">
-                MoMo và VNPay sẽ được mở khi backend có luồng thanh toán thật.
+                MoMo và VNPay sẽ được bổ sung khi sẵn sàng.
               </p>
             </div>
 
@@ -803,7 +804,7 @@ export default function CheckoutPage() {
                 <span>{formatCurrency(voucherPreview.finalTotal != null ? voucherPreview.finalTotal : finalTotal)}</span>
               </div>
               <p className="mt-2 text-xs text-gray-400">
-                Giá trị thanh toán được backend chốt lại theo biến thể và tồn kho hiện tại.
+                Tổng tiền sẽ được xác nhận lại theo sản phẩm và số lượng còn tại cửa hàng.
               </p>
             </div>
 
@@ -828,7 +829,7 @@ export default function CheckoutPage() {
               {placing
                 ? "Đang tạo đơn..."
                 : paymentMethod === "payos"
-                  ? "Tạo đơn và chuyển sang PayOS"
+                  ? "Tiếp tục thanh toán online"
                   : "Tạo đơn COD"}
             </button>
 
