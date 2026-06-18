@@ -1,7 +1,7 @@
 // FE03-003 – UI Quản lý sản phẩm (API-connected)
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { apiSellerGetProducts, apiSellerAddVariant, apiSellerAddBatch, apiSellerUpdateProduct } from "@/lib/api";
 import ProductForm from "@/components/store/ProductForm";
 
@@ -100,17 +100,17 @@ function mapProduct(p) {
   const totalStock = (p.variants || []).reduce((sum, v) => {
     return sum + (v.stockQuantity ?? v.stockAvailable ?? 0);
   }, 0);
-  
+
   // Tính số ngày còn lại dựa trên createdAt + shelfLifeDays
   const remainingDays = calculateRemainingDays(p.createdAt, p.shelfLifeDays);
-  
+
   // Xác định trạng thái hạn sử dụng
   let expiryStatus = null;
   if (remainingDays !== null) {
     if (remainingDays < 0) {
-      expiryStatus = "expired";        // Hết hạn
+      expiryStatus = "expired"; // Hết hạn
     } else if (remainingDays <= 3) {
-      expiryStatus = "expiring";       // Sắp hết hạn (0-3 ngày)
+      expiryStatus = "expiring"; // Sắp hết hạn (0-3 ngày)
     }
   }
 
@@ -150,6 +150,7 @@ function mapProduct(p) {
 }
 
 export default function StoreProductsPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState("all");
   const [products, setProducts] = useState([]);
@@ -198,6 +199,9 @@ export default function StoreProductsPage() {
   const closeForm = () => {
     setShowForm(false);
     setEditingProduct(null);
+    if (searchParams?.has("create")) {
+      router.replace("/store/products", { scroll: false });
+    }
   };
   const handleFormSuccess = (data, mode) => {
     closeForm();
@@ -321,7 +325,7 @@ export default function StoreProductsPage() {
   );
 
   useEffect(() => {
-    if (searchParams?.get("create") === "1") {
+    if (searchParams?.has("create")) {
       openCreate();
     }
   }, [searchParams]);
@@ -498,15 +502,9 @@ export default function StoreProductsPage() {
                           <td className="px-3 py-2 text-right font-semibold text-green-600">
                             {v.salePrice ? Number(v.salePrice).toLocaleString("vi-VN") + "đ" : "—"}
                           </td>
-                          <td className="px-3 py-2 text-center text-gray-500">
-                            {v.barcode || "—"}
-                          </td>
-                          <td className="px-3 py-2 text-right text-gray-600">
-                            {v.minOrderQty ?? 1}
-                          </td>
-                          <td className="px-3 py-2 text-right text-gray-600">
-                            {v.stepQty ?? 1}
-                          </td>
+                          <td className="px-3 py-2 text-center text-gray-500">{v.barcode || "—"}</td>
+                          <td className="px-3 py-2 text-right text-gray-600">{v.minOrderQty ?? 1}</td>
+                          <td className="px-3 py-2 text-right text-gray-600">{v.stepQty ?? 1}</td>
                           <td className="px-3 py-2 text-right text-gray-600">
                             {v.maxOrderQty ? v.maxOrderQty : "không giới hạn"}
                           </td>
@@ -799,7 +797,10 @@ export default function StoreProductsPage() {
               {keyword && (
                 <button
                   type="button"
-                  onClick={() => { setKeyword(""); loadProducts(0); }}
+                  onClick={() => {
+                    setKeyword("");
+                    loadProducts(0);
+                  }}
                   className="text-sm text-gray-500 hover:text-gray-700 underline"
                 >
                   Xóa tìm kiếm
@@ -846,8 +847,8 @@ export default function StoreProductsPage() {
                   const s = getSellerDealStatus(p);
                   const isInactive = p.status === "inactive";
                   return (
-                    <tr 
-                      key={p.id} 
+                    <tr
+                      key={p.id}
                       className={`transition ${isInactive ? "opacity-50 bg-gray-50" : "hover:bg-gray-50"}`}
                     >
                       <td className="px-4 py-4">
@@ -877,8 +878,12 @@ export default function StoreProductsPage() {
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <p className="text-xs text-gray-400 line-through">{p.originalPrice.toLocaleString("vi-VN")} đồng</p>
-                        <p className="text-sm font-bold text-brand-dark">{p.discountPrice.toLocaleString("vi-VN")} đồng</p>
+                        <p className="text-xs text-gray-400 line-through">
+                          {p.originalPrice.toLocaleString("vi-VN")} đồng
+                        </p>
+                        <p className="text-sm font-bold text-brand-dark">
+                          {p.discountPrice.toLocaleString("vi-VN")} đồng
+                        </p>
                       </td>
                       <td className="px-4 py-4">
                         <span
@@ -890,16 +895,10 @@ export default function StoreProductsPage() {
                       <td className="px-4 py-4">
                         <span
                           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                            isInactive
-                              ? "bg-gray-100 text-gray-600"
-                              : `${s.bg} ${s.text}`
+                            isInactive ? "bg-gray-100 text-gray-600" : `${s.bg} ${s.text}`
                           }`}
                         >
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              isInactive ? "bg-gray-400" : s.dot
-                            }`}
-                          ></span>
+                          <span className={`w-1.5 h-1.5 rounded-full ${isInactive ? "bg-gray-400" : s.dot}`}></span>
                           {s.label}
                         </span>
                       </td>
@@ -995,13 +994,22 @@ export default function StoreProductsPage() {
           {/* Pagination — 10 sản phẩm/trang */}
           <div className="px-5 py-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-gray-500">
-              Hiển thị <span className="font-medium text-gray-700">{filteredProducts.length}</span> / {totalElements} sản phẩm
-              {totalPages > 1 && <span className="ml-1">· Trang {page + 1}/{totalPages}</span>}
+              Hiển thị <span className="font-medium text-gray-700">{filteredProducts.length}</span> / {totalElements}{" "}
+              sản phẩm
+              {totalPages > 1 && (
+                <span className="ml-1">
+                  · Trang {page + 1}/{totalPages}
+                </span>
+              )}
             </p>
             <div className="flex items-center gap-2">
               <button
                 disabled={page === 0}
-                onClick={() => { const np = page - 1; setPage(np); loadProducts(np); }}
+                onClick={() => {
+                  const np = page - 1;
+                  setPage(np);
+                  loadProducts(np);
+                }}
                 className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-brand-bg hover:border-brand/50 transition disabled:opacity-40 disabled:pointer-events-none"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1013,7 +1021,11 @@ export default function StoreProductsPage() {
               </span>
               <button
                 disabled={page + 1 >= totalPages}
-                onClick={() => { const np = page + 1; setPage(np); loadProducts(np); }}
+                onClick={() => {
+                  const np = page + 1;
+                  setPage(np);
+                  loadProducts(np);
+                }}
                 className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-brand-bg hover:border-brand/50 transition disabled:opacity-40 disabled:pointer-events-none"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1023,8 +1035,6 @@ export default function StoreProductsPage() {
             </div>
           </div>
         </div>
-
-        
       </div>
 
       {/* ── Footer ── */}

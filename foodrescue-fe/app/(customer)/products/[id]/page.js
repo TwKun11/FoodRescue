@@ -508,10 +508,10 @@ const [viewerLocation, setViewerLocation] = useState(null);
 
             <div className="p-4 rounded-xl border border-red-100 bg-red-50/40 flex items-center justify-between gap-3 flex-wrap">
               <div>
-                <p className="text-sm font-semibold text-red-800">Gap van de voi san pham?</p>
-                <p className="text-xs text-red-700 mt-0.5">Ban co the report truc tiep de admin kiem tra va xu ly.</p>
+                <p className="text-sm font-semibold text-red-800">Gặp vấn đề với sản phẩm?</p>
+                <p className="text-xs text-red-700 mt-0.5">Bạn có thể báo cáo trực tiếp để quản trị viên kiểm tra và xử lý.</p>
               </div>
-              <ViolationReportForm productId={Number(product.id)} triggerLabel="Bao cao vi pham" />
+              <ViolationReportForm productId={Number(product.id)} triggerLabel="Báo cáo vi phạm" />
             </div>
           </section>
         </div>

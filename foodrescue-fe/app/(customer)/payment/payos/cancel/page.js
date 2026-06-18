@@ -64,15 +64,14 @@ export default function PayOSCancelPage() {
           <span className="text-2xl">↩️</span>
         </div>
 
-        <h1 className="text-2xl font-bold text-gray-900">Bạn đã thoát khỏi PayOS</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Bạn đã rời trang thanh toán</h1>
         <p className="mt-2 text-sm text-gray-600">
-          Hệ thống đã kiểm tra lại giao dịch để tránh các trường hợp người dùng thoát giữa chừng nhưng gateway vẫn trả
-          trạng thái sau đó.
+          Food Rescue đang kiểm tra lại đơn hàng để cập nhật trạng thái thanh toán mới nhất cho bạn.
         </p>
 
         <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
           {loading ? (
-            <p>Đang đồng bộ trạng thái thanh toán...</p>
+            <p>Đang kiểm tra trạng thái thanh toán...</p>
           ) : order ? (
             <div className="space-y-1">
               <p>
@@ -93,8 +92,8 @@ export default function PayOSCancelPage() {
           }`}
         >
           {isCancelled
-            ? "Đơn hàng đã được đánh dấu hủy. Trường hợp double payment hoặc thanh toán muộn sẽ bị bỏ qua."
-            : "Giao dịch có thể vẫn đang chờ đối soát. Nếu PayOS xác nhận thành công, trạng thái sẽ được cập nhật ở trang chi tiết đơn hàng."}
+            ? "Đơn hàng đã được hủy. Bạn có thể quay lại giỏ hàng hoặc đặt đơn mới khi cần."
+            : "Nếu bạn đã thanh toán, trạng thái đơn hàng sẽ được cập nhật sau ít phút. Bạn có thể mở chi tiết đơn để kiểm tra lại."}
         </div>
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">

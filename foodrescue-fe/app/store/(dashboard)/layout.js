@@ -34,7 +34,7 @@ export default function DashboardLayout({ children }) {
   };
 
   const handleAddProduct = () => {
-    router.push("/store/products?create=1");
+    router.push(`/store/products?create=${Date.now()}`);
   };
 
   useEffect(() => {
@@ -90,7 +90,13 @@ export default function DashboardLayout({ children }) {
                 Thêm sản phẩm mới
               </button>
               {/* Bell */}
-              <button className="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 transition">
+              <button
+                type="button"
+                onClick={() => router.push("/store/orders")}
+                className="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 transition"
+                aria-label="Xem thông báo đơn hàng"
+                title="Xem thông báo đơn hàng"
+              >
                 <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"

@@ -7,7 +7,8 @@ export default function Footer() {
         <div>
           <p className="mb-2 text-lg font-bold text-white">Food Rescue</p>
           <p className="leading-relaxed">
-            Kết nối người mua với cửa hàng có sản phẩm giảm giá/cuối ngày, ưu tiên thông tin rõ ràng và mua đúng nhu cầu.
+            Kết nối người mua với cửa hàng có sản phẩm giảm giá/cuối ngày, ưu tiên thông tin rõ ràng và mua đúng nhu
+            cầu.
           </p>
         </div>
 
@@ -62,7 +63,7 @@ export default function Footer() {
               </Link>
             </li>
             <li>Đang thử nghiệm tại trung tâm Đà Nẵng</li>
-            <li>support@foodrescue.vn</li>
+            <li>foodrescue888@gmail.com</li>
           </ul>
         </div>
       </div>

@@ -197,7 +197,11 @@ export default function HomePage() {
       <main className="flex-1">
         <section id="home" className="relative min-h-screen overflow-hidden pt-24">
           <div className="absolute inset-0 pointer-events-none">
-            <img src="/images/landingpage/landingpage.png" alt="" className="h-full w-full object-cover object-center" />
+            <img
+              src="/images/landingpage/landingpage.png"
+              alt=""
+              className="h-full w-full object-cover object-center"
+            />
             <div className="absolute inset-0 bg-gradient-to-r from-gray-950/92 via-gray-900/72 to-gray-900/24" />
             <div className="absolute inset-0 bg-gradient-to-t from-gray-950/64 via-transparent to-transparent" />
           </div>
@@ -217,8 +221,8 @@ export default function HomePage() {
                 Tìm thực phẩm giảm giá gần bạn
               </h1>
               <p className="mt-6 max-w-2xl text-base leading-8 text-white/78 sm:text-lg">
-                Food Rescue giúp người dùng tìm các sản phẩm giảm giá/cuối ngày từ cửa hàng gần khu vực, đồng thời hỗ trợ
-                cửa hàng kết nối nhanh hơn với khách hàng có nhu cầu mua ngay.
+                Food Rescue giúp người dùng tìm các sản phẩm giảm giá/cuối ngày từ cửa hàng gần khu vực, đồng thời hỗ
+                trợ cửa hàng kết nối nhanh hơn với khách hàng có nhu cầu mua ngay.
               </p>
               <p className="mt-4 text-sm font-semibold text-emerald-100">
                 Đang thử nghiệm tại khu vực trung tâm thành phố Đà Nẵng.
@@ -242,7 +246,10 @@ export default function HomePage() {
                 {DEMO_STATS.map((stat) => {
                   const Icon = stat.icon;
                   return (
-                    <div key={stat.label} className="rounded-2xl border border-white/15 bg-gray-950/34 p-4 text-center shadow-xl shadow-gray-950/20 backdrop-blur-md">
+                    <div
+                      key={stat.label}
+                      className="rounded-2xl border border-white/15 bg-gray-950/34 p-4 text-center shadow-xl shadow-gray-950/20 backdrop-blur-md"
+                    >
                       <span className="mx-auto mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-[#33FF99]/16 text-[#33FF99]">
                         <Icon className="h-5 w-5" />
                       </span>
@@ -257,17 +264,27 @@ export default function HomePage() {
             <ScrollReveal direction="right" delay={120} className="hidden lg:block">
               <div className="relative ml-auto h-[520px] w-[470px]">
                 <div className="absolute left-10 top-16 h-[420px] w-[340px] overflow-hidden rounded-[2rem] border-4 border-white/22 shadow-2xl">
-                  <img src="/images/landingpage/anhhoaquatrengia.jpg" alt="Sản phẩm tươi tại cửa hàng" className="h-full w-full object-cover" />
+                  <img
+                    src="/images/landingpage/anhhoaquatrengia.jpg"
+                    alt="Sản phẩm tươi tại cửa hàng"
+                    className="h-full w-full object-cover"
+                  />
                 </div>
                 <div className="absolute bottom-8 left-0 h-48 w-44 overflow-hidden rounded-2xl border-4 border-white shadow-2xl">
-                  <img src="/images/landingpage/anhtraicay.jpg" alt="Trái cây và rau củ" className="h-full w-full object-cover" />
+                  <img
+                    src="/images/landingpage/anhtraicay.jpg"
+                    alt="Trái cây và rau củ"
+                    className="h-full w-full object-cover"
+                  />
                 </div>
                 <div className="absolute right-0 top-6 w-64 rounded-3xl bg-white p-5 shadow-2xl">
                   <p className="text-xs font-extrabold uppercase tracking-wide text-red-500">Deal mẫu gần bạn</p>
                   <p className="mt-3 text-base font-extrabold text-gray-900">Rau củ cuối ngày</p>
                   <div className="mt-3 flex items-center justify-between">
                     <span className="text-xl font-black text-emerald-700">Giá tốt hơn</span>
-                    <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-bold text-orange-600">Còn hôm nay</span>
+                    <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-bold text-orange-600">
+                      Còn hôm nay
+                    </span>
                   </div>
                   <div className="mt-4 h-2 overflow-hidden rounded-full bg-gray-100">
                     <div className="h-full w-2/3 rounded-full bg-emerald-500" />
@@ -289,13 +306,24 @@ export default function HomePage() {
             <p className="text-sm font-bold uppercase tracking-widest text-emerald-700">Cách Food Rescue hoạt động</p>
             <h2 className="mt-3 text-3xl font-extrabold text-gray-900 sm:text-4xl">Từ món còn tốt đến người cần mua</h2>
             <p className="mt-4 text-sm leading-7 text-gray-600">
-              Food Rescue giúp người mua tìm deal gần khu vực và giúp cửa hàng giới thiệu sản phẩm cuối ngày rõ ràng hơn.
+              Food Rescue giúp người mua tìm deal gần khu vực và giúp cửa hàng giới thiệu sản phẩm cuối ngày rõ ràng
+              hơn.
             </p>
           </ScrollReveal>
 
           <div className="grid gap-6 lg:grid-cols-2">
-            <FlowPanel title="Dành cho người mua" subtitle="Tìm, kiểm tra và nhận món theo nhu cầu." steps={BUYER_STEPS} tone="buyer" />
-            <FlowPanel title="Dành cho cửa hàng" subtitle="Đưa sản phẩm cuối ngày đến khách gần khu vực." steps={STORE_STEPS} tone="store" />
+            <FlowPanel
+              title="Dành cho người mua"
+              subtitle="Tìm, kiểm tra và nhận món theo nhu cầu."
+              steps={BUYER_STEPS}
+              tone="buyer"
+            />
+            <FlowPanel
+              title="Dành cho cửa hàng"
+              subtitle="Đưa sản phẩm cuối ngày đến khách gần khu vực."
+              steps={STORE_STEPS}
+              tone="store"
+            />
           </div>
         </section>
 
@@ -304,9 +332,12 @@ export default function HomePage() {
             <ScrollReveal className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div className="max-w-2xl">
                 <p className="text-sm font-bold uppercase tracking-widest text-emerald-700">Ưu đãi gần bạn</p>
-                <h2 className="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl">Deal gần bạn, dễ xem - dễ chọn</h2>
+                <h2 className="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl">
+                  Deal gần bạn, dễ xem - dễ chọn
+                </h2>
                 <p className="mt-3 text-sm leading-6 text-gray-600">
-                  Xem nhanh sản phẩm giảm giá/cuối ngày, thông tin cửa hàng và thời gian áp dụng trước khi quyết định mua.
+                  Xem nhanh sản phẩm giảm giá/cuối ngày, thông tin cửa hàng và thời gian áp dụng trước khi quyết định
+                  mua.
                 </p>
               </div>
               <Link href="/products" className="text-sm font-semibold text-emerald-700 hover:text-emerald-900">
@@ -317,7 +348,10 @@ export default function HomePage() {
             {dealsLoading ? (
               <div className="grid gap-5 md:grid-cols-3">
                 {Array.from({ length: 3 }).map((_, index) => (
-                  <div key={index} className="h-80 animate-pulse rounded-xl border border-emerald-100 bg-white shadow-sm">
+                  <div
+                    key={index}
+                    className="h-80 animate-pulse rounded-xl border border-emerald-100 bg-white shadow-sm"
+                  >
                     <div className="h-40 rounded-t-xl bg-emerald-50" />
                     <div className="space-y-3 p-5">
                       <div className="h-4 w-24 rounded bg-gray-100" />
@@ -331,30 +365,45 @@ export default function HomePage() {
               <div className="grid gap-5 md:grid-cols-3">
                 {dealProducts.map((deal, index) => (
                   <ScrollReveal key={deal.id} direction="up" delay={index * 90}>
-                    <article className="h-full overflow-hidden rounded-xl border border-emerald-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+                    <Link
+                      href={`/products/${deal.id}`}
+                      className="block h-full overflow-hidden rounded-xl border border-emerald-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+                    >
                       <div className="aspect-[4/3] overflow-hidden bg-emerald-50">
-                        <img src={deal.image} alt={deal.title} className="h-full w-full object-cover transition duration-300 hover:scale-105" />
+                        <img
+                          src={deal.image}
+                          alt={deal.title}
+                          className="h-full w-full object-cover transition duration-300 hover:scale-105"
+                        />
                       </div>
                       <div className="p-5">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">{deal.category}</span>
-                          <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">{deal.label}</span>
+                          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                            {deal.category}
+                          </span>
+                          <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                            {deal.label}
+                          </span>
                         </div>
                         <h3 className="mt-4 text-xl font-bold text-gray-900">{deal.title}</h3>
                         <p className="mt-2 text-sm leading-6 text-gray-600">{deal.info}</p>
                         <p className="mt-1 text-sm text-gray-500">{deal.area}</p>
                         <div className="mt-4">
                           {deal.originalPrice > deal.discountPrice && (
-                            <span className="mr-2 text-sm text-gray-400 line-through">{deal.originalPrice.toLocaleString("vi-VN")} đồng</span>
+                            <span className="mr-2 text-sm text-gray-400 line-through">
+                              {deal.originalPrice.toLocaleString("vi-VN")} đồng
+                            </span>
                           )}
-                          <span className="font-extrabold text-emerald-700">{deal.discountPrice.toLocaleString("vi-VN")} đồng</span>
+                          <span className="font-extrabold text-emerald-700">
+                            {deal.discountPrice.toLocaleString("vi-VN")} đồng
+                          </span>
                         </div>
                         <p className="mt-1 text-xs text-gray-500">Còn {deal.stock} sản phẩm</p>
-                        <Link href={`https://foodrescue.store/products/${deal.id}`} className="mt-5 inline-flex text-sm font-semibold text-emerald-700 hover:text-emerald-900">
+                        <span className="mt-5 inline-flex text-sm font-semibold text-emerald-700">
                           Xem chi tiết
-                        </Link>
+                        </span>
                       </div>
-                    </article>
+                    </Link>
                   </ScrollReveal>
                 ))}
               </div>
@@ -371,10 +420,12 @@ export default function HomePage() {
           <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6">
             <ScrollReveal className="mx-auto mb-10 max-w-3xl text-center">
               <p className="text-sm font-bold uppercase tracking-widest text-emerald-700">An toàn & minh bạch</p>
-              <h2 className="mt-3 text-3xl font-extrabold text-gray-900 sm:text-4xl">Thông tin rõ ràng để mua đúng nhu cầu</h2>
+              <h2 className="mt-3 text-3xl font-extrabold text-gray-900 sm:text-4xl">
+                Thông tin rõ ràng để mua đúng nhu cầu
+              </h2>
               <p className="mt-4 text-sm leading-7 text-gray-600">
-                Trước khi quyết định, người mua cần biết món gì còn, còn trong bao lâu, ở cửa hàng nào và thông tin có đủ
-                minh bạch không.
+                Trước khi quyết định, người mua cần biết món gì còn, còn trong bao lâu, ở cửa hàng nào và thông tin có
+                đủ minh bạch không.
               </p>
             </ScrollReveal>
 
@@ -408,9 +459,9 @@ export default function HomePage() {
                 Sản phẩm còn tốt nên có thêm cơ hội đến tay khách hàng
               </h2>
               <p className="mt-5 text-sm leading-7 text-white/72">
-                Cuối ngày nếu cửa hàng còn sản phẩm cần bán nhanh, Food Rescue giúp sản phẩm được hiển thị đến nhóm khách
-                hàng gần khu vực. Nhờ đó, cửa hàng có thêm một kênh tiếp cận người mua tiềm năng, giảm nguy cơ sản phẩm bị bỏ
-                lỡ và góp phần hạn chế lãng phí thực phẩm.
+                Cuối ngày nếu cửa hàng còn sản phẩm cần bán nhanh, Food Rescue giúp sản phẩm được hiển thị đến nhóm
+                khách hàng gần khu vực. Nhờ đó, cửa hàng có thêm một kênh tiếp cận người mua tiềm năng, giảm nguy cơ sản
+                phẩm bị bỏ lỡ và góp phần hạn chế lãng phí thực phẩm.
               </p>
               <ul className="mt-6 space-y-3 text-sm text-white/82">
                 {[
@@ -475,12 +526,20 @@ export default function HomePage() {
                   </div>
                   <h3 className="pr-28 text-2xl font-extrabold">Cam kết minh bạch</h3>
                   <p className="mt-5 text-sm leading-7 text-white/72">
-                    Food Rescue không khuyến khích bán sản phẩm không rõ nguồn. Thông tin sản phẩm cần minh bạch từ cửa hàng,
-                    bao gồm hình ảnh, giá, số lượng, hạn sử dụng hoặc thời gian khuyến nghị dùng.
+                    Food Rescue không khuyến khích bán sản phẩm không rõ nguồn. Thông tin sản phẩm cần minh bạch từ cửa
+                    hàng, bao gồm hình ảnh, giá, số lượng, hạn sử dụng hoặc thời gian khuyến nghị dùng.
                   </p>
                   <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                    {["Không bán hàng không rõ nguồn", "Cửa hàng chịu trách nhiệm thông tin", "Người dùng có thể feedback", "Đang mở rộng thử nghiệm"].map((item) => (
-                      <div key={item} className="rounded-2xl border border-white/10 bg-white/8 p-4 text-sm font-semibold text-white/86">
+                    {[
+                      "Không bán hàng không rõ nguồn",
+                      "Cửa hàng chịu trách nhiệm thông tin",
+                      "Người dùng có thể feedback",
+                      "Đang mở rộng thử nghiệm",
+                    ].map((item) => (
+                      <div
+                        key={item}
+                        className="rounded-2xl border border-white/10 bg-white/8 p-4 text-sm font-semibold text-white/86"
+                      >
                         {item}
                       </div>
                     ))}
@@ -504,13 +563,18 @@ export default function HomePage() {
             </ScrollReveal>
 
             <ScrollReveal direction="up" delay={120}>
-              <form onSubmit={handleInterestSubmit} className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-xl shadow-emerald-900/8 sm:p-7">
+              <form
+                onSubmit={handleInterestSubmit}
+                className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-xl shadow-emerald-900/8 sm:p-7"
+              >
                 <div className="mb-6 grid grid-cols-2 gap-2 rounded-2xl bg-emerald-50 p-1.5">
                   <button
                     type="button"
                     onClick={() => handleAudienceChange("buyer")}
                     className={`rounded-xl px-3 py-3 text-sm font-extrabold transition ${
-                      audience === "buyer" ? "bg-[#33FF99] text-gray-950 shadow-md shadow-emerald-900/20" : "text-emerald-900 hover:bg-white/70"
+                      audience === "buyer"
+                        ? "bg-[#33FF99] text-gray-950 shadow-md shadow-emerald-900/20"
+                        : "text-emerald-900 hover:bg-white/70"
                     }`}
                   >
                     Người mua
@@ -519,7 +583,9 @@ export default function HomePage() {
                     type="button"
                     onClick={() => handleAudienceChange("store")}
                     className={`rounded-xl px-3 py-3 text-sm font-extrabold transition ${
-                      audience === "store" ? "bg-[#33FF99] text-gray-950 shadow-md shadow-emerald-900/20" : "text-emerald-900 hover:bg-white/70"
+                      audience === "store"
+                        ? "bg-[#33FF99] text-gray-950 shadow-md shadow-emerald-900/20"
+                        : "text-emerald-900 hover:bg-white/70"
                     }`}
                   >
                     Cửa hàng
@@ -571,14 +637,21 @@ function FlowPanel({ title, subtitle, steps, tone }) {
   return (
     <ScrollReveal direction="up" className="h-full">
       <div className="h-full rounded-3xl border border-emerald-100 bg-white p-6 shadow-lg shadow-emerald-900/5 transition hover:-translate-y-1 hover:shadow-xl sm:p-7">
-        <div className={`mb-6 inline-flex rounded-full px-3 py-1 text-xs font-bold ${buyerTone ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
+        <div
+          className={`mb-6 inline-flex rounded-full px-3 py-1 text-xs font-bold ${buyerTone ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}
+        >
           {title}
         </div>
         <p className="text-sm leading-6 text-gray-600">{subtitle}</p>
         <div className="mt-6 space-y-4">
           {steps.map((step, index) => (
-            <div key={step} className="group flex items-start gap-4 rounded-2xl border border-transparent p-2 transition hover:border-emerald-100 hover:bg-emerald-50/50">
-              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-extrabold shadow-sm ${buyerTone ? "bg-emerald-700 text-white" : "bg-amber-400 text-gray-950"}`}>
+            <div
+              key={step}
+              className="group flex items-start gap-4 rounded-2xl border border-transparent p-2 transition hover:border-emerald-100 hover:bg-emerald-50/50"
+            >
+              <span
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-extrabold shadow-sm ${buyerTone ? "bg-emerald-700 text-white" : "bg-amber-400 text-gray-950"}`}
+              >
                 {index + 1}
               </span>
               <p className="pt-2 text-sm font-semibold text-gray-800">{step}</p>
@@ -604,10 +677,22 @@ function BuyerFields({ form, updateField }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <Field label="Họ tên">
-        <input required value={form.fullName} onChange={updateField("fullName")} className={FIELD_CLASS} placeholder="Nguyễn Văn A" />
+        <input
+          required
+          value={form.fullName}
+          onChange={updateField("fullName")}
+          className={FIELD_CLASS}
+          placeholder="Nguyễn Văn A"
+        />
       </Field>
       <Field label="Khu vực đang sống/làm việc">
-        <input required value={form.workArea} onChange={updateField("workArea")} className={FIELD_CLASS} placeholder="Hải Châu, Đà Nẵng" />
+        <input
+          required
+          value={form.workArea}
+          onChange={updateField("workArea")}
+          className={FIELD_CLASS}
+          placeholder="Hải Châu, Đà Nẵng"
+        />
       </Field>
       <Field label="Nhóm người dùng">
         <select required value={form.userGroup} onChange={updateField("userGroup")} className={FIELD_CLASS}>
@@ -634,13 +719,31 @@ function StoreFields({ form, updateField }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <Field label="Tên cửa hàng">
-        <input required value={form.storeName} onChange={updateField("storeName")} className={FIELD_CLASS} placeholder="Tên cửa hàng" />
+        <input
+          required
+          value={form.storeName}
+          onChange={updateField("storeName")}
+          className={FIELD_CLASS}
+          placeholder="Tên cửa hàng"
+        />
       </Field>
       <Field label="Loại hình cửa hàng">
-        <input required value={form.storeType} onChange={updateField("storeType")} className={FIELD_CLASS} placeholder="Tiệm bánh, quán ăn..." />
+        <input
+          required
+          value={form.storeType}
+          onChange={updateField("storeType")}
+          className={FIELD_CLASS}
+          placeholder="Tiệm bánh, quán ăn..."
+        />
       </Field>
       <Field label="Sản phẩm thường còn cuối ngày">
-        <input required value={form.surplusProducts} onChange={updateField("surplusProducts")} className={FIELD_CLASS} placeholder="Bánh, cơm hộp, rau củ..." />
+        <input
+          required
+          value={form.surplusProducts}
+          onChange={updateField("surplusProducts")}
+          className={FIELD_CLASS}
+          placeholder="Bánh, cơm hộp, rau củ..."
+        />
       </Field>
       <Field label="Tham gia phỏng vấn/góp ý?">
         <select required value={form.interview} onChange={updateField("interview")} className={FIELD_CLASS}>
@@ -679,7 +782,13 @@ function LocationFields({ form, errors, updateField }) {
         </select>
       </Field>
       <Field label="Zalo/email/liên hệ" error={errors.contact}>
-        <input required value={form.contact} onChange={updateField("contact")} className={FIELD_CLASS} placeholder="email@example.com hoặc Zalo" />
+        <input
+          required
+          value={form.contact}
+          onChange={updateField("contact")}
+          className={FIELD_CLASS}
+          placeholder="email@example.com hoặc Zalo"
+        />
       </Field>
     </div>
   );
@@ -687,48 +796,121 @@ function LocationFields({ form, errors, updateField }) {
 
 function IconBase({ className, children }) {
   return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
       {children}
     </svg>
   );
 }
 
 function StoreIcon({ className }) {
-  return <IconBase className={className}><path d="M4 10h16" /><path d="M5 10l1-5h12l1 5" /><path d="M6 10v9h12v-9" /><path d="M9 19v-5h6v5" /></IconBase>;
+  return (
+    <IconBase className={className}>
+      <path d="M4 10h16" />
+      <path d="M5 10l1-5h12l1 5" />
+      <path d="M6 10v9h12v-9" />
+      <path d="M9 19v-5h6v5" />
+    </IconBase>
+  );
 }
 
 function BasketIcon({ className }) {
-  return <IconBase className={className}><path d="M6 10l2-5" /><path d="M18 10l-2-5" /><path d="M3 10h18l-2 10H5L3 10z" /><path d="M8 14v2" /><path d="M12 14v2" /><path d="M16 14v2" /></IconBase>;
+  return (
+    <IconBase className={className}>
+      <path d="M6 10l2-5" />
+      <path d="M18 10l-2-5" />
+      <path d="M3 10h18l-2 10H5L3 10z" />
+      <path d="M8 14v2" />
+      <path d="M12 14v2" />
+      <path d="M16 14v2" />
+    </IconBase>
+  );
 }
 
 function UsersIcon({ className }) {
-  return <IconBase className={className}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></IconBase>;
+  return (
+    <IconBase className={className}>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </IconBase>
+  );
 }
 
 function SproutIcon({ className }) {
-  return <IconBase className={className}><path d="M7 20h10" /><path d="M12 20V10" /><path d="M12 10C8 10 5 7 5 3c4 0 7 3 7 7z" /><path d="M12 12c4 0 7-3 7-7-4 0-7 3-7 7z" /></IconBase>;
+  return (
+    <IconBase className={className}>
+      <path d="M7 20h10" />
+      <path d="M12 20V10" />
+      <path d="M12 10C8 10 5 7 5 3c4 0 7 3 7 7z" />
+      <path d="M12 12c4 0 7-3 7-7-4 0-7 3-7 7z" />
+    </IconBase>
+  );
 }
 
 function ImageIcon({ className }) {
-  return <IconBase className={className}><rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="8.5" cy="10.5" r="1.5" /><path d="M21 15l-5-5L5 19" /></IconBase>;
+  return (
+    <IconBase className={className}>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <circle cx="8.5" cy="10.5" r="1.5" />
+      <path d="M21 15l-5-5L5 19" />
+    </IconBase>
+  );
 }
 
 function TagIcon({ className }) {
-  return <IconBase className={className}><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z" /><path d="M7 7h.01" /></IconBase>;
+  return (
+    <IconBase className={className}>
+      <path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z" />
+      <path d="M7 7h.01" />
+    </IconBase>
+  );
 }
 
 function ClockIcon({ className }) {
-  return <IconBase className={className}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></IconBase>;
+  return (
+    <IconBase className={className}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </IconBase>
+  );
 }
 
 function PinIcon({ className }) {
-  return <IconBase className={className}><path d="M20 10c0 5-8 11-8 11s-8-6-8-11a8 8 0 1 1 16 0z" /><circle cx="12" cy="10" r="3" /></IconBase>;
+  return (
+    <IconBase className={className}>
+      <path d="M20 10c0 5-8 11-8 11s-8-6-8-11a8 8 0 1 1 16 0z" />
+      <circle cx="12" cy="10" r="3" />
+    </IconBase>
+  );
 }
 
 function BoxIcon({ className }) {
-  return <IconBase className={className}><path d="M21 8l-9-5-9 5 9 5 9-5z" /><path d="M3 8v8l9 5 9-5V8" /><path d="M12 13v8" /></IconBase>;
+  return (
+    <IconBase className={className}>
+      <path d="M21 8l-9-5-9 5 9 5 9-5z" />
+      <path d="M3 8v8l9 5 9-5V8" />
+      <path d="M12 13v8" />
+    </IconBase>
+  );
 }
 
 function ChatIcon({ className }) {
-  return <IconBase className={className}><path d="M21 12a8 8 0 0 1-8 8H7l-4 2 1.5-4A8 8 0 1 1 21 12z" /><path d="M8 12h.01" /><path d="M12 12h.01" /><path d="M16 12h.01" /></IconBase>;
+  return (
+    <IconBase className={className}>
+      <path d="M21 12a8 8 0 0 1-8 8H7l-4 2 1.5-4A8 8 0 1 1 21 12z" />
+      <path d="M8 12h.01" />
+      <path d="M12 12h.01" />
+      <path d="M16 12h.01" />
+    </IconBase>
+  );
 }
