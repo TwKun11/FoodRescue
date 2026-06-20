@@ -37,6 +37,11 @@ export default function DashboardLayout({ children }) {
     router.push(`/store/products?create=${Date.now()}`);
   };
 
+  const handleSwitchToCustomer = () => {
+    setDropdownOpen(false);
+    router.push("/");
+  };
+
   useEffect(() => {
     apiGetMyShop()
       .then((res) => {
@@ -129,6 +134,16 @@ export default function DashboardLayout({ children }) {
                 </button>
                 {dropdownOpen && (
                   <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
+                    <button
+                      type="button"
+                      onClick={handleSwitchToCustomer}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 transition"
+                    >
+                      <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l9-9 9 9M5 10v10h14V10" />
+                      </svg>
+                      Kênh người dùng
+                    </button>
                     <button
                       type="button"
                       onClick={handleLogout}

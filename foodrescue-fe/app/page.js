@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import Header from "@/components/common/Header";
 import Footer from "@/components/common/Footer";
 import ScrollReveal from "@/components/common/ScrollReveal";
@@ -131,9 +130,6 @@ function isDisplayableDeal(product) {
 }
 
 export default function HomePage() {
-  const router = useRouter();
-  const [authChecked, setAuthChecked] = useState(false);
-  const [redirecting, setRedirecting] = useState(false);
   const [audience, setAudience] = useState("buyer");
   const [form, setForm] = useState(EMPTY_INTEREST_FORM);
   const [errors, setErrors] = useState({});
@@ -141,27 +137,8 @@ export default function HomePage() {
   const [dealProducts, setDealProducts] = useState([]);
   const [dealsLoading, setDealsLoading] = useState(true);
 
-  useEffect(() => {
-    try {
-      const token = localStorage.getItem("accessToken");
-      const rawUser = localStorage.getItem("user");
-      const user = rawUser ? JSON.parse(rawUser) : null;
-
-      if (token && user?.role === "SELLER") {
-        setRedirecting(true);
-        router.replace("/store");
-        return;
-      }
-    } catch {
-      // Ignore malformed localStorage data and keep showing the public homepage.
-    }
-
-    setAuthChecked(true);
-  }, [router]);
 
   useEffect(() => {
-    if (!authChecked || redirecting) return;
-
     let cancelled = false;
     setDealsLoading(true);
     apiGetProducts({ sort: "discount_desc", page: 0, size: 6 })
@@ -181,15 +158,8 @@ export default function HomePage() {
     return () => {
       cancelled = true;
     };
-  }, [authChecked, redirecting]);
+  }, []);
 
-  if (!authChecked || redirecting) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f8fdf9]">
-        <p className="text-sm font-semibold text-emerald-800">Đang chuyển hướng...</p>
-      </div>
-    );
-  }
   const updateField = (field) => (event) => {
     const value = event.target.value;
     setForm((prev) => ({

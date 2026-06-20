@@ -301,6 +301,14 @@ export default function Header() {
                       Trở thành nhà bán hàng
                     </DropdownLink>
                   )}
+                  {user?.role === "SELLER" && (
+                    <DropdownLink
+                      href="/store"
+                      onClick={() => setDropdownOpen(false)}
+                    >
+                      Chuyển đến kênh người bán
+                    </DropdownLink>
+                  )}
                   <DropdownLink
                     href="/change-password"
                     onClick={() => setDropdownOpen(false)}
@@ -381,6 +389,11 @@ export default function Header() {
               {user?.role === "CUSTOMER" && (
                 <Link href="/become-seller" onClick={() => setMenuOpen(false)}>
                   Trở thành nhà bán hàng
+                </Link>
+              )}
+              {user?.role === "SELLER" && (
+                <Link href="/store" onClick={() => setMenuOpen(false)}>
+                  Chuyển đến kênh người bán
                 </Link>
               )}
               <Link href="/change-password" onClick={() => setMenuOpen(false)}>

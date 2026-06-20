@@ -76,7 +76,7 @@ export default function LoginPage() {
         if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
         if (user) localStorage.setItem("user", JSON.stringify(user));
         toast.success("Đăng nhập thành công!");
-        const redirectTo = user?.role === "SELLER" ? "/store" : user?.role === "ADMIN" ? "/admin" : "/";
+        const redirectTo = user?.role === "ADMIN" ? "/admin" : "/";
         setTimeout(() => router.push(redirectTo), 800);
       } else {
         toast.error("Phản hồi từ server không hợp lệ.");
@@ -193,7 +193,7 @@ export default function LoginPage() {
         if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
         if (user) localStorage.setItem("user", JSON.stringify(user));
         toast.success("Đăng nhập thành công!");
-        const redirectTo = user?.role === "SELLER" ? "/store" : user?.role === "ADMIN" ? "/admin" : "/";
+        const redirectTo = user?.role === "ADMIN" ? "/admin" : "/";
         setTimeout(() => router.push(redirectTo), 800);
       } else {
         toast.error("Phản hồi từ server không hợp lệ.");
