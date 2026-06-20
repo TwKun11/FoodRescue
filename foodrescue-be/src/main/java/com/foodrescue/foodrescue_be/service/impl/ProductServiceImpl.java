@@ -82,6 +82,10 @@ public class ProductServiceImpl implements ProductService {
                     .orElseThrow(() -> new IllegalArgumentException("Thương hiệu không tồn tại"));
         }
 
+        if (productRepository.existsByProductCode(req.getProductCode())) {
+            throw new IllegalArgumentException("Mã sản phẩm đã tồn tại. Vui lòng thử lại hoặc dùng mã sản phẩm khác.");
+        }
+
         Product product = Product.builder()
                 .seller(seller)
                 .category(category)

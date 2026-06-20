@@ -298,6 +298,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
         const isDuplicate =
           !res.ok &&
           (res.data?.message?.toLowerCase().includes("product code") ||
+            res.data?.message?.toLowerCase().includes("mã sản phẩm") ||
             res.data?.message?.toLowerCase().includes("duplicate") ||
             res.data?.message?.toLowerCase().includes("already exists") ||
             res.status === 409);
