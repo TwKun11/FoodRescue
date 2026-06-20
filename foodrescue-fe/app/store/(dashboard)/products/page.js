@@ -203,9 +203,18 @@ export default function StoreProductsPage() {
       router.replace("/store/products", { scroll: false });
     }
   };
-  const handleFormSuccess = (data, mode) => {
+  const handleFormSuccess = (data, mode, meta = {}) => {
     closeForm();
-    showToast(mode === "edit" ? "Cập nhật sản phẩm thành công" : "Thêm sản phẩm mới thành công");
+    const slugNote = data?.slug ? ` Slug: ${data.slug}` : "";
+    const baseMessage =
+      mode === "edit"
+        ? `Cập nhật sản phẩm thành công.${slugNote}`
+        : `Thêm sản phẩm mới thành công.${slugNote}`;
+    const slugMessage = meta.slugChanged
+      ? ` Slug "${meta.requestedSlug}" đã trùng, hệ thống đã tự đổi thành "${meta.finalSlug}". Bạn có thể sửa slug theo ý muốn hoặc sử dụng slug được tạo sẵn.`
+      : "";
+
+    showToast(`${baseMessage}${slugMessage}`);
     loadProducts(page);
   };
 

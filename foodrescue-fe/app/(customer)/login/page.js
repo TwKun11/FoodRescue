@@ -230,7 +230,7 @@ export default function LoginPage() {
             {[
               { value: "50+", label: "Cửa hàng quan tâm" },
               { value: "1k+", label: "Sản phẩm thử nghiệm" },
-              { value: "0.5t", label: "Cơ hội giảm lãng phí" },
+              { value: "500kg", label: "Thực phẩm có cơ hội được cứu" },
             ].map((s) => (
               <div key={s.label}>
                 <p className="text-2xl font-extrabold text-brand">{s.value}</p>

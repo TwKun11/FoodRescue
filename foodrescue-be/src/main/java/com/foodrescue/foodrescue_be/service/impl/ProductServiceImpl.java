@@ -18,7 +18,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.text.Normalizer;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 @Service
@@ -86,7 +88,7 @@ public class ProductServiceImpl implements ProductService {
                 .brand(brand)
                 .productCode(req.getProductCode())
                 .name(req.getName())
-                .slug(req.getSlug())
+                .slug(generateUniqueSlug(req.getSlug(), req.getName(), null))
                 .shortDescription(req.getShortDescription())
                 .description(req.getDescription())
                 .productType(parseEnum(Product.ProductType.class, req.getProductType(), Product.ProductType.other))
@@ -126,7 +128,9 @@ public class ProductServiceImpl implements ProductService {
             product.setBrand(brand);
         }
         if (req.getName() != null) product.setName(req.getName());
-        if (req.getSlug() != null) product.setSlug(req.getSlug());
+        if (req.getSlug() != null) {
+            product.setSlug(generateUniqueSlug(req.getSlug(), product.getName(), product.getId()));
+        }
         if (req.getShortDescription() != null) product.setShortDescription(req.getShortDescription());
         if (req.getDescription() != null) product.setDescription(req.getDescription());
         if (req.getProductType() != null) product.setProductType(parseEnum(Product.ProductType.class, req.getProductType(), product.getProductType()));
@@ -342,6 +346,46 @@ public class ProductServiceImpl implements ProductService {
         } catch (IllegalArgumentException e) {
             return defaultValue;
         }
+    }
+
+    private String generateUniqueSlug(String requestedSlug, String fallbackName, Long currentProductId) {
+        String baseSlug = slugify(requestedSlug);
+        if (baseSlug.isBlank()) {
+            baseSlug = slugify(fallbackName);
+        }
+        if (baseSlug.isBlank()) {
+            baseSlug = "san-pham";
+        }
+
+        String candidate = baseSlug;
+        int suffix = 2;
+        while (slugExists(candidate, currentProductId)) {
+            candidate = baseSlug + "-" + suffix;
+            suffix++;
+        }
+        return candidate;
+    }
+
+    private boolean slugExists(String slug, Long currentProductId) {
+        if (currentProductId == null) {
+            return productRepository.existsBySlug(slug);
+        }
+        return productRepository.existsBySlugAndIdNot(slug, currentProductId);
+    }
+
+    private String slugify(String value) {
+        if (value == null) return "";
+        String normalized = Normalizer.normalize(value, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .replace('đ', 'd')
+                .replace('Đ', 'D')
+                .toLowerCase(Locale.ROOT);
+        return normalized
+                .replaceAll("[^a-z0-9\\s-]", "")
+                .trim()
+                .replaceAll("\\s+", "-")
+                .replaceAll("-+", "-")
+                .replaceAll("^-|-$", "");
     }
 
     private void saveImages(Product product, java.util.List<String> imageUrls) {

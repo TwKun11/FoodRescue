@@ -2,8 +2,16 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useMemo, useState } from "react";
-import { apiGetMyShop, apiSellerUploadShopImage, apiUpdateMyShop } from "@/lib/api";
-import { getCurrentPosition, mapLocationToAddress, reverseGeocode } from "@/lib/location";
+import {
+  apiGetMyShop,
+  apiSellerUploadShopImage,
+  apiUpdateMyShop,
+} from "@/lib/api";
+import {
+  getCurrentPosition,
+  mapLocationToAddress,
+  reverseGeocode,
+} from "@/lib/location";
 
 const TABS = [
   { id: "basic", label: "Thông tin cơ bản", icon: "📋" },
@@ -16,12 +24,14 @@ const STATUS_META = {
   pending: {
     label: "Chờ duyệt",
     className: "bg-amber-50 text-amber-800 border-amber-200",
-    description: "Hồ sơ cửa hàng đang chờ admin kiểm tra. Bạn có thể cập nhật thêm thông tin nếu cần.",
+    description:
+      "Hồ sơ cửa hàng đang chờ admin kiểm tra. Bạn có thể cập nhật thêm thông tin nếu cần.",
   },
   active: {
     label: "Đang hoạt động",
     className: "bg-green-50 text-green-800 border-green-200",
-    description: "Cửa hàng đã được duyệt và có thể đăng sản phẩm, xử lý đơn hàng.",
+    description:
+      "Cửa hàng đã được duyệt và có thể đăng sản phẩm, xử lý đơn hàng.",
   },
   suspended: {
     label: "Tạm khóa",
@@ -64,16 +74,31 @@ const IMAGE_FIELDS = [
 ];
 
 const REQUIRED_FIELDS = {
-  basic: ["shopName", "legalName", "businessType", "contactName", "phone", "pickupAddress"],
+  basic: [
+    "shopName",
+    "legalName",
+    "businessType",
+    "contactName",
+    "phone",
+    "pickupAddress",
+  ],
   legal: ["taxCode", "businessLicenseNumber", "identityNumber"],
   bank: ["bankName", "bankAccountName", "bankAccountNumber"],
-  images: ["avatarUrl", "coverUrl", "storefrontImageUrl", "businessLicenseImageUrl", "identityCardImageUrl"],
+  images: [
+    "avatarUrl",
+    "coverUrl",
+    "storefrontImageUrl",
+    "businessLicenseImageUrl",
+    "identityCardImageUrl",
+  ],
 };
 
 function validateField(field, value) {
   if (!value || value.toString().trim() === "") return "Trường này là bắt buộc";
-  if (field === "phone" && !/^\d{10,11}$/.test(value)) return "Số điện thoại không hợp lệ (10-11 chữ số)";
-  if (field === "taxCode" && value && !/^\d{10,13}$/.test(value)) return "Mã số thuế không hợp lệ (10-13 chữ số)";
+  if (field === "phone" && !/^\d{10,11}$/.test(value))
+    return "Số điện thoại không hợp lệ (10-11 chữ số)";
+  if (field === "taxCode" && value && !/^\d{10,13}$/.test(value))
+    return "Mã số thuế không hợp lệ (10-13 chữ số)";
   return null;
 }
 
@@ -192,7 +217,10 @@ export default function ShopPage() {
           setShop(mapped);
           setForm(mapped);
         } else {
-          setMessage({ type: "error", text: res.data?.message || "Không tải được thông tin cửa hàng." });
+          setMessage({
+            type: "error",
+            text: res.data?.message || "Không tải được thông tin cửa hàng.",
+          });
         }
         setLoading(false);
       }
@@ -232,7 +260,10 @@ export default function ShopPage() {
     try {
       const res = await apiSellerUploadShopImage(file);
       if (!res.ok) {
-        setMessage({ type: "error", text: res.data?.message || "Tải ảnh thất bại." });
+        setMessage({
+          type: "error",
+          text: res.data?.message || "Tải ảnh thất bại.",
+        });
         return;
       }
       const url = res.data?.data || "";
@@ -319,7 +350,10 @@ export default function ShopPage() {
       const mapped = mapShopResponse(res.data?.data);
       setShop(mapped);
       setForm(mapped);
-      setMessage({ type: "success", text: "✓ Đã cập nhật hồ sơ cửa hàng thành công!" });
+      setMessage({
+        type: "success",
+        text: "✓ Đã cập nhật hồ sơ cửa hàng thành công!",
+      });
     } finally {
       setSaving(false);
     }
@@ -338,13 +372,23 @@ export default function ShopPage() {
       {/* ════ HEADER CARD ════ */}
       <section className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
         <div className="relative h-40 bg-gradient-to-r from-emerald-500 via-green-500 to-lime-400">
-          {shop.coverUrl && <img src={shop.coverUrl} alt="Banner cửa hàng" className="h-full w-full object-cover opacity-40" />}
+          {shop.coverUrl && (
+            <img
+              src={shop.coverUrl}
+              alt="Banner cửa hàng"
+              className="h-full w-full object-cover opacity-40"
+            />
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/15 to-transparent" />
           <div className="absolute bottom-4 left-4 right-4 flex flex-wrap items-end justify-between gap-3">
             <div className="flex items-end gap-3">
               <div className="h-16 w-16 overflow-hidden rounded-xl border-4 border-white bg-white shadow-md">
                 {shop.avatarUrl ? (
-                  <img src={shop.avatarUrl} alt={shop.shopName || "Logo cửa hàng"} className="h-full w-full object-cover" />
+                  <img
+                    src={shop.avatarUrl}
+                    alt={shop.shopName || "Logo cửa hàng"}
+                    className="h-full w-full object-cover"
+                  />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center bg-brand text-lg font-bold text-gray-900">
                     {(shop.shopName?.charAt(0) || "S").toUpperCase()}
@@ -352,12 +396,17 @@ export default function ShopPage() {
                 )}
               </div>
               <div className="pb-1 text-white">
-                <h1 className="text-2xl font-bold">{shop.shopName || "Cửa hàng của bạn"}</h1>
+                <h1 className="text-2xl font-bold">
+                  {shop.shopName || "Cửa hàng của bạn"}
+                </h1>
                 <p className="mt-1 text-sm text-white/80">
-                  @{shop.shopSlug || "chua-co-slug"} {shop.code ? `· ${shop.code}` : ""}
+                  @{shop.shopSlug || "chua-co-slug"}{" "}
+                  {shop.code ? `· ${shop.code}` : ""}
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${statusMeta.className}`}>
+                  <span
+                    className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${statusMeta.className}`}
+                  >
                     {statusMeta.label}
                   </span>
                   {shop.isVerified && (
@@ -385,8 +434,12 @@ export default function ShopPage() {
 
         {shop.adminNote && (
           <div className="border-t border-red-200 bg-red-50 px-6 py-3">
-            <p className="text-xs font-semibold text-red-800">⚠ GHI CHÚ TỪ ADMIN</p>
-            <p className="mt-1 whitespace-pre-line text-xs text-red-700">{shop.adminNote}</p>
+            <p className="text-xs font-semibold text-red-800">
+              ⚠ GHI CHÚ TỪ ADMIN
+            </p>
+            <p className="mt-1 whitespace-pre-line text-xs text-red-700">
+              {shop.adminNote}
+            </p>
           </div>
         )}
       </section>
@@ -414,167 +467,247 @@ export default function ShopPage() {
           <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
             {activeTab === "basic" && (
               <>
-            <h2 className="text-lg font-semibold text-gray-900">Thông tin vận hành</h2>
-            <p className="mt-1 text-sm text-gray-500">Cập nhật tên shop, thông tin liên hệ và địa chỉ giao nhận.</p>
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
-              <Field label="Tên cửa hàng *" value={form.shopName} onChange={setField("shopName")} />
-              <ReadOnlyField label="Slug cua hang" value={form.shopSlug || "—"} />
-              <Field label="Ten phap ly / ho kinh doanh *" value={form.legalName} onChange={setField("legalName")} />
-              <Field label="Loại hình kinh doanh *" value={form.businessType} onChange={setField("businessType")} />
-              <Field label="Người liên hệ *" value={form.contactName} onChange={setField("contactName")} />
-              <Field label="Số điện thoại *" value={form.phone} onChange={setField("phone")} inputMode="numeric" />
-            </div>
-            <div className="mt-4 space-y-3">
-              <div className="flex flex-col gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-emerald-800">Vi tri cua hang</p>
-                  <p className="mt-1 text-xs text-emerald-700">Luu toa do de tinh khoang cach tu khach hang den cua hang.</p>
-                  {form.latitude != null && form.longitude != null && (
-                    <p className="mt-2 text-xs text-gray-600">
-                      Toa do da luu: {Number(form.latitude).toFixed(6)}, {Number(form.longitude).toFixed(6)}
-                    </p>
-                  )}
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Thông tin vận hành
+                </h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  Cập nhật tên shop, thông tin liên hệ và địa chỉ giao nhận.
+                </p>
+                <div className="mt-5 grid gap-4 md:grid-cols-2">
+                  <Field
+                    label="Tên cửa hàng *"
+                    value={form.shopName}
+                    onChange={setField("shopName")}
+                  />
+                  <ReadOnlyField
+                    label="Slug cua hang"
+                    value={form.shopSlug || "—"}
+                  />
+                  <Field
+                    label="Ten phap ly / ho kinh doanh *"
+                    value={form.legalName}
+                    onChange={setField("legalName")}
+                  />
+                  <Field
+                    label="Loại hình kinh doanh *"
+                    value={form.businessType}
+                    onChange={setField("businessType")}
+                  />
+                  <Field
+                    label="Người liên hệ *"
+                    value={form.contactName}
+                    onChange={setField("contactName")}
+                  />
+                  <Field
+                    label="Số điện thoại *"
+                    value={form.phone}
+                    onChange={setField("phone")}
+                    inputMode="numeric"
+                  />
                 </div>
-                <button
-                  type="button"
-                  onClick={handleUseCurrentLocation}
-                  disabled={locating}
-                  className="inline-flex items-center justify-center rounded-xl border border-emerald-200 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-60"
-                >
-                  {locating ? "Dang lay vi tri..." : "Lay vi tri hien tai"}
-                </button>
-              </div>
-              <TextArea label="Dia chi lay hang / giao nhan *" value={form.pickupAddress} onChange={setField("pickupAddress")} rows={3} />
-            </div>
+                <div className="mt-4 space-y-3">
+                  <div className="flex flex-col gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-emerald-800">
+                        Vị trí cửa hàng
+                      </p>
+                      <p className="mt-1 text-xs text-emerald-700">
+                        Chọn vị trí chính xác của cửa hàng để khách hàng dễ tìm
+                        kiếm và hệ thống tính khoảng cách giao hàng.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleUseCurrentLocation}
+                      disabled={locating}
+                      className="inline-flex items-center justify-center rounded-xl border border-emerald-200 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-60"
+                    >
+                      {locating ? "Đang lấy vị trí..." : "Lấy vị trí hiện tại"}
+                    </button>
+                  </div>
+                </div>
 
-            <TextArea
-              label="Địa chỉ lấy hàng / giao nhận *"
-              value={form.pickupAddress}
-              onChange={setField("pickupAddress")}
-              rows={3}
-              error={touched.pickupAddress ? validateField("pickupAddress", form.pickupAddress) : null}
-            />
-
-            <TextArea
-              label="Mô tả cửa hàng"
-              value={form.description}
-              onChange={setField("description")}
-              rows={4}
-              hint="Viết gì đó để khách hàng biết thêm về cửa hàng của bạn"
-            />
-          </>
-        )}
-
-        {/* TAB: Hồ sơ pháp lý */}
-        {activeTab === "legal" && (
-          <div className="space-y-5">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-1">Hồ sơ pháp lý</h2>
-              <p className="text-sm text-gray-600">Những thông tin này cần khớp với hồ sơ đã nộp để admin đối chiếu khi cần.</p>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-3">
-              <Field
-                label="Mã số thuế *"
-                value={form.taxCode}
-                onChange={setField("taxCode")}
-                inputMode="numeric"
-                error={touched.taxCode ? validateField("taxCode", form.taxCode) : null}
-              />
-              <Field
-                label="Số giấy phép kinh doanh *"
-                value={form.businessLicenseNumber}
-                onChange={setField("businessLicenseNumber")}
-                error={touched.businessLicenseNumber ? validateField("businessLicenseNumber", form.businessLicenseNumber) : null}
-              />
-              <Field
-                label="Số CCCD/CMND đại diện *"
-                value={form.identityNumber}
-                onChange={setField("identityNumber")}
-                inputMode="numeric"
-                error={touched.identityNumber ? validateField("identityNumber", form.identityNumber) : null}
-              />
-            </div>
-
-            <div className="mt-4 rounded-2xl bg-blue-50 border border-blue-200 p-4">
-              <p className="text-xs text-blue-800">
-                <strong>Lưu ý:</strong> Nếu bạn cập nhật giấy phép hoặc CCCD, hãy cập nhật lại ảnh xác minh để tránh bị trễ duyệt sản phẩm.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* TAB: Tài khoản ngân hàng */}
-        {activeTab === "bank" && (
-          <div className="space-y-5">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-1">Tài khoản ngân hàng</h2>
-              <p className="text-sm text-gray-600">Thông tin đối soát doanh thu và thanh toán cho cửa hàng.</p>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-3">
-              <Field
-                label="Tên ngân hàng *"
-                value={form.bankName}
-                onChange={setField("bankName")}
-                error={touched.bankName ? validateField("bankName", form.bankName) : null}
-              />
-              <Field
-                label="Chủ tài khoản *"
-                value={form.bankAccountName}
-                onChange={setField("bankAccountName")}
-                error={touched.bankAccountName ? validateField("bankAccountName", form.bankAccountName) : null}
-              />
-              <Field
-                label="Số tài khoản *"
-                value={form.bankAccountNumber}
-                onChange={setField("bankAccountNumber")}
-                inputMode="numeric"
-                error={touched.bankAccountNumber ? validateField("bankAccountNumber", form.bankAccountNumber) : null}
-              />
-            </div>
-
-            <div className="mt-4 rounded-2xl bg-blue-50 border border-blue-200 p-4">
-              <p className="text-xs text-blue-800">
-                <strong>Di chúc:</strong> Tài khoản ngân hàng phải trùng với người đại diện hoặc pháp nhân đã đăng ký seller. Hãy kiểm tra kỹ lưỡng trước khi lưu.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* TAB: Ảnh xác minh */}
-        {activeTab === "images" && (
-          <div className="space-y-5">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-1">Ảnh xác minh và nhận diện</h2>
-              <p className="text-sm text-gray-600">Tải lại ảnh mới bất kỳ lúc nào nếu cần cập nhật hồ sơ.</p>
-            </div>
-
-            <div className="space-y-4">
-              {IMAGE_FIELDS.map((item) => (
-                <UploadCard
-                  key={item.key}
-                  label={item.label}
-                  hint={item.hint}
-                  value={form[item.key]}
-                  uploading={uploadingField === item.key}
-                  onFileChange={handleUpload(item.key)}
-                  required
+                <TextArea
+                  label="Địa chỉ lấy hàng / giao nhận *"
+                  value={form.pickupAddress}
+                  onChange={setField("pickupAddress")}
+                  rows={3}
+                  error={
+                    touched.pickupAddress
+                      ? validateField("pickupAddress", form.pickupAddress)
+                      : null
+                  }
                 />
-              ))}
-            </div>
-          </div>
-        )}
-          </section>
-      </div>
 
-      {/* ════ STICKY SAVE BUTTON ════ */}
+                <TextArea
+                  label="Mô tả cửa hàng"
+                  value={form.description}
+                  onChange={setField("description")}
+                  rows={4}
+                  hint="Viết gì đó để khách hàng biết thêm về cửa hàng của bạn"
+                />
+              </>
+            )}
+
+            {/* TAB: Hồ sơ pháp lý */}
+            {activeTab === "legal" && (
+              <div className="space-y-5">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-1">
+                    Hồ sơ pháp lý
+                  </h2>
+                  <p className="text-sm text-gray-600">
+                    Những thông tin này cần khớp với hồ sơ đã nộp để admin đối
+                    chiếu khi cần.
+                  </p>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-3">
+                  <Field
+                    label="Mã số thuế *"
+                    value={form.taxCode}
+                    onChange={setField("taxCode")}
+                    inputMode="numeric"
+                    error={
+                      touched.taxCode
+                        ? validateField("taxCode", form.taxCode)
+                        : null
+                    }
+                  />
+                  <Field
+                    label="Số giấy phép kinh doanh *"
+                    value={form.businessLicenseNumber}
+                    onChange={setField("businessLicenseNumber")}
+                    error={
+                      touched.businessLicenseNumber
+                        ? validateField(
+                            "businessLicenseNumber",
+                            form.businessLicenseNumber,
+                          )
+                        : null
+                    }
+                  />
+                  <Field
+                    label="Số CCCD/CMND đại diện *"
+                    value={form.identityNumber}
+                    onChange={setField("identityNumber")}
+                    inputMode="numeric"
+                    error={
+                      touched.identityNumber
+                        ? validateField("identityNumber", form.identityNumber)
+                        : null
+                    }
+                  />
+                </div>
+
+                <div className="mt-4 rounded-2xl bg-blue-50 border border-blue-200 p-4">
+                  <p className="text-xs text-blue-800">
+                    <strong>Lưu ý:</strong> Nếu bạn cập nhật giấy phép hoặc
+                    CCCD, hãy cập nhật lại ảnh xác minh để tránh bị trễ duyệt
+                    sản phẩm.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* TAB: Tài khoản ngân hàng */}
+            {activeTab === "bank" && (
+              <div className="space-y-5">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-1">
+                    Tài khoản ngân hàng
+                  </h2>
+                  <p className="text-sm text-gray-600">
+                    Thông tin đối soát doanh thu và thanh toán cho cửa hàng.
+                  </p>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-3">
+                  <Field
+                    label="Tên ngân hàng *"
+                    value={form.bankName}
+                    onChange={setField("bankName")}
+                    error={
+                      touched.bankName
+                        ? validateField("bankName", form.bankName)
+                        : null
+                    }
+                  />
+                  <Field
+                    label="Chủ tài khoản *"
+                    value={form.bankAccountName}
+                    onChange={setField("bankAccountName")}
+                    error={
+                      touched.bankAccountName
+                        ? validateField("bankAccountName", form.bankAccountName)
+                        : null
+                    }
+                  />
+                  <Field
+                    label="Số tài khoản *"
+                    value={form.bankAccountNumber}
+                    onChange={setField("bankAccountNumber")}
+                    inputMode="numeric"
+                    error={
+                      touched.bankAccountNumber
+                        ? validateField(
+                            "bankAccountNumber",
+                            form.bankAccountNumber,
+                          )
+                        : null
+                    }
+                  />
+                </div>
+
+                <div className="mt-4 rounded-2xl bg-blue-50 border border-blue-200 p-4">
+                  <p className="text-xs text-blue-800">
+                    <strong>Di chúc:</strong> Tài khoản ngân hàng phải trùng với
+                    người đại diện hoặc pháp nhân đã đăng ký seller. Hãy kiểm
+                    tra kỹ lưỡng trước khi lưu.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* TAB: Ảnh xác minh */}
+            {activeTab === "images" && (
+              <div className="space-y-5">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-1">
+                    Ảnh xác minh và nhận diện
+                  </h2>
+                  <p className="text-sm text-gray-600">
+                    Tải lại ảnh mới bất kỳ lúc nào nếu cần cập nhật hồ sơ.
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  {IMAGE_FIELDS.map((item) => (
+                    <UploadCard
+                      key={item.key}
+                      label={item.label}
+                      hint={item.hint}
+                      value={form[item.key]}
+                      uploading={uploadingField === item.key}
+                      onFileChange={handleUpload(item.key)}
+                      required
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+        </div>
+
+        {/* ════ STICKY SAVE BUTTON ════ */}
       </div>
       <div className="sticky bottom-0 z-10 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-lg backdrop-blur">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-medium text-gray-900">Lưu thay đổi</p>
-            <p className="text-xs text-gray-500">Bất kỳ thay đổi nào sẽ được gửi cho admin để xác minh lại.</p>
+            <p className="text-xs text-gray-500">
+              Bất kỳ thay đổi nào sẽ được gửi cho admin để xác minh lại.
+            </p>
           </div>
           <button
             type="button"
@@ -609,7 +742,9 @@ function StatCard({ label, value }) {
 function MetaItem({ label, value }) {
   return (
     <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-gray-400">{label}</p>
+      <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+        {label}
+      </p>
       <p className="mt-1 text-sm font-medium text-gray-800">{value}</p>
     </div>
   );
@@ -627,7 +762,9 @@ function MetaStack({ label, value }) {
 function Field({ label, error, ...props }) {
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-medium text-gray-700">{label}</label>
+      <label className="mb-1.5 block text-sm font-medium text-gray-700">
+        {label}
+      </label>
       <input
         {...props}
         className={`w-full rounded-xl border px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 transition ${
@@ -644,8 +781,12 @@ function Field({ label, error, ...props }) {
 function ReadOnlyField({ label, value }) {
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-medium text-gray-700">{label}</label>
-      <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">{value}</div>
+      <label className="mb-1.5 block text-sm font-medium text-gray-700">
+        {label}
+      </label>
+      <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+        {value}
+      </div>
     </div>
   );
 }
@@ -653,7 +794,9 @@ function ReadOnlyField({ label, value }) {
 function TextArea({ label, error, hint, ...props }) {
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-medium text-gray-700">{label}</label>
+      <label className="mb-1.5 block text-sm font-medium text-gray-700">
+        {label}
+      </label>
       <textarea
         {...props}
         className={`w-full resize-none rounded-xl border px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 transition ${
@@ -692,7 +835,13 @@ function UploadCard({ label, hint, value, uploading, onFileChange, required }) {
           ) : null}
         </div>
         <label className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
-          <input type="file" accept="image/*" className="hidden" onChange={onFileChange} disabled={uploading} />
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={onFileChange}
+            disabled={uploading}
+          />
           {uploading ? "Đang tải..." : value ? "Thay đổi" : "Tải ảnh"}
         </label>
       </div>
@@ -702,7 +851,12 @@ function UploadCard({ label, hint, value, uploading, onFileChange, required }) {
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
             <img src={value} alt={label} className="h-32 w-full object-cover" />
           </div>
-          <a href={value} target="_blank" rel="noreferrer" className="inline-block text-xs font-medium text-brand-dark hover:underline">
+          <a
+            href={value}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-block text-xs font-medium text-brand-dark hover:underline"
+          >
             Xem ảnh gốc →
           </a>
         </div>

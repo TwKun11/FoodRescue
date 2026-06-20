@@ -457,7 +457,7 @@ export default function BecomeSellerPage() {
                 disabled={locating}
                 className="inline-flex items-center justify-center rounded-xl border border-emerald-200 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-60"
               >
-                {locating ? "Đang lấy vị trí..." : "ấy vị trí hiện tại"}
+                {locating ? "Đang lấy vị trí..." : "Lấy vị trí hiện tại"}
               </button>
             </div>
             <Section title="Thông tin cửa hàng">
@@ -612,8 +612,15 @@ export default function BecomeSellerPage() {
                   className="mt-1 h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
                 />
                 <span>
-                  Tôi đã đọc, hiểu và đồng ý với điều khoản sử dụng dành cho nhà
-                  bán hàng trên FoodRescue.
+                  Tôi đã đọc, hiểu và đồng ý với{" "}
+                  <Link
+                    href="/terms"
+                    target="_blank"
+                    className="font-medium text-emerald-700 underline hover:text-emerald-800"
+                  >
+                    Điều khoản sử dụng dành cho nhà bán hàng
+                  </Link>{" "}
+                  trên FoodRescue.
                 </span>
               </label>
             </Section>

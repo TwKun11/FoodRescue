@@ -287,6 +287,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
         status: form.status,
         ...(imageUrls.length > 0 && { imageUrls }),
       };
+      const requestedSlug = payload.slug;
 
       let res;
       if (isEdit) {
@@ -308,9 +309,14 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
       }
 
       if (res.ok) {
+        const savedProduct = res.data?.data;
+        if (savedProduct?.slug) {
+          setForm((prev) => ({ ...prev, slug: savedProduct.slug }));
+        }
+
         // For new products: add the initial variant and inventory batch before closing
         if (!isEdit) {
-          const productId = res.data?.data?.id;
+          const productId = savedProduct?.id;
           if (productId) {
             const vCode = initVariant.variantCode || genVarCode();
             const varRes = await apiSellerAddVariant(productId, {
@@ -350,7 +356,12 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
             }
           }
         }
-        onSuccess?.(res.data?.data, isEdit ? "edit" : "create");
+        const finalSlug = savedProduct?.slug;
+        onSuccess?.(savedProduct, isEdit ? "edit" : "create", {
+          slugChanged: Boolean(finalSlug && requestedSlug && finalSlug !== requestedSlug),
+          requestedSlug,
+          finalSlug,
+        });
       } else {
         setError(res.data?.message || "Có lỗi xảy ra");
       }
@@ -606,6 +617,9 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
             placeholder="tu-dong-tao-tu-ten"
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
           />
+          <p className="text-xs text-gray-400 mt-1">
+            Backend sẽ tự thêm hậu tố nếu slug đã tồn tại, ví dụ: banh-mi-2.
+          </p>
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Danh mục *</label>

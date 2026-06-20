@@ -22,8 +22,6 @@ public class CreateProductRequest {
 
     @NotBlank(message = "Tên sản phẩm không được để trống")
     private String name;
-
-    @NotBlank(message = "Slug không được để trống")
     private String slug;
 
     private String shortDescription;

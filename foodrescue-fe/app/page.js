@@ -48,7 +48,7 @@ const DEMO_STATS = [
   { value: "50+", label: "Cửa hàng quan tâm", icon: StoreIcon },
   { value: "1k+", label: "Sản phẩm được đăng thử nghiệm", icon: BasketIcon },
   { value: "500+", label: "Người dùng tiếp cận", icon: UsersIcon },
-  { value: "0.5t", label: "Thực phẩm có cơ hội được cứu", icon: SproutIcon },
+  { value: "500kg", label: "Thực phẩm có cơ hội được cứu", icon: SproutIcon },
 ];
 
 const BUYER_STEPS = [

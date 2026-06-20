@@ -37,12 +37,40 @@ export default function Header() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [unusedVoucherCount, setUnusedVoucherCount] = useState(0);
+  const [activeNavId, setActiveNavId] = useState("");
   const dropdownRef = useRef(null);
 
   const isHome = pathname === "/";
   const transparent = isHome && !scrolled;
   const displayName = user?.fullName?.trim() || user?.email || "Bạn";
 
+  const isNavActive = (item) => {
+    if (item.href) {
+      return pathname === item.href || pathname.startsWith(`${item.href}/`);
+    }
+    return isHome && activeNavId === item.id;
+  };
+
+  const getNavClassName = (active) =>
+    [
+      "relative pb-1 transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:rounded-full after:bg-emerald-500 after:transition-all after:duration-300",
+      active ? "after:w-full" : "after:w-0 hover:after:w-full",
+      transparent
+        ? active
+          ? "text-white after:bg-[#33FF99]"
+          : "text-white/85 hover:text-white after:bg-[#33FF99]"
+        : active
+          ? "text-emerald-800"
+          : "text-gray-600 hover:text-emerald-800",
+    ].join(" ");
+
+  const getMobileNavClassName = (active) =>
+    [
+      "border-l-4 py-1 pl-3 text-left transition-colors",
+      active
+        ? "border-emerald-500 text-emerald-800"
+        : "border-transparent text-gray-700 hover:border-emerald-200 hover:text-emerald-800",
+    ].join(" ");
   useEffect(() => {
     setMounted(true);
     setUser(readUserFromStorage());
@@ -83,6 +111,22 @@ export default function Header() {
       );
   }, [user, pathname]);
 
+
+  useEffect(() => {
+    if (!isHome) {
+      setActiveNavId("");
+      return;
+    }
+
+    const syncActiveNav = () => {
+      const hashId = window.location.hash.replace("#", "");
+      setActiveNavId(hashId || "home");
+    };
+
+    syncActiveNav();
+    window.addEventListener("hashchange", syncActiveNav);
+    return () => window.removeEventListener("hashchange", syncActiveNav);
+  }, [isHome]);
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60);
     onScroll();
@@ -120,6 +164,18 @@ export default function Header() {
   };
 
   const scrollToSection = (sectionId) => {
+    setActiveNavId(sectionId);
+
+    if (sectionId === "home") {
+      if (pathname !== "/") {
+        router.push("/");
+        return;
+      }
+      window.history.replaceState(null, "", "/");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
     if (pathname !== "/") {
       router.push(`/#${sectionId}`);
       return;
@@ -129,6 +185,7 @@ export default function Header() {
 
     if (!element) return;
 
+    window.history.replaceState(null, "", `#${sectionId}`);
     element.scrollIntoView({
       behavior: "smooth",
       block: "start",
@@ -166,16 +223,15 @@ export default function Header() {
         </Link>
 
         <nav className="hidden items-center gap-5 text-sm font-semibold md:flex">
-          {NAV_ITEMS.map((item) =>
-            item.href ? (
+          {NAV_ITEMS.map((item) => {
+            const active = isNavActive(item);
+
+            return item.href ? (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`transition-colors ${
-                  transparent
-                    ? "text-white/85 hover:text-white"
-                    : "text-gray-600 hover:text-emerald-800"
-                }`}
+                className={getNavClassName(active)}
+                aria-current={active ? "page" : undefined}
               >
                 {item.label}
               </Link>
@@ -184,16 +240,13 @@ export default function Header() {
                 key={item.id}
                 type="button"
                 onClick={() => scrollToSection(item.id)}
-                className={`transition-colors ${
-                  transparent
-                    ? "text-white/85 hover:text-white"
-                    : "text-gray-600 hover:text-emerald-800"
-                }`}
+                className={getNavClassName(active)}
+                aria-current={active ? "page" : undefined}
               >
                 {item.label}
               </button>
-            ),
-          )}
+            );
+          })}
         </nav>
 
         <div className="flex shrink-0 items-center gap-3">
@@ -341,12 +394,16 @@ export default function Header() {
 
       {menuOpen && (
         <nav className="flex flex-col gap-3 border-t border-gray-100 bg-white px-4 py-4 text-sm font-semibold text-gray-700 md:hidden">
-          {NAV_ITEMS.map((item) =>
-            item.href ? (
+          {NAV_ITEMS.map((item) => {
+            const active = isNavActive(item);
+
+            return item.href ? (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setMenuOpen(false)}
+                className={getMobileNavClassName(active)}
+                aria-current={active ? "page" : undefined}
               >
                 {item.label}
               </Link>
@@ -358,12 +415,13 @@ export default function Header() {
                   scrollToSection(item.id);
                   setMenuOpen(false);
                 }}
-                className="text-left"
+                className={getMobileNavClassName(active)}
+                aria-current={active ? "page" : undefined}
               >
                 {item.label}
               </button>
-            ),
-          )}
+            );
+          })}
           <Link href="/cart" onClick={() => setMenuOpen(false)}>
             Giỏ hàng ({cartCount})
           </Link>
