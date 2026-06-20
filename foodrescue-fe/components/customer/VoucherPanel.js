@@ -14,14 +14,16 @@ export default function VoucherPanel({
 }) {
   return (
     <div className="mt-4 rounded-2xl border border-gray-100 bg-white p-4">
-      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-brand-dark">Voucher ap dung</label>
+      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-brand-dark">
+        Voucher áp dụng
+      </label>
 
       <div className="flex gap-2">
         <input
           type="text"
           value={voucherCode}
           onChange={(event) => setVoucherCode(event.target.value.toUpperCase())}
-          placeholder="Nhap ma voucher"
+          placeholder="Nhập mã voucher"
           className={`flex-1 rounded-xl border px-3 py-2 text-sm uppercase transition focus:outline-none focus:ring-2 ${
             voucherPreview.error
               ? "border-red-300 bg-red-50 text-red-700 focus:border-red-400 focus:ring-red-200"
@@ -36,7 +38,7 @@ export default function VoucherPanel({
           disabled={!voucherCodeTrimmed && !voucherPreview.loading}
           className="rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Xoa
+          Xóa
         </button>
       </div>
 
@@ -53,41 +55,48 @@ export default function VoucherPanel({
           }`}
         >
           {voucherPreview.loading
-            ? `Dang kiem tra ma ${voucherCodeTrimmed}...`
+            ? `Đang kiểm tra mã ${voucherCodeTrimmed}...`
             : voucherPreview.error
               ? voucherPreview.error
               : voucherDiscount > 0
-                ? `Ap dung thanh cong. Giam ${formatCurrency(voucherDiscount)}`
-                : "Ma voucher chua tao ra giam gia hop le."}
+                ? `Áp dụng thành công. Giảm ${formatCurrency(voucherDiscount)}`
+                : "Mã voucher không hợp lệ hoặc không áp dụng được cho đơn hàng này."}
         </div>
       ) : null}
 
       <p className="mt-2 text-xs text-gray-500">
         {voucherOptionsLoading
-          ? "Dang tim voucher phu hop voi san pham va dia chi da chon..."
+          ? "Đang tìm voucher phù hợp với sản phẩm và địa chỉ đã chọn..."
           : myVouchers.length > 0
-            ? `Da nhan ${myVouchers.length} voucher, co ${eligibleVouchers.length} voucher du dieu kien.`
-            : "Ban chua nhan voucher nao."}
+            ? `Đã nhận ${myVouchers.length} voucher, có ${eligibleVouchers.length} voucher đủ điều kiện.`
+            : "Bạn chưa nhận voucher nào."}
       </p>
 
-      {voucherLoadHint ? <p className="mt-1 text-xs text-amber-700">{voucherLoadHint}</p> : null}
+      {voucherLoadHint ? (
+        <p className="mt-1 text-xs text-amber-700">{voucherLoadHint}</p>
+      ) : null}
 
       {eligibleVouchers.length > 0 ? (
         <div className="mt-3 flex flex-wrap gap-2">
           {eligibleVouchers.map((voucher) => {
-            const active = String(voucher.code).toUpperCase() === voucherCodeTrimmed.toUpperCase();
+            const active =
+              String(voucher.code).toUpperCase() ===
+              voucherCodeTrimmed.toUpperCase();
+
             return (
               <button
                 key={voucher.code}
                 type="button"
-                onClick={() => setVoucherCode(String(voucher.code || "").toUpperCase())}
+                onClick={() =>
+                  setVoucherCode(String(voucher.code || "").toUpperCase())
+                }
                 className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                   active
                     ? "border-emerald-300 bg-emerald-100 text-emerald-800"
                     : "border-gray-200 bg-white text-gray-700 hover:border-emerald-200 hover:bg-emerald-50"
                 }`}
               >
-                {voucher.code} - giam {formatCurrency(voucher.discountAmount)}
+                {voucher.code} - giảm {formatCurrency(voucher.discountAmount)}
               </button>
             );
           })}

@@ -5,14 +5,14 @@ import toast from "react-hot-toast";
 import { apiCreateViolationReport } from "@/lib/api";
 
 const TYPE_OPTIONS = [
-  { value: "SPOILED_FOOD", label: "Thuc pham hong" },
-  { value: "MISDESCRIPTION", label: "Sai mo ta" },
+  { value: "SPOILED_FOOD", label: "Thực phẩm hỏng" },
+  { value: "MISDESCRIPTION", label: "Sai mô tả" },
 ];
 
 export default function ViolationReportForm({
   productId,
   reviewId = null,
-  triggerLabel = "Bao cao vi pham",
+  triggerLabel = "Báo cáo vi phạm",
   compact = false,
   onSuccess,
 }) {
@@ -31,11 +31,11 @@ export default function ViolationReportForm({
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!productId) {
-      toast.error("Khong xac dinh duoc san pham de bao cao.");
+      toast.error("Không xác định được sản phẩm để báo cáo.");
       return;
     }
     if (!description.trim()) {
-      toast.error("Vui long nhap noi dung bao cao.");
+      toast.error("Vui lòng nhập nội dung báo cáo.");
       return;
     }
 
@@ -50,11 +50,11 @@ export default function ViolationReportForm({
       });
 
       if (!res.ok) {
-        toast.error(res.data?.message || "Gui bao cao that bai.");
+        toast.error(res.data?.message || "Gửi báo cáo thất bại.");
         return;
       }
 
-      toast.success("Da gui bao cao. Admin se xu ly som.");
+      toast.success("Đã gửi báo cáo. Admin sẽ xử lý sớm.");
       setOpen(false);
       reset();
       if (typeof onSuccess === "function") onSuccess();
@@ -79,7 +79,7 @@ export default function ViolationReportForm({
         <div className="fixed inset-0 z-50 bg-black/40 p-4 flex items-center justify-center" onClick={() => setOpen(false)}>
           <div className="bg-white w-full max-w-lg rounded-2xl shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-base font-bold text-gray-900">Gui bao cao vi pham</h3>
+              <h3 className="text-base font-bold text-gray-900">Gửi báo cáo vi phạm</h3>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
@@ -91,7 +91,7 @@ export default function ViolationReportForm({
 
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
               <div>
-                <label className="block text-sm text-gray-600 mb-1">Loai bao cao</label>
+                <label className="block text-sm text-gray-600 mb-1">Loại báo cáo</label>
                 <select
                   value={type}
                   onChange={(e) => setType(e.target.value)}
@@ -106,18 +106,18 @@ export default function ViolationReportForm({
               </div>
 
               <div>
-                <label className="block text-sm text-gray-600 mb-1">Noi dung</label>
+                <label className="block text-sm text-gray-600 mb-1">Nội dung</label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={4}
-                  placeholder="Mo ta van de ban gap phai..."
+                  placeholder="Mô tả vấn đề bạn gặp phải..."
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-gray-600 mb-1">Link bang chung (tuy chon)</label>
+                <label className="block text-sm text-gray-600 mb-1">Link bằng chứng (tùy chọn)</label>
                 <input
                   value={evidenceUrl}
                   onChange={(e) => setEvidenceUrl(e.target.value)}
@@ -139,7 +139,7 @@ export default function ViolationReportForm({
                   disabled={loading}
                   className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-60"
                 >
-                  {loading ? "Dang gui..." : "Gui bao cao"}
+                  {loading ? "Đang gửi..." : "Gửi báo cáo"}
                 </button>
               </div>
             </form>

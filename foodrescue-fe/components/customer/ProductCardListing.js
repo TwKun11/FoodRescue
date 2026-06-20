@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import CountdownTimer from "@/components/customer/CountdownTimer";
+import { CART_UPDATED_EVENT, readCart } from "@/lib/cart";
 
 /**
  * ProductCardListing - Thẻ sản phẩm cho trang danh sách: ảnh, tên, sao, hạn dùng, countdown, giá, địa chỉ, giỏ hàng.
@@ -9,6 +11,7 @@ import CountdownTimer from "@/components/customer/CountdownTimer";
 export default function ProductCardListing({ product, onAddToCart }) {
   const {
     id = "1",
+    variantId = null,
     name = "Sản phẩm",
     image = "/images/products/raucai.jpg",
     originalPrice = 0,
@@ -16,6 +19,7 @@ export default function ProductCardListing({ product, onAddToCart }) {
     discountPercent = 0,
     expiryLabel = "",
     expiryAt = null,
+    shelfLifeLabel = "",
     storeName = "",
     address = "",
     province = "",
@@ -29,12 +33,40 @@ export default function ProductCardListing({ product, onAddToCart }) {
   const hasExpiry = !!expiryAt;
   const formatPrice = (n) => `${Number(n).toLocaleString("vi-VN")} đồng`;
   const displayRating = Number(rating) || 0;
+  const [cartQuantity, setCartQuantity] = useState(0);
+
+  useEffect(() => {
+    if (variantId == null) {
+      setCartQuantity(0);
+      return;
+    }
+
+    const syncCartQuantity = () => {
+      const cartItem = readCart().find((item) => item.variantId === Number(variantId));
+      setCartQuantity(Number(cartItem?.quantity || 0));
+    };
+
+    syncCartQuantity();
+    window.addEventListener(CART_UPDATED_EVENT, syncCartQuantity);
+    window.addEventListener("storage", syncCartQuantity);
+    return () => {
+      window.removeEventListener(CART_UPDATED_EVENT, syncCartQuantity);
+      window.removeEventListener("storage", syncCartQuantity);
+    };
+  }, [variantId]);
 
   const handleAddToCart = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (typeof onAddToCart === "function") onAddToCart(product);
-    else window.location.href = `/products/${id}`;
+    if (typeof onAddToCart === "function") {
+      const nextCart = onAddToCart(product);
+      if (Array.isArray(nextCart) && variantId != null) {
+        const nextItem = nextCart.find((item) => item.variantId === Number(variantId));
+        setCartQuantity(Number(nextItem?.quantity || 0));
+      }
+    } else {
+      window.location.href = `/products/${id}`;
+    }
   };
 
   return (
@@ -79,6 +111,9 @@ export default function ProductCardListing({ product, onAddToCart }) {
         {expiryLabel && !isOutOfStock && (
           <p className="text-xs text-slate-500 mb-1">{expiryLabel}</p>
         )}
+        {shelfLifeLabel && !isOutOfStock && (
+          <p className="text-xs text-slate-500 mb-1">{shelfLifeLabel}</p>
+        )}
         {hasExpiry && !isOutOfStock && (
           <div className="mb-2">
             <CountdownTimer targetTime={expiryAt} variant="default" />
@@ -109,10 +144,15 @@ export default function ProductCardListing({ product, onAddToCart }) {
             <button
               type="button"
               onClick={handleAddToCart}
-              className="flex items-center justify-center size-10 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 active:scale-95 transition-all shadow-md shadow-emerald-900/20"
+              className="relative flex size-10 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-md shadow-emerald-900/20 transition-all hover:bg-emerald-700 active:scale-95"
               aria-label="Thêm vào giỏ hàng"
             >
               <CartIcon className="w-5 h-5" />
+              {cartQuantity > 0 && (
+                <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-amber-400 px-1 text-[10px] font-black leading-none text-gray-950 shadow-sm">
+                  +{cartQuantity > 99 ? "99" : cartQuantity}
+                </span>
+              )}
             </button>
           )}
         </div>

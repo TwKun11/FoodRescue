@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Header from "@/components/common/Header";
 import Footer from "@/components/common/Footer";
 import ScrollReveal from "@/components/common/ScrollReveal";
@@ -98,8 +99,10 @@ function mapHomepageDeal(product) {
   const variant = product?.variants?.find((item) => item.isDefault) || product?.variants?.[0] || {};
   const pricing = resolveVariantPricing(variant);
   const stock = Number(variant.stockAvailable ?? variant.stockQuantity ?? 0);
-  const shelfLifeDays = Number(product?.shelfLifeDays ?? 0);
-  const timeLabel = shelfLifeDays > 0 ? `Còn ${shelfLifeDays} ngày` : "Còn trong hôm nay";
+  const dealEndsAt = product?.dealEndsAt;
+  const dealTimeLabel = dealEndsAt
+    ? `Ưu đãi đến ${new Date(dealEndsAt).toLocaleDateString("vi-VN")}`
+    : "Ưu đãi đang áp dụng";
   const area = product?.sellerPickupAddress || product?.originProvince || "Chưa cập nhật khu vực";
 
   return {
@@ -115,7 +118,7 @@ function mapHomepageDeal(product) {
     stock,
     status: product?.status,
     label: stock <= 0 ? "Hết hàng" : pricing.discountPercent > 0 ? `Giảm ${pricing.discountPercent}%` : "Deal đang bán",
-    info: [product?.sellerName, stock > 0 ? timeLabel : "Hết hàng"].filter(Boolean).join(" · "),
+    info: [product?.sellerName, stock > 0 ? dealTimeLabel : "Hết hàng"].filter(Boolean).join(" · "),
   };
 }
 
@@ -128,6 +131,9 @@ function isDisplayableDeal(product) {
 }
 
 export default function HomePage() {
+  const router = useRouter();
+  const [authChecked, setAuthChecked] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   const [audience, setAudience] = useState("buyer");
   const [form, setForm] = useState(EMPTY_INTEREST_FORM);
   const [errors, setErrors] = useState({});
@@ -136,6 +142,26 @@ export default function HomePage() {
   const [dealsLoading, setDealsLoading] = useState(true);
 
   useEffect(() => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      const rawUser = localStorage.getItem("user");
+      const user = rawUser ? JSON.parse(rawUser) : null;
+
+      if (token && user?.role === "SELLER") {
+        setRedirecting(true);
+        router.replace("/store");
+        return;
+      }
+    } catch {
+      // Ignore malformed localStorage data and keep showing the public homepage.
+    }
+
+    setAuthChecked(true);
+  }, [router]);
+
+  useEffect(() => {
+    if (!authChecked || redirecting) return;
+
     let cancelled = false;
     setDealsLoading(true);
     apiGetProducts({ sort: "discount_desc", page: 0, size: 6 })
@@ -151,11 +177,19 @@ export default function HomePage() {
       .finally(() => {
         if (!cancelled) setDealsLoading(false);
       });
+
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [authChecked, redirecting]);
 
+  if (!authChecked || redirecting) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#f8fdf9]">
+        <p className="text-sm font-semibold text-emerald-800">Đang chuyển hướng...</p>
+      </div>
+    );
+  }
   const updateField = (field) => (event) => {
     const value = event.target.value;
     setForm((prev) => ({
@@ -620,14 +654,6 @@ export default function HomePage() {
       </main>
 
       <Footer />
-
-      <button
-        type="button"
-        aria-label="Chat với Food Rescue"
-        className="fixed bottom-4 right-4 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-emerald-700 text-white shadow-lg transition hover:bg-emerald-800 sm:bottom-6 sm:right-6 sm:h-12 sm:w-12"
-      >
-        <ChatIcon className="h-5 w-5" />
-      </button>
     </div>
   );
 }

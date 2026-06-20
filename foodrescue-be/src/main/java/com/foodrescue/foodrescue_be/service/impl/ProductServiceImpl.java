@@ -95,6 +95,7 @@ public class ProductServiceImpl implements ProductService {
                 .originCountry(req.getOriginCountry())
                 .originProvince(req.getOriginProvince())
                 .shelfLifeDays(req.getShelfLifeDays())
+                .dealEndsAt(req.getDealEndsAt())
                 .minPreparationMinutes(req.getMinPreparationMinutes())
                 .status(parseEnum(Product.ProductStatus.class, req.getStatus(), Product.ProductStatus.draft))
                 .isActive(true)
@@ -134,6 +135,7 @@ public class ProductServiceImpl implements ProductService {
         if (req.getOriginCountry() != null) product.setOriginCountry(req.getOriginCountry());
         if (req.getOriginProvince() != null) product.setOriginProvince(req.getOriginProvince());
         if (req.getShelfLifeDays() != null) product.setShelfLifeDays(req.getShelfLifeDays());
+        product.setDealEndsAt(req.getDealEndsAt());
         if (req.getMinPreparationMinutes() != null) product.setMinPreparationMinutes(req.getMinPreparationMinutes());
         if (req.getStatus() != null) product.setStatus(parseEnum(Product.ProductStatus.class, req.getStatus(), product.getStatus()));
 

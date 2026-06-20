@@ -108,7 +108,7 @@ function mapProductFromApi(p) {
   const defaultSku = p.variants?.find((s) => s.isDefault) || p.variants?.[0];
   const pricing = resolveVariantPricing(defaultSku);
   const shelfDays = p.shelfLifeDays ?? 0;
-  const expiryAt = shelfDays ? new Date(Date.now() + shelfDays * 24 * 60 * 60 * 1000).toISOString() : null;
+  const dealEndsAt = p.dealEndsAt || null;
   const address = p.sellerPickupAddress || [p.originProvince].filter(Boolean).join(", ") || "";
   return {
     id: String(p.id),
@@ -119,8 +119,9 @@ function mapProductFromApi(p) {
     discountPrice: pricing.discountPrice,
     discountPercent: pricing.discountPercent,
     storeName: p.sellerName || "",
-    expiryAt,
-    expiryLabel: shelfDays ? `Hết hạn trong: ${shelfDays} ngày` : "",
+    expiryAt: dealEndsAt,
+    expiryLabel: dealEndsAt ? "Ưu đãi kết thúc sau" : "",
+    shelfLifeLabel: shelfDays ? `Hạn sử dụng: ${shelfDays} ngày` : "",
     rating: p.sellerRatingAvg != null ? Number(p.sellerRatingAvg) : 0,
     categoryId: p.categoryId,
     address,
@@ -340,7 +341,7 @@ export default function ProductsPage() {
       toast.error("Sản phẩm đã hết hàng.");
       return;
     }
-    addItemToCart({
+    const nextCart = addItemToCart({
       variantId: product.variantId,
       productId: product.id,
       name: product.name,
@@ -357,6 +358,7 @@ export default function ProductsPage() {
       duration: 3500,
       icon: "🛒",
     });
+    return nextCart;
   };
 
   return (
@@ -580,11 +582,6 @@ export default function ProductsPage() {
               placeholder="Tìm kiếm sản phẩm, cửa hàng..."
               className="w-full pl-10 pr-10 py-2.5 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-400 text-sm"
             />
-            {search && (
-              <button type="button" onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            )}
           </div>
           <button type="button" onClick={clearFilters} className="text-sm font-medium text-emerald-600 hover:text-emerald-700 hover:underline shrink-0">
             Xóa bộ lọc

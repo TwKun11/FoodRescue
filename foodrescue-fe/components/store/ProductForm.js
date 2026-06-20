@@ -114,6 +114,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
     sellMode: initialData?.sellMode ?? "by_unit",
     storageType: initialData?.storageType ?? "ambient",
     shelfLifeDays: initialData?.shelfLifeDays ?? "",
+    dealEndsAt: initialData?.dealEndsAt ? String(initialData.dealEndsAt).slice(0, 16) : "",
     minPreparationMinutes: initialData?.minPreparationMinutes ?? "",
     originCountry: initialData?.originCountry ?? "",
     originProvince: initialData?.originProvince ?? "",
@@ -179,6 +180,9 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
         break;
       case 'shelfLifeDays':
         if (value && (isNaN(value) || Number(value) < 0)) error = 'Hạn sử dụng phải là số không âm';
+        break;
+      case 'dealEndsAt':
+        if (value && new Date(value).toString() === 'Invalid Date') error = 'Thời điểm kết thúc ưu đãi không hợp lệ';
         break;
       case 'minPreparationMinutes':
         if (value && (isNaN(value) || Number(value) < 0)) error = 'Thời gian chuẩn bị phải là số không âm';
@@ -276,6 +280,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
         sellMode: form.sellMode,
         storageType: form.storageType,
         shelfLifeDays: form.shelfLifeDays ? Number(form.shelfLifeDays) : null,
+        dealEndsAt: form.dealEndsAt || null,
         minPreparationMinutes: form.minPreparationMinutes ? Number(form.minPreparationMinutes) : null,
         originCountry: form.originCountry || null,
         originProvince: form.originProvince || null,
@@ -761,6 +766,24 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
           )}
           <p className="text-xs text-gray-400 mt-1">Thời gian tối thiểu cần để chuẩn bị đơn hàng</p>
         </div>
+      <div className="sm:col-span-2">
+        <label className="block text-xs font-medium text-gray-600 mb-1">Ưu đãi kết thúc lúc</label>
+        <input
+          type="datetime-local"
+          value={form.dealEndsAt}
+          onChange={set("dealEndsAt")}
+          onBlur={handleFieldBlur("dealEndsAt")}
+          className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition ${
+            fieldErrors.dealEndsAt
+              ? 'border-red-500 focus:ring-red-300 bg-red-50'
+              : 'border-gray-200 focus:ring-green-300'
+          }`}
+        />
+        {fieldErrors.dealEndsAt && (
+          <p className="text-xs text-red-500 mt-1 font-medium">✗ {fieldErrors.dealEndsAt}</p>
+        )}
+        <p className="text-xs text-gray-400 mt-1">Thời điểm kết thúc chương trình ưu đãi/giá giảm. Khác với hạn sử dụng sản phẩm.</p>
+      </div>
       </div>
 
       {/* Mô tả ngắn */}

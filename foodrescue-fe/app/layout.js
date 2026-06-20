@@ -7,6 +7,11 @@ export const metadata = {
   title: "Food Rescue - Tìm thực phẩm giảm giá gần bạn",
   description:
     "Food Rescue kết nối người mua với cửa hàng có sản phẩm giảm giá/cuối ngày trong giai đoạn thử nghiệm tại Đà Nẵng.",
+  icons: {
+    icon: "/images/logo.png",
+    shortcut: "/images/logo.png",
+    apple: "/images/logo.png",
+  },
 };
 
 export default function RootLayout({ children }) {

@@ -62,6 +62,11 @@ export default function Footer() {
                 Về Food Rescue
               </Link>
             </li>
+            <li>
+              <Link href="/terms" className="transition hover:text-brand">
+                Trung tâm hỗ trợ FoodRescue
+              </Link>
+            </li>
             <li>Đang thử nghiệm tại trung tâm Đà Nẵng</li>
             <li>foodrescue888@gmail.com</li>
           </ul>

@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -40,6 +41,7 @@ public class CreateProductRequest {
     private String originCountry;
     private String originProvince;
     private Integer shelfLifeDays;
+    private LocalDateTime dealEndsAt;
     private Integer minPreparationMinutes;
     private String status;
 

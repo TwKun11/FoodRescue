@@ -3,6 +3,7 @@ package com.foodrescue.foodrescue_be.dto.request;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -21,6 +22,7 @@ public class UpdateProductRequest {
     private String originCountry;
     private String originProvince;
     private Integer shelfLifeDays;
+    private LocalDateTime dealEndsAt;
     private Integer minPreparationMinutes;
     private String status;
     private List<String> imageUrls;

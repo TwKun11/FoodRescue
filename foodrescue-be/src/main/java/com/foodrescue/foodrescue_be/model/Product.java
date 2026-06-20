@@ -71,6 +71,9 @@ public class Product {
     @Column(name = "shelf_life_days")
     private Integer shelfLifeDays;
 
+    @Column(name = "deal_ends_at")
+    private LocalDateTime dealEndsAt;
+
     @Column(name = "min_preparation_minutes")
     private Integer minPreparationMinutes;
 
