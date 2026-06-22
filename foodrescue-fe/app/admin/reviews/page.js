@@ -104,8 +104,8 @@ export default function AdminReviewsPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Quan ly danh gia</h1>
-        <p className="text-sm text-gray-500 mt-1">Xoa review spam va gan co review tieu cuc bat thuong.</p>
+        <h1 className="text-2xl font-bold text-gray-900">Quản lý đánh giá</h1>
+        <p className="text-sm text-gray-500 mt-1">Xóa review spam và gắn cờ review tiêu cực bất thường.</p>
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-wrap items-center gap-2">
@@ -115,7 +115,7 @@ export default function AdminReviewsPage() {
             setSearch(e.target.value);
             setPage(0);
           }}
-          placeholder="Tim theo noi dung, san pham, email..."
+          placeholder="Tìm theo nội dung, sản phẩm, email..."
           className="min-w-[230px] flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm"
         />
         <select
@@ -126,7 +126,7 @@ export default function AdminReviewsPage() {
           }}
           className="border border-gray-200 rounded-xl px-3 py-2 text-sm"
         >
-          <option value="">Min sao</option>
+          <option value="">Sao tối thiểu</option>
           <option value="1">1</option>
           <option value="2">2</option>
           <option value="3">3</option>
@@ -141,7 +141,7 @@ export default function AdminReviewsPage() {
           }}
           className="border border-gray-200 rounded-xl px-3 py-2 text-sm"
         >
-          <option value="">Max sao</option>
+          <option value="">Sao tối đa</option>
           <option value="1">1</option>
           <option value="2">2</option>
           <option value="3">3</option>
@@ -156,26 +156,26 @@ export default function AdminReviewsPage() {
           }}
           className="border border-gray-200 rounded-xl px-3 py-2 text-sm"
         >
-          <option value="all">Tat ca</option>
-          <option value="spam">Chi spam</option>
-          <option value="negative">Chi da gan co tieu cuc</option>
+          <option value="all">Tất cả</option>
+          <option value="spam">Chỉ spam</option>
+          <option value="negative">Chỉ đã gắn cờ tiêu cực</option>
         </select>
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         {isPending ? (
-          <div className="p-10 text-center text-gray-400">Dang tai...</div>
+          <div className="p-10 text-center text-gray-400">Đang tải...</div>
         ) : list.length === 0 ? (
-          <div className="p-10 text-center text-gray-500">Khong co review phu hop.</div>
+          <div className="p-10 text-center text-gray-500">Không có review phù hợp.</div>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
               <tr>
-                <th className="px-4 py-3 text-left">Danh gia</th>
-                <th className="px-4 py-3 text-left">Nguoi dung</th>
-                <th className="px-4 py-3 text-left">San pham / Seller</th>
-                <th className="px-4 py-3 text-left">Trang thai</th>
-                <th className="px-4 py-3 text-right">Thao tac</th>
+                <th className="px-4 py-3 text-left">Đánh giá</th>
+                <th className="px-4 py-3 text-left">Người dùng</th>
+                <th className="px-4 py-3 text-left">Sản phẩm / Seller</th>
+                <th className="px-4 py-3 text-left">Trạng thái</th>
+                <th className="px-4 py-3 text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -185,7 +185,7 @@ export default function AdminReviewsPage() {
                   <tr key={row.id} className="align-top">
                     <td className="px-4 py-3">
                       <p className="font-semibold text-gray-900">#{row.id} · {"★".repeat(Math.max(1, Number(row.rating || 0)))}</p>
-                      <p className="text-gray-700 mt-1 line-clamp-2">{row.comment || "(khong co noi dung)"}</p>
+                      <p className="text-gray-700 mt-1 line-clamp-2">{row.comment || "(không có nội dung)"}</p>
                       <p className="text-xs text-gray-400 mt-1">{fmtDate(row.createdAt)}</p>
                     </td>
                     <td className="px-4 py-3 text-gray-700">
@@ -199,8 +199,8 @@ export default function AdminReviewsPage() {
                     <td className="px-4 py-3">
                       <div className="flex flex-col gap-1">
                         {row.isSpam && <span className="inline-flex w-fit px-2 py-1 rounded-full text-xs bg-red-100 text-red-700">Spam</span>}
-                        {row.isNegativeFlagged && <span className="inline-flex w-fit px-2 py-1 rounded-full text-xs bg-amber-100 text-amber-700">Da gan co tieu cuc</span>}
-                        {row.unusualNegative && <span className="inline-flex w-fit px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">Tieu cuc bat thuong</span>}
+                        {row.isNegativeFlagged && <span className="inline-flex w-fit px-2 py-1 rounded-full text-xs bg-amber-100 text-amber-700">Đã gắn cờ tiêu cực</span>}
+                        {row.unusualNegative && <span className="inline-flex w-fit px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">Tiêu cực bất thường</span>}
                         {row.moderationNote && <p className="text-xs text-gray-500 line-clamp-2">{row.moderationNote}</p>}
                       </div>
                     </td>
@@ -212,7 +212,7 @@ export default function AdminReviewsPage() {
                           onClick={() => markSpam(row)}
                           className="px-3 py-1.5 rounded-lg border border-red-200 text-red-700 text-xs disabled:opacity-40"
                         >
-                          Danh dau spam
+                          Đánh dấu spam
                         </button>
                         <button
                           type="button"
@@ -220,7 +220,7 @@ export default function AdminReviewsPage() {
                           onClick={() => flagNegative(row)}
                           className="px-3 py-1.5 rounded-lg border border-amber-200 text-amber-700 text-xs disabled:opacity-40"
                         >
-                          Gan co tieu cuc
+                          Gắn cờ tiêu cực
                         </button>
                         <button
                           type="button"
@@ -228,7 +228,7 @@ export default function AdminReviewsPage() {
                           onClick={() => removeReview(row)}
                           className="px-3 py-1.5 rounded-lg bg-gray-900 text-white text-xs disabled:opacity-40"
                         >
-                          Xoa
+                          Xóa
                         </button>
                       </div>
                     </td>
@@ -247,7 +247,7 @@ export default function AdminReviewsPage() {
               onClick={() => setPage((p) => p - 1)}
               className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm disabled:opacity-40"
             >
-              Truoc
+              Trước
             </button>
             <button
               disabled={page >= totalPages - 1}

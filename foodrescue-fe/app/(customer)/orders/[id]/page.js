@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
-import { apiGetOrderDetail } from "@/lib/api";
+import { getAccessToken, apiGetOrderDetail } from "@/lib/api";
 import ViolationReportForm from "@/components/customer/ViolationReportForm";
 
 const STATUS_STEPS = ["pending_payment", "pending", "confirmed", "completed"];
@@ -101,7 +101,7 @@ export default function OrderDetailPage() {
         } else if (res.status === 401) {
           router.replace("/login");
         } else if (!silent) {
-          setError("Khong tim thay don hang.");
+          setError("Không tìm thấy đơn hàng.");
         }
       } finally {
         if (!silent) {
@@ -115,7 +115,7 @@ export default function OrderDetailPage() {
   useEffect(() => {
     const token =
       typeof window !== "undefined"
-        ? localStorage.getItem("accessToken")
+        ? getAccessToken()
         : null;
     if (!token) {
       router.replace("/login");

@@ -10,68 +10,68 @@ import lombok.Setter;
 @Getter
 @Setter
 public class UpdateSellerRequest {
-    @Size(max = 255, message = "Ten cua hang qua dai")
+    @Size(max = 255, message = "Tên cửa hàng quá dài")
     private String shopName;
 
-    @Size(max = 255, message = "Ten phap ly qua dai")
+    @Size(max = 255, message = "Tên pháp lý quá dài")
     private String legalName;
 
-    @Size(max = 100, message = "Loai hinh kinh doanh qua dai")
+    @Size(max = 100, message = "Loại hình kinh doanh quá dài")
     private String businessType;
 
-    @Size(max = 255, message = "Ten nguoi lien he qua dai")
+    @Size(max = 255, message = "Tên người liên hệ quá dài")
     private String contactName;
 
-    @Size(max = 30, message = "So dien thoai qua dai")
-    @Pattern(regexp = "^$|^\\d{10,11}$", message = "So dien thoai phai gom 10 den 11 chu so")
+    @Size(max = 30, message = "Số điện thoại quá dài")
+    @Pattern(regexp = "^$|^\\d{10,11}$", message = "Số điện thoại phải gồm 10 đến 11 chữ số")
     private String phone;
 
-    @Size(max = 1000, message = "Dia chi lay hang qua dai")
+    @Size(max = 1000, message = "Địa chỉ lấy hàng quá dài")
     private String pickupAddress;
 
-    @DecimalMin(value = "-90.0", message = "Vi do khong hop le")
-    @DecimalMax(value = "90.0", message = "Vi do khong hop le")
+    @DecimalMin(value = "-90.0", message = "Vĩ độ không hợp lệ")
+    @DecimalMax(value = "90.0", message = "Vĩ độ không hợp lệ")
     private Double latitude;
 
-    @DecimalMin(value = "-180.0", message = "Kinh do khong hop le")
-    @DecimalMax(value = "180.0", message = "Kinh do khong hop le")
+    @DecimalMin(value = "-180.0", message = "Kinh độ không hợp lệ")
+    @DecimalMax(value = "180.0", message = "Kinh độ không hợp lệ")
     private Double longitude;
 
-    @Size(max = 50, message = "Ma so thue qua dai")
+    @Size(max = 50, message = "Mã số thuế quá dài")
     private String taxCode;
 
-    @Size(max = 100, message = "So giay phep kinh doanh qua dai")
+    @Size(max = 100, message = "Số giấy phép kinh doanh quá dài")
     private String businessLicenseNumber;
 
-    @Size(max = 50, message = "So CCCD/CMND qua dai")
-    @Pattern(regexp = "^$|^\\d{9,20}$", message = "So CCCD/CMND phai gom 9 den 20 chu so")
+    @Size(max = 50, message = "Số CCCD/CMND quá dài")
+    @Pattern(regexp = "^$|^\\d{9,20}$", message = "Số CCCD/CMND phải gồm 9 đến 20 chữ số")
     private String identityNumber;
 
-    @Size(max = 2000, message = "Mo ta khong duoc vuot qua 2000 ky tu")
+    @Size(max = 2000, message = "Mô tả không được vượt quá 2000 ký tự")
     private String description;
 
-    @Size(max = 1000, message = "Link avatar qua dai")
+    @Size(max = 1000, message = "Link avatar quá dài")
     private String avatarUrl;
 
-    @Size(max = 1000, message = "Link anh bia qua dai")
+    @Size(max = 1000, message = "Link ảnh bìa quá dài")
     private String coverUrl;
 
-    @Size(max = 1000, message = "Link anh mat tien qua dai")
+    @Size(max = 1000, message = "Link ảnh mặt tiền quá dài")
     private String storefrontImageUrl;
 
-    @Size(max = 1000, message = "Link anh giay phep qua dai")
+    @Size(max = 1000, message = "Link ảnh giấy phép quá dài")
     private String businessLicenseImageUrl;
 
-    @Size(max = 1000, message = "Link anh CCCD/CMND qua dai")
+    @Size(max = 1000, message = "Link ảnh CCCD/CMND quá dài")
     private String identityCardImageUrl;
 
-    @Size(max = 150, message = "Ten ngan hang qua dai")
+    @Size(max = 150, message = "Tên ngân hàng quá dài")
     private String bankName;
 
-    @Size(max = 255, message = "Ten chu tai khoan qua dai")
+    @Size(max = 255, message = "Tên chủ tài khoản quá dài")
     private String bankAccountName;
 
-    @Size(max = 100, message = "So tai khoan qua dai")
-    @Pattern(regexp = "^$|^\\d{6,30}$", message = "So tai khoan phai gom 6 den 30 chu so")
+    @Size(max = 100, message = "Số tài khoản quá dài")
+    @Pattern(regexp = "^$|^\\d{6,30}$", message = "Số tài khoản phải gồm 6 đến 30 chữ số")
     private String bankAccountNumber;
 }

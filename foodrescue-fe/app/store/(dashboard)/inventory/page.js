@@ -1,8 +1,7 @@
 ﻿"use client";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { apiSellerGetBatches, apiSellerAddBatch, apiSellerGetProducts } from "@/lib/api";
-
+import { getAccessToken, apiSellerGetBatches, apiSellerAddBatch, apiSellerGetProducts } from "@/lib/api";
 function genBatchCode() {
   return `BATCH-${Date.now().toString(36).toUpperCase()}`;
 }
@@ -168,7 +167,7 @@ export default function InventoryPage() {
   }, [router]);
 
   useEffect(() => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+    const token = typeof window !== "undefined" ? getAccessToken() : null;
     if (!token) {
       router.replace("/login");
       return;

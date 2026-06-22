@@ -76,7 +76,7 @@ export default function AddressesPage() {
   }, [router]);
 
   useEffect(() => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+    const token = typeof window !== "undefined" ? getAccessToken() : null;
     if (!token) {
       router.replace("/login");
       return;

@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { apiGetOrderDetail, apiSyncOrderPayment } from "@/lib/api";
-
+import { getAccessToken, apiGetOrderDetail, apiSyncOrderPayment } from "@/lib/api";
 function normalizeStatus(value) {
   return String(value || "")
     .trim()
@@ -19,7 +18,7 @@ export default function PayOSCancelPage() {
   const [order, setOrder] = useState(null);
 
   useEffect(() => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+    const token = typeof window !== "undefined" ? getAccessToken() : null;
     if (!token) {
       router.replace("/login");
       return;

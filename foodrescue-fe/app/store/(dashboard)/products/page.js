@@ -180,10 +180,10 @@ export default function StoreProductsPage() {
     toastTimer.current = setTimeout(() => setToast(null), 4000);
   }, []);
 
-  const openCreate = () => {
+  const openCreate = useCallback(() => {
     setEditingProduct(null);
     setShowForm(true);
-  };
+  }, []);
   const openEdit = (rawProduct) => {
     setConfirmDialog({
       title: "Xác nhận chỉnh sửa sản phẩm",
@@ -337,7 +337,7 @@ export default function StoreProductsPage() {
     if (searchParams?.has("create")) {
       openCreate();
     }
-  }, [searchParams]);
+  }, [openCreate, searchParams]);
 
   const closeConfirmDialog = () => setConfirmDialog(null);
 
@@ -750,7 +750,7 @@ export default function StoreProductsPage() {
           <h1 className="text-xl font-bold text-gray-800">Quản lý sản phẩm</h1>
           <button
             onClick={openCreate}
-            className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+            className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg transition bg-green-500 hover:bg-green-600 text-white"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

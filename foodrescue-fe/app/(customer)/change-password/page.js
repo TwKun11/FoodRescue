@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getApiBaseUrl } from "@/lib/runtime-config";
 
+import { getAccessToken } from "@/lib/api";
 const API_URL = getApiBaseUrl();
 
 function validatePassword(value) {
@@ -29,7 +30,7 @@ export default function ChangePasswordPage() {
   });
 
   useEffect(() => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+    const token = typeof window !== "undefined" ? getAccessToken() : null;
     if (!token) router.replace("/login");
   }, [router]);
 
@@ -75,7 +76,7 @@ export default function ChangePasswordPage() {
     });
     if (currentErr || newErr || confirmErr) return;
 
-    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+    const token = typeof window !== "undefined" ? getAccessToken() : null;
     if (!token) {
       router.replace("/login");
       return;
