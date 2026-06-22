@@ -44,10 +44,11 @@ public class ProductServiceImpl implements ProductService {
                 pageable.getPageNumber(),
                 pageable.getPageSize()
         );
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
         Page<Product> page = switch (sort == null ? "" : sort) {
-            case "salePrice_asc" -> productRepository.searchPublicOrderByPriceAsc(categoryId, null, keyword, minPrice, maxPrice, province, unsortedPageable);
-            case "salePrice_desc" -> productRepository.searchPublicOrderByPriceDesc(categoryId, null, keyword, minPrice, maxPrice, province, unsortedPageable);
-            default -> productRepository.searchPublic(categoryId, null, keyword, minPrice, maxPrice, province, pageable);
+            case "salePrice_asc" -> productRepository.searchPublicOrderByPriceAsc(categoryId, null, keyword, minPrice, maxPrice, province, now, unsortedPageable);
+            case "salePrice_desc" -> productRepository.searchPublicOrderByPriceDesc(categoryId, null, keyword, minPrice, maxPrice, province, now, unsortedPageable);
+            default -> productRepository.searchPublic(categoryId, null, keyword, minPrice, maxPrice, province, now, pageable);
         };
         return page
                 .map(this::toResponse);
