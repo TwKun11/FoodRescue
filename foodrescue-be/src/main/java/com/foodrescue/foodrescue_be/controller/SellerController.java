@@ -85,7 +85,7 @@ public class SellerController {
 
         sellerRepository.save(seller);
         Seller refreshed = resolveByEmail(email);
-        return ResponseData.ok("Cap nhat cua hang thanh cong", SellerResponse.fromEntity(refreshed));
+        return ResponseData.ok("Cập nhật cửa hàng thành công", SellerResponse.fromEntity(refreshed));
     }
 
     @PostMapping("/shop/upload")
@@ -95,7 +95,7 @@ public class SellerController {
     ) {
         resolveByEmail((String) auth.getPrincipal());
         if (file.isEmpty()) {
-            throw new IllegalArgumentException("File khong duoc de trong");
+            throw new IllegalArgumentException("File không được để trống");
         }
         return ResponseData.ok(
                 "Tai anh thanh cong",
@@ -173,7 +173,7 @@ public class SellerController {
 
     private Seller resolveByEmail(String email) {
         return sellerRepository.findByUserEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("Tai khoan chua duoc lien ket voi cua hang"));
+                .orElseThrow(() -> new IllegalArgumentException("Tài khoản chưa được liên kết với cửa hàng"));
     }
 
     private String cleanNullable(String value) {

@@ -134,7 +134,7 @@ export default function CheckoutPage() {
   useEffect(() => {
     const token =
       typeof window !== "undefined"
-        ? localStorage.getItem("accessToken")
+        ? getAccessToken()
         : null;
     if (!token) {
       router.replace("/login");

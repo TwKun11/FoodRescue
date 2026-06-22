@@ -3,8 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { apiGetMyOrders } from "@/lib/api";
-
+import { getAccessToken, apiGetMyOrders } from "@/lib/api";
 const PAGE_SIZE = 5;
 
 const STATUS_TABS = [
@@ -113,7 +112,7 @@ export default function OrdersPage() {
   );
 
   useEffect(() => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+    const token = typeof window !== "undefined" ? getAccessToken() : null;
     if (!token) {
       router.replace("/login");
       return;

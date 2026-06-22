@@ -1,5 +1,6 @@
 import "./globals.css";
 import GoogleAuthProvider from "@/components/GoogleAuthProvider";
+import AuthProvider from "@/components/common/AuthProvider";
 import { Toaster } from "react-hot-toast";
 import { normalizeApiBaseUrl } from "@/lib/normalize-runtime-config";
 
@@ -25,9 +26,18 @@ export default function RootLayout({ children }) {
     googleClientId: process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "",
   };
   const runtimeConfigScript = `window.__FOODRESCUE_RUNTIME_CONFIG__=${JSON.stringify(runtimeConfig).replace(/</g, "\\u003c")};`;
+  const themeScript = `
+try {
+  var theme = localStorage.getItem("foodrescue-theme");
+  if (!theme && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) theme = "dark";
+  theme = theme === "dark" ? "dark" : "light";
+  document.documentElement.classList.toggle("dark", theme === "dark");
+  document.documentElement.dataset.theme = theme;
+} catch (_) {}
+`;
 
   return (
-    <html lang="vi">
+    <html lang="vi" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -37,8 +47,11 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body className="antialiased">
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <script dangerouslySetInnerHTML={{ __html: runtimeConfigScript }} />
-        <GoogleAuthProvider>{children}</GoogleAuthProvider>
+        <GoogleAuthProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </GoogleAuthProvider>
         <Toaster
           position="top-right"
           toastOptions={{

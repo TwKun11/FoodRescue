@@ -6,15 +6,15 @@ import { apiAdminGetModerationStats, apiAdminGetViolationReports, apiAdminUpdate
 const PAGE_SIZE = 12;
 
 const TYPE_LABEL = {
-  SPOILED_FOOD: "Thuc pham hong",
-  MISDESCRIPTION: "Sai mo ta",
+  SPOILED_FOOD: "Thực phẩm hỏng",
+  MISDESCRIPTION: "Sai mô tả",
 };
 
 const STATUS_LABEL = {
-  PENDING: "Cho xu ly",
-  IN_REVIEW: "Dang kiem tra",
-  RESOLVED: "Da xu ly",
-  REJECTED: "Tu choi",
+  PENDING: "Chờ xử lý",
+  IN_REVIEW: "Đang kiểm tra",
+  RESOLVED: "Đã xử lý",
+  REJECTED: "Từ chối",
 };
 
 function fmtDate(value) {
@@ -60,7 +60,7 @@ export default function AdminReportsPage() {
   const reload = () => setRefreshKey((k) => k + 1);
 
   const updateStatus = async (row, nextStatus) => {
-    const note = prompt(`Ghi chu xu ly cho bao cao #${row.id}:`, row.adminNote || "");
+    const note = prompt(`Ghi chú xử lý cho báo cáo #${row.id}:`, row.adminNote || "");
     if (note === null) return;
     setActingId(row.id);
     try {
@@ -69,7 +69,7 @@ export default function AdminReportsPage() {
         adminNote: note,
       });
       if (!res.ok) {
-        alert(res.data?.message || "Cap nhat that bai");
+        alert(res.data?.message || "Cập nhật thất bại");
         return;
       }
       reload();
@@ -81,34 +81,34 @@ export default function AdminReportsPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Bao cao vi pham</h1>
-        <p className="text-sm text-gray-500 mt-1">Tiep nhan report thuc pham hong, sai mo ta va xu ly boi admin.</p>
+        <h1 className="text-2xl font-bold text-gray-900">Báo cáo vi phạm</h1>
+        <p className="text-sm text-gray-500 mt-1">Tiếp nhận report thực phẩm hỏng, sai mô tả và xử lý bởi admin.</p>
       </div>
 
       {stats && (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
-            <MetricCard label="Tong report" value={stats.totalReports} hint={`Open: ${(stats.pendingReports || 0) + (stats.inReviewReports || 0)}`} />
-            <MetricCard label="Ty le spam review" value={`${Number(stats.spamRate || 0).toFixed(1)}%`} hint={`${stats.spamReviews || 0}/${stats.totalReviews || 0} reviews`} />
-            <MetricCard label="Review tieu cuc da flag" value={stats.flaggedNegativeReviews || 0} hint="Rating <= 2" />
-            <MetricCard label="SLA xu ly TB" value={`${Number(stats.avgResolutionHours || 0).toFixed(1)}h`} hint="Tu tao den resolved" />
-            <MetricCard label="Report thuc pham hong" value={stats.spoiledFoodReports || 0} hint={`Sai mo ta: ${stats.misdescriptionReports || 0}`} />
+            <MetricCard label="Tổng report" value={stats.totalReports} hint={`Đang mở: ${(stats.pendingReports || 0) + (stats.inReviewReports || 0)}`} />
+            <MetricCard label="Tỷ lệ spam review" value={`${Number(stats.spamRate || 0).toFixed(1)}%`} hint={`${stats.spamReviews || 0}/${stats.totalReviews || 0} reviews`} />
+            <MetricCard label="Review tiêu cực đã flag" value={stats.flaggedNegativeReviews || 0} hint="Rating <= 2" />
+            <MetricCard label="SLA xử lý TB" value={`${Number(stats.avgResolutionHours || 0).toFixed(1)}h`} hint="Từ tạo đến resolved" />
+            <MetricCard label="Report thực phẩm hỏng" value={stats.spoiledFoodReports || 0} hint={`Sai mô tả: ${stats.misdescriptionReports || 0}`} />
           </div>
 
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-              <h3 className="text-sm font-semibold text-gray-800">Top seller bi report</h3>
+              <h3 className="text-sm font-semibold text-gray-800">Top seller bị report</h3>
             </div>
             {(stats.topSellersByReports || []).length === 0 ? (
-              <div className="p-6 text-sm text-gray-500">Chua co du lieu report theo seller.</div>
+              <div className="p-6 text-sm text-gray-500">Chưa có dữ liệu report theo seller.</div>
             ) : (
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
                   <tr>
                     <th className="px-4 py-3 text-left">Seller</th>
-                    <th className="px-4 py-3 text-right">Tong report</th>
-                    <th className="px-4 py-3 text-right">Dang mo</th>
-                    <th className="px-4 py-3 text-right">Da xu ly</th>
+                    <th className="px-4 py-3 text-right">Tổng report</th>
+                    <th className="px-4 py-3 text-right">Đang mở</th>
+                    <th className="px-4 py-3 text-right">Đã xử lý</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -134,7 +134,7 @@ export default function AdminReportsPage() {
             setSearch(e.target.value);
             setPage(0);
           }}
-          placeholder="Tim theo noi dung, san pham, email..."
+          placeholder="Tìm theo nội dung, sản phẩm, email..."
           className="min-w-[240px] flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm"
         />
         <select
@@ -145,9 +145,9 @@ export default function AdminReportsPage() {
           }}
           className="border border-gray-200 rounded-xl px-3 py-2 text-sm"
         >
-          <option value="">Loai report</option>
-          <option value="SPOILED_FOOD">Thuc pham hong</option>
-          <option value="MISDESCRIPTION">Sai mo ta</option>
+          <option value="">Loại report</option>
+          <option value="SPOILED_FOOD">Thực phẩm hỏng</option>
+          <option value="MISDESCRIPTION">Sai mô tả</option>
         </select>
         <select
           value={status}
@@ -157,28 +157,28 @@ export default function AdminReportsPage() {
           }}
           className="border border-gray-200 rounded-xl px-3 py-2 text-sm"
         >
-          <option value="">Trang thai</option>
-          <option value="PENDING">Cho xu ly</option>
-          <option value="IN_REVIEW">Dang kiem tra</option>
-          <option value="RESOLVED">Da xu ly</option>
-          <option value="REJECTED">Tu choi</option>
+          <option value="">Trạng thái</option>
+          <option value="PENDING">Chờ xử lý</option>
+          <option value="IN_REVIEW">Đang kiểm tra</option>
+          <option value="RESOLVED">Đã xử lý</option>
+          <option value="REJECTED">Từ chối</option>
         </select>
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         {isPending ? (
-          <div className="p-10 text-center text-gray-400">Dang tai...</div>
+          <div className="p-10 text-center text-gray-400">Đang tải...</div>
         ) : list.length === 0 ? (
-          <div className="p-10 text-center text-gray-500">Khong co bao cao.</div>
+          <div className="p-10 text-center text-gray-500">Không có báo cáo.</div>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
               <tr>
-                <th className="px-4 py-3 text-left">Bao cao</th>
-                <th className="px-4 py-3 text-left">Nguoi gui</th>
-                <th className="px-4 py-3 text-left">San pham</th>
-                <th className="px-4 py-3 text-left">Trang thai</th>
-                <th className="px-4 py-3 text-right">Xu ly</th>
+                <th className="px-4 py-3 text-left">Báo cáo</th>
+                <th className="px-4 py-3 text-left">Người gửi</th>
+                <th className="px-4 py-3 text-left">Sản phẩm</th>
+                <th className="px-4 py-3 text-left">Trạng thái</th>
+                <th className="px-4 py-3 text-right">Xử lý</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -191,7 +191,7 @@ export default function AdminReportsPage() {
                       <p className="text-gray-700 mt-1 line-clamp-2">{row.description}</p>
                       {row.evidenceUrl && (
                         <a href={row.evidenceUrl} target="_blank" rel="noreferrer" className="text-xs text-brand-dark hover:underline mt-1 inline-block">
-                          Xem bang chung
+                          Xem bằng chứng
                         </a>
                       )}
                       <p className="text-xs text-gray-400 mt-1">{fmtDate(row.createdAt)}</p>
@@ -217,21 +217,21 @@ export default function AdminReportsPage() {
                           onClick={() => updateStatus(row, "IN_REVIEW")}
                           className="px-3 py-1.5 rounded-lg border border-amber-200 text-amber-700 text-xs disabled:opacity-40"
                         >
-                          Dang kiem tra
+                          Đang kiểm tra
                         </button>
                         <button
                           disabled={busy}
                           onClick={() => updateStatus(row, "RESOLVED")}
                           className="px-3 py-1.5 rounded-lg border border-green-200 text-green-700 text-xs disabled:opacity-40"
                         >
-                          Da xu ly
+                          Đã xử lý
                         </button>
                         <button
                           disabled={busy}
                           onClick={() => updateStatus(row, "REJECTED")}
                           className="px-3 py-1.5 rounded-lg border border-red-200 text-red-700 text-xs disabled:opacity-40"
                         >
-                          Tu choi
+                          Từ chối
                         </button>
                       </div>
                     </td>
@@ -250,7 +250,7 @@ export default function AdminReportsPage() {
               onClick={() => setPage((p) => p - 1)}
               className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm disabled:opacity-40"
             >
-              Truoc
+              Trước
             </button>
             <button
               disabled={page >= totalPages - 1}

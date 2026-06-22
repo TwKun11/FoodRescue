@@ -51,7 +51,7 @@ public class PayOSGatewayService {
                     .expiresAt(parseExpiresAt(json.path("expiredAt")))
                     .build();
         } catch (Exception e) {
-            throw new IllegalArgumentException("Khong the tao link thanh toan PayOS: " + e.getMessage());
+            throw new IllegalArgumentException("Không thể tạo link thanh toán PayOS: " + e.getMessage());
         }
     }
 
@@ -67,7 +67,7 @@ public class PayOSGatewayService {
                     .data(webhookData)
                     .build();
         } catch (Exception e) {
-            throw new IllegalArgumentException("Webhook PayOS khong hop le: " + e.getMessage());
+            throw new IllegalArgumentException("Webhook PayOS không hợp lệ: " + e.getMessage());
         }
     }
 
@@ -80,7 +80,7 @@ public class PayOSGatewayService {
                     .cancellationReason(paymentLink.getCancellationReason())
                     .build();
         } catch (Exception e) {
-            throw new IllegalArgumentException("Khong the lay trang thai PayOS: " + e.getMessage());
+            throw new IllegalArgumentException("Không thể lấy trạng thái PayOS: " + e.getMessage());
         }
     }
 

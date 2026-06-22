@@ -107,7 +107,7 @@ export default function BecomeSellerPage() {
   useEffect(() => {
     const token =
       typeof window !== "undefined"
-        ? localStorage.getItem("accessToken")
+        ? getAccessToken()
         : null;
     if (!token) {
       router.replace("/login");
@@ -319,44 +319,14 @@ export default function BecomeSellerPage() {
   };
 
   const handleRefreshRole = async () => {
-    const refreshToken =
-      typeof window !== "undefined"
-        ? localStorage.getItem("refreshToken")
-        : null;
-    if (!refreshToken) {
-      setMessage({
-        type: "error",
-        text: "Phiên hiện tại chưa có refresh token. Hãy đăng nhập lại.",
-      });
-      return;
+    const refreshed = await apiRefreshToken();
+    const payload = refreshed.data?.data || refreshed.data;
+    if (!refreshed.ok || !payload?.accessToken) {
+      router.replace("/login");
+      return null;
     }
-
-    setRefreshingRole(true);
-    setMessage({ type: null, text: "" });
-    try {
-      const refreshed = await apiRefreshToken(refreshToken);
-      if (!refreshed.ok) {
-        setMessage({
-          type: "error",
-          text: refreshed.data?.message || "Không làm mới được quyền truy cập.",
-        });
-        return;
-      }
-
-      const payload = refreshed.data?.data ?? null;
-      if (payload?.accessToken)
-        localStorage.setItem("accessToken", payload.accessToken);
-      if (payload?.refreshToken)
-        localStorage.setItem("refreshToken", payload.refreshToken);
-      if (payload?.user) {
-        localStorage.setItem("user", JSON.stringify(payload.user));
-        setUser(payload.user);
-      }
-      window.dispatchEvent(new Event("storage"));
-      router.push(payload?.user?.role === "SELLER" ? "/store" : "/profile");
-    } finally {
-      setRefreshingRole(false);
-    }
+    setAuthSession({ accessToken: payload.accessToken, user: payload.user });
+    return payload.accessToken;
   };
 
   if (booting) {

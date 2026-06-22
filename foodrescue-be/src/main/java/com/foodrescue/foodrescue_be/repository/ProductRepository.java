@@ -21,6 +21,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
         SELECT p FROM Product p
         WHERE p.status = 'active'
           AND p.isActive = true
+          AND (p.dealEndsAt IS NULL OR p.dealEndsAt > CURRENT_TIMESTAMP)
           AND (:categoryId IS NULL OR p.category.id = :categoryId)
           AND (:sellerId IS NULL OR p.seller.id = :sellerId)
           AND (:keyword IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
@@ -42,6 +43,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
         SELECT p FROM Product p
         WHERE p.status = 'active'
           AND p.isActive = true
+          AND (p.dealEndsAt IS NULL OR p.dealEndsAt > CURRENT_TIMESTAMP)
           AND (:categoryId IS NULL OR p.category.id = :categoryId)
           AND (:sellerId IS NULL OR p.seller.id = :sellerId)
           AND (:keyword IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
@@ -68,6 +70,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
         SELECT p FROM Product p
         WHERE p.status = 'active'
           AND p.isActive = true
+          AND (p.dealEndsAt IS NULL OR p.dealEndsAt > CURRENT_TIMESTAMP)
           AND (:categoryId IS NULL OR p.category.id = :categoryId)
           AND (:sellerId IS NULL OR p.seller.id = :sellerId)
           AND (:keyword IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')))

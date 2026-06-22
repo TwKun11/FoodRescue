@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getAuthUser, restoreAuthSession, subscribeAuth } from "@/lib/api";
 
 export default function AdminGuard({ children }) {
   const router = useRouter();
@@ -9,13 +10,37 @@ export default function AdminGuard({ children }) {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const raw = localStorage.getItem("user");
-    const user = raw ? JSON.parse(raw) : null;
-    if (!user || user?.role !== "ADMIN") {
-      router.replace("/");
-      return;
-    }
-    queueMicrotask(() => setAllowed(true));
+    let cancelled = false;
+
+    const checkUser = (user) => {
+      if (cancelled) return;
+      if (!user || user?.role !== "ADMIN") {
+        setAllowed(false);
+        router.replace("/");
+        return;
+      }
+      setAllowed(true);
+    };
+
+    let restored = false;
+    const unsubscribe = subscribeAuth(({ user }) => {
+      if (restored || user) checkUser(user);
+    });
+
+    restoreAuthSession()
+      .then(() => {
+        restored = true;
+        checkUser(getAuthUser());
+      })
+      .catch(() => {
+        restored = true;
+        checkUser(getAuthUser());
+      });
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
   }, [router]);
 
   if (!allowed) {

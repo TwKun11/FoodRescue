@@ -39,7 +39,7 @@ public class EmailServiceImpl implements EmailService {
             log.info("Verification email sent to {}", email);
         } catch (Exception e) {
             log.error("Failed to send verification email to {}", email, e);
-            throw new RuntimeException("Khong the gui email. Vui long thu lai sau.");
+            throw new RuntimeException("Không thể gửi email. Vui lòng thử lại sau.");
         }
     }
 
@@ -49,14 +49,14 @@ public class EmailServiceImpl implements EmailService {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setTo(email);
-            message.setSubject("Dat lai mat khau - FoodRescue");
-            message.setText("Chao ban,\n\nBan da yeu cau dat lai mat khau. Vui long bam vao link sau de tao mat khau moi:\n" + link + "\n\nLink co hieu luc trong 1 gio. Neu khong phai ban yeu cau, hay bo qua email nay.");
+            message.setSubject("Đặt lại mật khẩu - FoodRescue");
+            message.setText("Chào bạn,\n\nBạn đã yêu cầu đặt lại mật khẩu. Vui lòng bấm vào link sau để tạo mật khẩu mới:\n" + link + "\n\nLink có hiệu lực trong 1 giờ. Nếu không phải bạn yêu cầu, hãy bỏ qua email này.");
             message.setFrom("nhybui2312@gmail.com");
             mailSender.send(message);
             log.info("Password reset email sent to {}", email);
         } catch (Exception e) {
             log.error("Failed to send password reset email to {}", email, e);
-            throw new RuntimeException("Khong the gui email. Vui long thu lai sau.");
+            throw new RuntimeException("Không thể gửi email. Vui lòng thử lại sau.");
         }
     }
 }

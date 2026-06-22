@@ -661,7 +661,7 @@ export default function ShopPage() {
 
                 <div className="mt-4 rounded-2xl bg-blue-50 border border-blue-200 p-4">
                   <p className="text-xs text-blue-800">
-                    <strong>Di chúc:</strong> Tài khoản ngân hàng phải trùng với
+                    <strong>Ghi chú:</strong> Tài khoản ngân hàng phải trùng với
                     người đại diện hoặc pháp nhân đã đăng ký seller. Hãy kiểm
                     tra kỹ lưỡng trước khi lưu.
                   </p>

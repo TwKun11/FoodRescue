@@ -97,16 +97,16 @@ public class DataSeeder implements CommandLineRunner {
         sellerUser.setRole(Role.SELLER);
         sellerUser.setStatus(UserStatus.ACTIVE);
         if (sellerUser.getFullName() == null || sellerUser.getFullName().isBlank()) {
-            sellerUser.setFullName("Cua hang Demo");
+            sellerUser.setFullName("Cửa hàng Demo");
         }
         User savedSellerUser = userRepository.save(sellerUser);
 
         Seller seller = sellerRepository.findByUserId(savedSellerUser.getId())
                 .orElseGet(() -> Seller.builder().user(savedSellerUser).build());
         seller.setCode("SELLER001");
-        seller.setShopName("Cua hang Demo Food Rescue");
+        seller.setShopName("Cửa hàng Demo Food Rescue");
         seller.setShopSlug("demo-foodrescue");
-        seller.setContactName("Cua hang Demo");
+        seller.setContactName("Cửa hàng Demo");
         seller.setPhone("0901234567");
         seller.setCommissionRate(java.math.BigDecimal.ZERO);
         seller.setStatus(Seller.Status.active);

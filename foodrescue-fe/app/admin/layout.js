@@ -3,6 +3,8 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import AdminGuard from "@/components/common/AdminGuard";
+import ThemeToggle from "@/components/common/ThemeToggle";
+import { apiLogout, getAuthUser, subscribeAuth } from "@/lib/api";
 
 const NAV = [
   {
@@ -126,7 +128,7 @@ const NAV = [
 export default function AdminLayout({ children }) {
   return (
     <AdminGuard>
-      <div className="flex min-h-screen bg-gray-50">
+      <div className="admin-dashboard flex min-h-screen bg-gray-50">
         <AdminSidebar />
         <div className="flex-1 flex flex-col overflow-hidden">
           <AdminHeader />
@@ -258,17 +260,16 @@ function AdminHeader() {
     return () => document.removeEventListener("click", handleClickOutside);
   }, [dropdownOpen]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user");
+  const handleLogout = async () => {
     setDropdownOpen(false);
+    await apiLogout().catch(() => {});
     router.push("/login");
   };
 
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-4 shrink-0">
       <div className="flex-1" />
+      <ThemeToggle compact />
       <span className="text-xs font-semibold bg-brand-bg text-brand-dark px-2.5 py-1 rounded-full border border-brand/30">
         ADMIN
       </span>

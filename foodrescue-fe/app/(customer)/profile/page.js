@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getApiBaseUrl } from "@/lib/runtime-config";
 
+import { getAccessToken } from "@/lib/api";
 const API_URL = getApiBaseUrl();
 
 function validateFullName(value) {
@@ -58,7 +59,7 @@ export default function ProfilePage() {
   }, []);
 
   useEffect(() => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+    const token = typeof window !== "undefined" ? getAccessToken() : null;
     if (!token) {
       router.replace("/login");
       return;
@@ -114,7 +115,7 @@ export default function ProfilePage() {
     setErrors(newErrors);
     if (Object.values(newErrors).some((err) => err !== "")) return;
 
-    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+    const token = typeof window !== "undefined" ? getAccessToken() : null;
     if (!token) {
       router.replace("/login");
       return;

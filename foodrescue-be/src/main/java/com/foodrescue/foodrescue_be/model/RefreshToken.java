@@ -26,16 +26,36 @@ public class RefreshToken {
     @Column(name = "token_hash", nullable = false, unique = true)
     private String tokenHash;
 
+    @Column(name = "session_id", nullable = false, length = 64)
+    private String sessionId;
+
+    @Column(name = "device_id", length = 128)
+    private String deviceId;
+
     @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;
 
     @Column(name = "created_at")
     private Instant createdAt;
 
+    @Column(name = "revoked_at")
+    private Instant revokedAt;
+
+    @Column(name = "replaced_by_token_hash", length = 64)
+    private String replacedByTokenHash;
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {
             createdAt = Instant.now();
         }
+    }
+
+    public boolean isExpired() {
+        return expiresAt != null && expiresAt.isBefore(Instant.now());
+    }
+
+    public boolean isRevoked() {
+        return revokedAt != null;
     }
 }
