@@ -651,7 +651,11 @@ function FlowPanel({ title, subtitle, steps, tone }) {
     <ScrollReveal direction="up" className="h-full">
       <div className="h-full rounded-3xl border border-emerald-900 bg-white p-6 shadow-lg shadow-emerald-900/5 transition hover:-translate-y-1 hover:shadow-xl sm:p-7 dark:border-emerald-900/60 dark:bg-[#0d1b2f] dark:shadow-black/25">
         <div
-          className={`mb-6 inline-flex rounded-full px-3 py-1 text-xs font-bold ${buyerTone ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}
+          className={`mb-6 inline-flex rounded-full px-3 py-1 text-xs font-bold ${
+            buyerTone
+              ? "bg-emerald-100 text-emerald-950 dark:bg-emerald-950/60 dark:text-emerald-300"
+              : "bg-amber-100 text-amber-950 dark:bg-amber-950/60 dark:text-amber-300"
+          }`}
         >
           {title}
         </div>
