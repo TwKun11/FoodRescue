@@ -141,7 +141,7 @@ class OrderServiceTest {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> orderService.placeOrder(1L, request));
 
-        assertThat(exception.getMessage()).contains("Gio hang");
+        assertThat(exception.getMessage()).contains("Giỏ hàng");
     }
 
     @Test
@@ -153,7 +153,7 @@ class OrderServiceTest {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> orderService.placeOrder(1L, request));
 
-        assertThat(exception.getMessage()).contains("trung lap");
+        assertThat(exception.getMessage()).contains("trùng lặp");
     }
 
     @Test
@@ -287,7 +287,7 @@ class OrderServiceTest {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> orderService.placeOrder(1L, request));
 
-        assertThat(exception.getMessage()).contains("khu vuc");
+        assertThat(exception.getMessage()).contains("khu vực");
     }
 
     @Test
