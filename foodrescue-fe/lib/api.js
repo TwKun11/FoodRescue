@@ -1,11 +1,38 @@
 import { getApiBaseUrl } from "@/lib/runtime-config";
 
 const BASE = () => getApiBaseUrl();
+const USER_STORAGE_KEY = "user";
 
 let accessToken = null;
-let currentUser = null;
 let refreshPromise = null;
 const authListeners = new Set();
+
+function readStoredUser() {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = localStorage.getItem(USER_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredUser(user) {
+  if (typeof window === "undefined") return;
+
+  try {
+    if (user) {
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+    } else {
+      localStorage.removeItem(USER_STORAGE_KEY);
+    }
+  } catch {
+    // localStorage may be unavailable in restricted browser contexts.
+  }
+}
+
+let currentUser = readStoredUser();
 
 function clearLegacyStoredTokens() {
   if (typeof window === "undefined") return;
@@ -45,12 +72,20 @@ function notifyAuth() {
 export function setAuthSession(payload = {}) {
   accessToken = payload.accessToken || null;
   currentUser = payload.user || null;
+  writeStoredUser(currentUser);
+  notifyAuth();
+}
+
+export function updateAuthUser(updatedUser) {
+  currentUser = updatedUser || null;
+  writeStoredUser(currentUser);
   notifyAuth();
 }
 
 export function clearAuthSession() {
   accessToken = null;
   currentUser = null;
+  writeStoredUser(null);
   notifyAuth();
 }
 
@@ -430,6 +465,10 @@ export async function apiAdminGetSellerApplications({ page = 0, size = 20, searc
   if (search && search.trim()) params.set("search", search.trim());
   if (status) params.set("status", status);
   return request(`/api/admin/seller-applications?${params.toString()}`);
+}
+
+export async function apiAdminGetPendingSellerApplicationCount() {
+  return request("/api/admin/seller-applications/pending-count");
 }
 
 export async function apiAdminApproveSellerApplication(id) {

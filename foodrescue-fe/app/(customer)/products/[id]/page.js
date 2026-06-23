@@ -201,7 +201,7 @@ function mapRelated(p) {
     originalPrice: pricing.originalPrice,
     discountPrice: pricing.discountPrice,
     discountPercent: pricing.discountPercent,
-    expiryLabel: dealEndsAt ? "Uu d�i k?t th�c sau" : "",
+    expiryLabel: dealEndsAt ? "Ưu đãi kết thúc sau" : "",
     expiryAt: dealEndsAt,
     shelfLifeLabel: shelfDays ? `Hạn sử dụng: ${shelfDays} ngày` : "",
     stock,
@@ -526,9 +526,7 @@ export default function ProductDetailPage() {
                   </span>
                 )}
                 {!canPurchase ? (
-                  <span className="font-medium text-rose-600">
-                    {dealExpired ? "Ưu đãi đã kết thúc" : "Hết hàng"}
-                  </span>
+                  <span className="font-medium text-rose-600">{dealExpired ? "Ưu đãi đã kết thúc" : "Hết hàng"}</span>
                 ) : (
                   <span className="font-medium text-green-600">Còn hàng ({remaining} sản phẩm)</span>
                 )}
@@ -536,7 +534,7 @@ export default function ProductDetailPage() {
             </header>
 
             <div className="rounded-2xl border-2 border-red-100 bg-gradient-to-br from-white to-red-50/30 p-6 shadow-lg">
-              <p className="text-xs font-semibold uppercase tracking-wider text-red-600/90 mb-1.5">Gi� uu d�i</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-red-600/90 mb-1.5">Giá ưu đãi</p>
               <div className="flex flex-wrap items-baseline gap-2">
                 <span className="text-4xl font-black text-red-600 tracking-tight tabular-nums">
                   {discP.toLocaleString("vi-VN")}
@@ -586,15 +584,15 @@ export default function ProductDetailPage() {
                   </svg>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-bold uppercase tracking-wide">Uu d�i k?t th�c sau</p>
+                  <p className="text-xs font-bold uppercase tracking-wide">Ưu đãi kết thúc sau</p>
                   <p
                     className={`text-[11px] mt-0.5 ${dealEndsISO && !dealExpired ? "text-white/90" : "text-amber-800 dark:text-amber-100/85"}`}
                   >
                     {dealExpired
-                      ? "Uu d�i d� k?t th�c."
+                      ? "Ưu đãi đã kết thúc."
                       : dealEndLabel
                         ? `Kết thúc lúc ${dealEndLabel}`
-                        : "Chua c?p nh?t th?i gian k?t th�c uu d�i."}
+                        : "Chưa cập nhật thời gian kết thúc ưu đãi."}
                   </p>
                 </div>
               </div>
@@ -709,10 +707,10 @@ export default function ProductDetailPage() {
                   />
                 </svg>
                 {addedToCart
-                  ? "�� th�m v�o gi?"
+                  ? "Đã thêm vào giỏ hàng"
                   : !canPurchase
                     ? dealExpired
-                      ? "H?t uu d�i"
+                      ? "Hết ưu đãi"
                       : "Hết hàng"
                     : "Thêm vào giỏ hàng"}
               </button>

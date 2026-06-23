@@ -277,9 +277,7 @@ export default function Header() {
                 <span className={`max-w-36 truncate text-sm font-medium leading-none ${transparent ? "text-slate-700" : "text-gray-600 dark:text-slate-300"}`}>
                   Xin chào, {displayName}
                 </span>
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-sm font-bold leading-none text-gray-950">
-                  {(displayName.charAt(0) || "U").toUpperCase()}
-                </span>
+                <UserAvatar user={user} displayName={displayName} />
               </button>
 
               {dropdownOpen && (
@@ -345,7 +343,10 @@ export default function Header() {
           <Link href="/cart" onClick={() => setMenuOpen(false)}>Giỏ hàng ({cartCount})</Link>
           {mounted && user ? (
             <>
-              <p className="text-gray-500 dark:text-slate-400">Xin chào, {displayName}</p>
+              <div className="flex items-center gap-2 text-gray-500 dark:text-slate-400">
+                <UserAvatar user={user} displayName={displayName} size="sm" />
+                <span>Xin chào, {displayName}</span>
+              </div>
               <Link href="/profile" onClick={() => setMenuOpen(false)}>Thông tin cá nhân</Link>
               <Link href="/orders" onClick={() => setMenuOpen(false)}>Đơn hàng của tôi</Link>
               <Link href="/vouchers" onClick={() => setMenuOpen(false)}>
@@ -369,6 +370,21 @@ export default function Header() {
         </nav>
       )}
     </header>
+  );
+}
+
+function UserAvatar({ user, displayName, size = "md" }) {
+  const className = size === "sm" ? "h-8 w-8" : "h-9 w-9";
+  const fallback = (displayName.charAt(0) || "U").toUpperCase();
+
+  if (user?.avatar) {
+    return <img src={user.avatar} alt="Avatar" className={`${className} rounded-full object-cover`} />;
+  }
+
+  return (
+    <span className={`flex ${className} items-center justify-center rounded-full bg-brand text-sm font-bold leading-none text-gray-950`}>
+      {fallback}
+    </span>
   );
 }
 
