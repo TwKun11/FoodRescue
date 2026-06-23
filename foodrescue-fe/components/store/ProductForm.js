@@ -342,6 +342,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
               minOrderQty: 1,
               stepQty: 1,
               trackInventory: true,
+              status: "active",
             });
             if (!varRes.ok) {
               setError(varRes.data?.message || "Tạo sản phẩm thành công nhưng không thêm được biến thể");

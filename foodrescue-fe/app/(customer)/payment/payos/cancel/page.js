@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getAccessToken, apiGetOrderDetail, apiSyncOrderPayment } from "@/lib/api";
+import { restoreAuthSession, apiGetOrderDetail, apiSyncOrderPayment } from "@/lib/api";
 function normalizeStatus(value) {
   return String(value || "")
     .trim()
@@ -18,12 +18,6 @@ export default function PayOSCancelPage() {
   const [order, setOrder] = useState(null);
 
   useEffect(() => {
-    const token = typeof window !== "undefined" ? getAccessToken() : null;
-    if (!token) {
-      router.replace("/login");
-      return;
-    }
-
     if (!orderId) {
       setLoading(false);
       return;
@@ -33,12 +27,18 @@ export default function PayOSCancelPage() {
 
     async function load() {
       try {
+        await restoreAuthSession();
         let res = await apiSyncOrderPayment(orderId);
         if (!res.ok) {
           res = await apiGetOrderDetail(orderId);
         }
         if (active && res.ok && res.data?.data) {
-          setOrder(res.data.data);
+          const nextOrder = res.data.data;
+          setOrder(nextOrder);
+          const productId = nextOrder.items?.find((item) => item.productId)?.productId;
+          if (productId) {
+            router.replace(`/products/${productId}?payment=cancelled&orderId=${encodeURIComponent(orderId)}`);
+          }
         }
       } finally {
         if (active) {

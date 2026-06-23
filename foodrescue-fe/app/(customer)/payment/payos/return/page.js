@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getAccessToken, apiGetOrderDetail, apiSyncOrderPayment } from "@/lib/api";
+import { restoreAuthSession, apiGetOrderDetail, apiSyncOrderPayment } from "@/lib/api";
 function formatRemaining(seconds) {
   if (seconds == null) return null;
 
@@ -121,14 +121,20 @@ export default function PayOSReturnPage() {
   );
 
   useEffect(() => {
-    const token = typeof window !== "undefined" ? getAccessToken() : null;
-    if (!token) {
-      router.replace("/login");
-      return;
+    let active = true;
+
+    async function restoreAndLoad() {
+      await restoreAuthSession();
+      if (active) {
+        void loadOrder();
+      }
     }
 
-    void loadOrder();
-  }, [loadOrder, router]);
+    void restoreAndLoad();
+    return () => {
+      active = false;
+    };
+  }, [loadOrder]);
 
   const summary = useMemo(() => getPaymentSummary(order), [order]);
 

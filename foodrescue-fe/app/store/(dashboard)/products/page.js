@@ -47,21 +47,50 @@ const TABS = [
   { id: "active", label: "Đang hoạt động" },
   { id: "expiring", label: "Sắp hết hạn" },
   { id: "expired", label: "Hết hạn" },
+  { id: "out_of_stock", label: "Hết hàng" },
 ];
 
 // Helper: Tính số ngày còn lại
-function calculateRemainingDays(createdAt, shelfLifeDays) {
-  if (!createdAt || shelfLifeDays === null || shelfLifeDays === undefined) {
-    return null;
+function calculateDealRemainingDays(dealEndsAt) {
+  if (!dealEndsAt) return null;
+
+  const end = new Date(dealEndsAt);
+  if (Number.isNaN(end.getTime())) return null;
+
+  const now = new Date();
+  const diffMs = end.getTime() - now.getTime();
+
+  return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+}
+
+function getDealExpiryStatus(dealEndsAt) {
+  const remainingDays = calculateDealRemainingDays(dealEndsAt);
+
+  if (remainingDays === null) {
+    return {
+      expiryStatus: null,
+      remainingDays: null,
+    };
   }
-  const created = new Date(createdAt);
-  const expiryDate = new Date(created);
-  expiryDate.setDate(expiryDate.getDate() + shelfLifeDays);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  expiryDate.setHours(0, 0, 0, 0);
-  const remainingDays = Math.floor((expiryDate - today) / (1000 * 60 * 60 * 24));
-  return remainingDays;
+
+  if (remainingDays < 0) {
+    return {
+      expiryStatus: "expired",
+      remainingDays,
+    };
+  }
+
+  if (remainingDays <= 3) {
+    return {
+      expiryStatus: "expiring",
+      remainingDays,
+    };
+  }
+
+  return {
+    expiryStatus: null,
+    remainingDays,
+  };
 }
 
 const STATUS_MAP = {
@@ -96,26 +125,14 @@ function getSellerDealStatus(product) {
 
 function mapProduct(p) {
   const sku = (p.variants && p.variants[0]) || {};
-  // Cộng tổng tồn kho tất cả variants (hỗ trợ cả stockQuantity và stockAvailable)
+
   const totalStock = (p.variants || []).reduce((sum, v) => {
     return sum + (v.stockQuantity ?? v.stockAvailable ?? 0);
   }, 0);
 
-  // Tính số ngày còn lại dựa trên createdAt + shelfLifeDays
-  const remainingDays = calculateRemainingDays(p.createdAt, p.shelfLifeDays);
-
-  // Xác định trạng thái hạn sử dụng
-  let expiryStatus = null;
-  if (remainingDays !== null) {
-    if (remainingDays < 0) {
-      expiryStatus = "expired"; // Hết hạn
-    } else if (remainingDays <= 3) {
-      expiryStatus = "expiring"; // Sắp hết hạn (0-3 ngày)
-    }
-  }
+  const { expiryStatus, remainingDays } = getDealExpiryStatus(p.dealEndsAt);
 
   return {
-    // UI display fields
     id: String(p.id),
     image: p.primaryImageUrl || "/images/products/raucai.jpg",
     name: p.name,
@@ -125,10 +142,11 @@ function mapProduct(p) {
     quantity: totalStock,
     quantityLabel: totalStock === 0 ? "Hết hàng" : totalStock <= 5 ? `Còn ${totalStock}` : null,
     status: p.status || "draft",
-    expiryStatus: expiryStatus,
-    remainingDays: remainingDays,
-    shelfLifeDays: p.shelfLifeDays,
-    // Fields needed for edit form
+
+    expiryStatus,
+    remainingDays,
+    dealEndsAt: p.dealEndsAt,
+
     productCode: p.productCode,
     slug: p.slug,
     categoryId: p.categoryId,
@@ -144,7 +162,6 @@ function mapProduct(p) {
     originProvince: p.originProvince,
     primaryImageUrl: p.primaryImageUrl,
     createdAt: p.createdAt,
-    // original variants for variant modal
     variants: p.variants || [],
   };
 }
@@ -207,9 +224,7 @@ export default function StoreProductsPage() {
     closeForm();
     const slugNote = data?.slug ? ` Slug: ${data.slug}` : "";
     const baseMessage =
-      mode === "edit"
-        ? `Cập nhật sản phẩm thành công.${slugNote}`
-        : `Thêm sản phẩm mới thành công.${slugNote}`;
+      mode === "edit" ? `Cập nhật sản phẩm thành công.${slugNote}` : `Thêm sản phẩm mới thành công.${slugNote}`;
     const slugMessage = meta.slugChanged
       ? ` Slug "${meta.requestedSlug}" đã trùng, hệ thống đã tự đổi thành "${meta.finalSlug}". Bạn có thể sửa slug theo ý muốn hoặc sử dụng slug được tạo sẵn.`
       : "";
@@ -258,6 +273,7 @@ export default function StoreProductsPage() {
         ? { netWeightValue: Number(variantForm.netWeightValue), netWeightUnit: variantForm.netWeightUnit }
         : {}),
       trackInventory: variantForm.trackInventory,
+      status: "active",
     };
     const res = await apiSellerAddVariant(variantProduct.id, payload);
     if (!res.ok) {
@@ -304,7 +320,7 @@ export default function StoreProductsPage() {
   const loadProducts = useCallback(
     function (p) {
       setLoading(true);
-      apiSellerGetProducts({ page: p || 0, size: 10, keyword })
+      apiSellerGetProducts({ page: p || 0, size: 10, keyword, tab: activeTab })
         .then(function (res) {
           if (res.ok && res.data && res.data.data) {
             var d = res.data.data;
@@ -322,7 +338,7 @@ export default function StoreProductsPage() {
           setLoading(false);
         });
     },
-    [keyword],
+    [keyword, activeTab],
   );
 
   useEffect(
@@ -384,16 +400,7 @@ export default function StoreProductsPage() {
     });
   };
 
-  var filteredProducts =
-    activeTab === "all"
-      ? products
-      : activeTab === "active"
-        ? products.filter((p) => p.status === "active" && !p.expiryStatus)
-        : activeTab === "expiring"
-          ? products.filter((p) => p.expiryStatus === "expiring")
-          : activeTab === "expired"
-            ? products.filter((p) => p.expiryStatus === "expired")
-            : products;
+  var filteredProducts = products;
 
   const toggleSelect = (id) =>
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -766,7 +773,10 @@ export default function StoreProductsPage() {
             {TABS.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setPage(0);
+                }}
                 className={`px-4 py-3 text-sm font-medium whitespace-nowrap transition border-b-2 -mb-px ${
                   activeTab === tab.id
                     ? "border-brand text-brand-dark"

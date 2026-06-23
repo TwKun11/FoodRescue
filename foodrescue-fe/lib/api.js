@@ -211,7 +211,16 @@ export async function apiGetCategories() {
 // ============================================================
 // PRODUCTS (public)
 // ============================================================
-export async function apiGetProducts({ categoryId, keyword, sort, minPrice, maxPrice, province, page = 0, size = 12 } = {}) {
+export async function apiGetProducts({
+  categoryId,
+  keyword,
+  sort,
+  minPrice,
+  maxPrice,
+  province,
+  page = 0,
+  size = 12,
+} = {}) {
   const params = new URLSearchParams({ page, size });
   if (categoryId) params.set("categoryId", categoryId);
   if (keyword) params.set("keyword", keyword);
@@ -324,10 +333,18 @@ export async function apiSellerUploadShopImage(file) {
 // ============================================================
 // SELLER – PRODUCTS
 // ============================================================
-export async function apiSellerGetProducts({ keyword, page = 0, size = 20 } = {}) {
-  const params = new URLSearchParams({ page, size });
-  if (keyword) params.set("keyword", keyword);
-  return request(`/api/seller/products?${params}`);
+export function apiSellerGetProducts({ page = 0, size = 20, keyword, tab = "all" } = {}) {
+  const params = new URLSearchParams();
+
+  params.set("page", String(page));
+  params.set("size", String(size));
+  params.set("tab", tab || "all");
+
+  if (keyword && keyword.trim()) {
+    params.set("keyword", keyword.trim());
+  }
+
+  return request(`/api/seller/products?${params.toString()}`);
 }
 
 export async function apiSellerCreateProduct(body) {
