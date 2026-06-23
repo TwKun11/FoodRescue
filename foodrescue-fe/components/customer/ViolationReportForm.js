@@ -132,7 +132,7 @@ export default function ViolationReportForm({
                   onClick={() => setOpen(false)}
                   className="px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 hover:bg-gray-50"
                 >
-                  Huy
+                  Hủy
                 </button>
                 <button
                   type="submit"

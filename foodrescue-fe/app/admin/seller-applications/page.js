@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   apiAdminApproveSellerApplication,
   apiAdminGetSellerApplications,
+  apiAdminGetPendingSellerApplicationCount,
   apiAdminRejectSellerApplication,
 } from "@/lib/api";
 
@@ -33,6 +34,25 @@ export default function AdminSellerApplicationsPage() {
   const [refresh, setRefresh] = useState(0);
   const [actingId, setActingId] = useState(null);
   const [detail, setDetail] = useState(null);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  const loadPendingCount = useCallback(() => {
+    apiAdminGetPendingSellerApplicationCount()
+      .then((res) => {
+        if (res.ok) setPendingCount(Number(res.data?.data ?? 0));
+      })
+      .catch(() => {});
+  }, []);
+
+  const notifySellerApplicationCountUpdated = () => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("seller-application-count-updated"));
+    }
+  };
+
+  useEffect(() => {
+    loadPendingCount();
+  }, [loadPendingCount, refresh]);
 
   useEffect(() => {
     startTransition(async () => {
@@ -64,6 +84,8 @@ export default function AdminSellerApplicationsPage() {
       .then((res) => {
         if (res.ok) {
           reload();
+          loadPendingCount();
+          notifySellerApplicationCountUpdated();
           setDetail(null);
         } else alert(res.data?.message || "Phê duyệt thất bại");
       })
@@ -78,6 +100,8 @@ export default function AdminSellerApplicationsPage() {
       .then((res) => {
         if (res.ok) {
           reload();
+          loadPendingCount();
+          notifySellerApplicationCountUpdated();
           setDetail(null);
         } else alert(res.data?.message || "Từ chối thất bại");
       })
@@ -90,6 +114,9 @@ export default function AdminSellerApplicationsPage() {
         <h1 className="text-2xl font-bold text-gray-900">Phê duyệt hồ sơ seller</h1>
         <p className="text-sm text-gray-500 mt-1">
           Kiểm tra thông tin pháp lý, địa chỉ, ngân hàng và ảnh hồ sơ trước khi cấp quyền bán hàng.
+        </p>
+        <p className="mt-2 text-sm font-medium text-amber-700">
+          Hiện có {pendingCount} hồ sơ đang chờ duyệt.
         </p>
       </div>
 

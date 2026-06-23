@@ -1,8 +1,10 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import AdminGuard from "@/components/common/AdminGuard";
+import ThemeToggle from "@/components/common/ThemeToggle";
+import { apiAdminGetPendingSellerApplicationCount, apiLogout, getAuthUser, subscribeAuth } from "@/lib/api";
 
 const NAV = [
   {
@@ -126,7 +128,7 @@ const NAV = [
 export default function AdminLayout({ children }) {
   return (
     <AdminGuard>
-      <div className="flex min-h-screen bg-gray-50">
+      <div className="admin-dashboard flex min-h-screen bg-gray-50">
         <AdminSidebar />
         <div className="flex-1 flex flex-col overflow-hidden">
           <AdminHeader />
@@ -140,6 +142,28 @@ export default function AdminLayout({ children }) {
 function AdminSidebar() {
   const pathname = usePathname();
   const [expandedMenu, setExpandedMenu] = useState(null);
+  const [pendingSellerApplicationCount, setPendingSellerApplicationCount] = useState(0);
+
+  const loadPendingSellerApplicationCount = useCallback(() => {
+    apiAdminGetPendingSellerApplicationCount()
+      .then((res) => {
+        if (res.ok) {
+          setPendingSellerApplicationCount(Number(res.data?.data ?? 0));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    loadPendingSellerApplicationCount();
+    const intervalId = window.setInterval(loadPendingSellerApplicationCount, 30000);
+    window.addEventListener("seller-application-count-updated", loadPendingSellerApplicationCount);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("seller-application-count-updated", loadPendingSellerApplicationCount);
+    };
+  }, [loadPendingSellerApplicationCount]);
 
   return (
     <aside className="w-52 shrink-0 bg-white border-r border-gray-200 min-h-screen flex flex-col">
@@ -212,6 +236,8 @@ function AdminSidebar() {
             );
           }
 
+          const showPendingBadge = item.href === "/admin/seller-applications" && pendingSellerApplicationCount > 0;
+
           return (
             <Link
               key={item.href}
@@ -223,7 +249,12 @@ function AdminSidebar() {
               }`}
             >
               <span className={active ? "text-gray-900" : "text-gray-400"}>{item.icon}</span>
-              {item.label}
+              <span className="min-w-0 flex-1 truncate">{item.label}</span>
+              {showPendingBadge && (
+                <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 text-[11px] font-bold leading-none text-white">
+                  {pendingSellerApplicationCount > 99 ? "99+" : pendingSellerApplicationCount}
+                </span>
+              )}
             </Link>
           );
         })}
@@ -258,17 +289,16 @@ function AdminHeader() {
     return () => document.removeEventListener("click", handleClickOutside);
   }, [dropdownOpen]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user");
+  const handleLogout = async () => {
     setDropdownOpen(false);
+    await apiLogout().catch(() => {});
     router.push("/login");
   };
 
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-4 shrink-0">
       <div className="flex-1" />
+      <ThemeToggle compact />
       <span className="text-xs font-semibold bg-brand-bg text-brand-dark px-2.5 py-1 rounded-full border border-brand/30">
         ADMIN
       </span>

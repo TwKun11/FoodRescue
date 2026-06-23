@@ -32,13 +32,17 @@ import org.springframework.transaction.annotation.Transactional;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
+
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final UserRepository userRepository;
     private final PendingRegistrationRepository pendingRegistrationRepository;
@@ -100,29 +104,14 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("Email hoặc mật khẩu không đúng"));
+                .orElseThrow(() -> new IllegalArgumentException("Email ho?c m?t kh?u kh?ng ??ng"));
         if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new IllegalArgumentException("Tài khoản chưa kích hoạt hoặc đã bị khóa");
+            throw new IllegalArgumentException("T?i kho?n ch?a k?ch ho?t ho?c ?? b? kh?a");
         }
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("Email hoặc mật khẩu không đúng");
+            throw new IllegalArgumentException("Email ho?c m?t kh?u kh?ng ??ng");
         }
-        String accessToken = jwtUtil.generateAccessToken(user.getEmail(), user.getRole(), user.getId());
-        String refreshTokenValue = UUID.randomUUID().toString();
-        String tokenHash = sha256(refreshTokenValue);
-        Instant expiresAt = Instant.now().plusMillis(jwtProperties.getRefreshExpirationMs());
-        RefreshToken refreshToken = RefreshToken.builder()
-                .user(user)
-                .tokenHash(tokenHash)
-                .expiresAt(expiresAt)
-                .build();
-        refreshTokenRepository.save(refreshToken);
-        return AuthResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshTokenValue)
-                .expiresIn(jwtProperties.getExpirationMs() / 1000)
-                .user(UserResponse.fromEntity(user))
-                .build();
+        return issueAuthSession(user, UUID.randomUUID().toString(), null);
     }
 
     @Override
@@ -170,19 +159,53 @@ public class AuthServiceImpl implements AuthService {
             }
         }
 
-        String accessToken = jwtUtil.generateAccessToken(user.getEmail(), user.getRole(), user.getId());
-        String refreshTokenValue = UUID.randomUUID().toString();
+        return issueAuthSession(user, UUID.randomUUID().toString(), null);
+    }
+
+    @Override
+    @Transactional
+    public AuthResponse refreshToken(String refreshTokenValue) {
+        if (refreshTokenValue == null || refreshTokenValue.isBlank()) {
+            throw new IllegalArgumentException("Refresh token kh?ng h?p l?");
+        }
+
         String tokenHash = sha256(refreshTokenValue);
-        Instant expiresAt = Instant.now().plusMillis(jwtProperties.getRefreshExpirationMs());
-        RefreshToken refreshToken = RefreshToken.builder()
-                .user(user)
-                .tokenHash(tokenHash)
-                .expiresAt(expiresAt)
-                .build();
+        RefreshToken refreshToken = refreshTokenRepository.findByTokenHashForUpdate(tokenHash)
+                .orElseThrow(() -> new IllegalArgumentException("Refresh token kh?ng h?p l?"));
+        Instant now = Instant.now();
+
+        if (refreshToken.isRevoked()) {
+            refreshTokenRepository.revokeActiveTokensBySession(
+                    refreshToken.getUser().getId(), refreshToken.getSessionId(), now);
+            throw new IllegalArgumentException("Refresh token ?? b? s? d?ng l?i. Phi?n ??ng nh?p ?? b? thu h?i.");
+        }
+
+        if (refreshToken.getExpiresAt().isBefore(now)) {
+            refreshToken.setRevokedAt(now);
+            refreshTokenRepository.save(refreshToken);
+            throw new IllegalArgumentException("Refresh token ?? h?t h?n");
+        }
+
+        User user = refreshToken.getUser();
+        String nextRefreshTokenValue = generateRefreshTokenValue();
+        String nextTokenHash = sha256(nextRefreshTokenValue);
+
+        refreshToken.setRevokedAt(now);
+        refreshToken.setReplacedByTokenHash(nextTokenHash);
         refreshTokenRepository.save(refreshToken);
+
+        RefreshToken nextRefreshToken = RefreshToken.builder()
+                .user(user)
+                .tokenHash(nextTokenHash)
+                .sessionId(refreshToken.getSessionId())
+                .deviceId(refreshToken.getDeviceId())
+                .expiresAt(now.plusMillis(jwtProperties.getRefreshExpirationMs()))
+                .build();
+        refreshTokenRepository.save(nextRefreshToken);
+
         return AuthResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshTokenValue)
+                .accessToken(jwtUtil.generateAccessToken(user.getEmail(), user.getRole(), user.getId()))
+                .refreshToken(nextRefreshTokenValue)
                 .expiresIn(jwtProperties.getExpirationMs() / 1000)
                 .user(UserResponse.fromEntity(user))
                 .build();
@@ -190,22 +213,42 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public AuthResponse refreshToken(String refreshTokenValue) {
-        String tokenHash = sha256(refreshTokenValue);
-        RefreshToken refreshToken = refreshTokenRepository.findByTokenHash(tokenHash)
-                .orElseThrow(() -> new IllegalArgumentException("Refresh token không hợp lệ"));
-        if (refreshToken.getExpiresAt().isBefore(Instant.now())) {
-            refreshTokenRepository.delete(refreshToken);
-            throw new IllegalArgumentException("Refresh token đã hết hạn");
+    public void logout(String refreshTokenValue) {
+        if (refreshTokenValue == null || refreshTokenValue.isBlank()) {
+            return;
         }
-        User user = refreshToken.getUser();
-        String newAccessToken = jwtUtil.generateAccessToken(user.getEmail(), user.getRole(), user.getId());
+        String tokenHash = sha256(refreshTokenValue);
+        refreshTokenRepository.findByTokenHashForUpdate(tokenHash).ifPresent(refreshToken -> {
+            if (!refreshToken.isRevoked()) {
+                refreshToken.setRevokedAt(Instant.now());
+                refreshTokenRepository.save(refreshToken);
+            }
+        });
+    }
+
+    private AuthResponse issueAuthSession(User user, String sessionId, String deviceId) {
+        String refreshTokenValue = generateRefreshTokenValue();
+        RefreshToken refreshToken = RefreshToken.builder()
+                .user(user)
+                .tokenHash(sha256(refreshTokenValue))
+                .sessionId(sessionId)
+                .deviceId(deviceId)
+                .expiresAt(Instant.now().plusMillis(jwtProperties.getRefreshExpirationMs()))
+                .build();
+        refreshTokenRepository.save(refreshToken);
+
         return AuthResponse.builder()
-                .accessToken(newAccessToken)
+                .accessToken(jwtUtil.generateAccessToken(user.getEmail(), user.getRole(), user.getId()))
                 .refreshToken(refreshTokenValue)
                 .expiresIn(jwtProperties.getExpirationMs() / 1000)
                 .user(UserResponse.fromEntity(user))
                 .build();
+    }
+
+    private static String generateRefreshTokenValue() {
+        byte[] bytes = new byte[64];
+        SECURE_RANDOM.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
     @Override

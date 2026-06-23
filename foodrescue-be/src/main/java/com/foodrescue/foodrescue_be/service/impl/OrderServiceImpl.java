@@ -47,12 +47,12 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public OrderResponse placeOrder(Long userId, PlaceOrderRequest req) {
         if (req.getItems() == null || req.getItems().isEmpty()) {
-            throw new IllegalArgumentException("Gio hang khong duoc de trong");
+            throw new IllegalArgumentException("Giỏ hàng không được để trống");
         }
         validateOrderLines(req.getItems());
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("Nguoi dung khong ton tai"));
+                .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
         CustomerAddress address = resolveAddress(userId, req.getAddressId());
         Order.PaymentMethod paymentMethod = parsePaymentMethod(req.getPaymentMethod());
 
@@ -79,7 +79,7 @@ public class OrderServiceImpl implements OrderService {
 
         for (PlaceOrderRequest.OrderLineRequest line : req.getItems()) {
             ProductVariant variant = variantRepository.findById(line.getVariantId())
-                    .orElseThrow(() -> new IllegalArgumentException("Bien the " + line.getVariantId() + " khong ton tai"));
+                    .orElseThrow(() -> new IllegalArgumentException("Biến thể " + line.getVariantId() + " không tồn tại"));
 
             validateRequestedQuantity(line.getQuantity(), variant);
 
@@ -130,7 +130,7 @@ public class OrderServiceImpl implements OrderService {
                 orderSubtotal
         );
         if (appliedVoucher != null && orderDiscount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Voucher khong tao ra gia tri giam hop le");
+            throw new IllegalArgumentException("Voucher không tạo ra giá trị giảm hợp lệ");
         }
 
         BigDecimal allocatedDiscount = BigDecimal.ZERO;
@@ -203,9 +203,9 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public OrderResponse getOrderDetail(Long customerId, Long orderId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Don hang khong ton tai"));
+                .orElseThrow(() -> new IllegalArgumentException("Đơn hàng không tồn tại"));
         if (order.getUser() == null || !order.getUser().getId().equals(customerId)) {
-            throw new IllegalArgumentException("Ban khong co quyen xem don hang nay");
+            throw new IllegalArgumentException("Bạn không có quyền xem đơn hàng này");
         }
         OrderPayment payment = reconcilePayOSPayment(order);
         return toCustomerResponse(
@@ -219,9 +219,9 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public OrderResponse syncOrderPaymentStatus(Long customerId, Long orderId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Don hang khong ton tai"));
+                .orElseThrow(() -> new IllegalArgumentException("Đơn hàng không tồn tại"));
         if (order.getUser() == null || !order.getUser().getId().equals(customerId)) {
-            throw new IllegalArgumentException("Ban khong co quyen xem don hang nay");
+            throw new IllegalArgumentException("Bạn không có quyền xem đơn hàng này");
         }
 
         OrderPayment payment = reconcilePayOSPayment(order);
@@ -240,11 +240,11 @@ public class OrderServiceImpl implements OrderService {
 
         Long providerOrderCode = webhookData != null ? webhookData.getOrderCode() : null;
         if (providerOrderCode == null) {
-            throw new IllegalArgumentException("Webhook PayOS khong co orderCode");
+            throw new IllegalArgumentException("Webhook PayOS không có orderCode");
         }
 
         OrderPayment payment = orderPaymentRepository.findByProviderOrderCode(providerOrderCode)
-                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay giao dich PayOS"));
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy giao dịch PayOS"));
 
         payment.setLastWebhookAt(LocalDateTime.now());
         payment.setProviderReference(webhookData != null ? webhookData.getReference() : null);
@@ -334,9 +334,9 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public OrderResponse updateSellerOrderStatus(Long sellerId, Long sellerOrderId, String status) {
         OrderSellerOrder sellerOrder = sellerOrderRepository.findById(sellerOrderId)
-                .orElseThrow(() -> new IllegalArgumentException("Don hang khong ton tai"));
+                .orElseThrow(() -> new IllegalArgumentException("Đơn hàng không tồn tại"));
         if (!sellerOrder.getSeller().getId().equals(sellerId)) {
-            throw new IllegalArgumentException("Ban khong co quyen cap nhat don hang nay");
+            throw new IllegalArgumentException("Bạn không có quyền cập nhật đơn hàng này");
         }
 
         OrderSellerOrder.SellerOrderStatus newStatus = parseSellerOrderStatus(status);
@@ -370,22 +370,22 @@ public class OrderServiceImpl implements OrderService {
             return null;
         }
         CustomerAddress address = addressRepository.findById(addressId)
-                .orElseThrow(() -> new IllegalArgumentException("Dia chi khong ton tai"));
+                .orElseThrow(() -> new IllegalArgumentException("Địa chỉ không tồn tại"));
         if (!address.getUser().getId().equals(userId)) {
-            throw new IllegalArgumentException("Dia chi khong thuoc ve ban");
+            throw new IllegalArgumentException("Địa chỉ không thuộc về bạn");
         }
         return address;
     }
 
     private void validateRequestedQuantity(BigDecimal quantity, ProductVariant variant) {
         if (quantity == null || quantity.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("So luong dat hang khong hop le");
+            throw new IllegalArgumentException("Số lượng đặt hàng không hợp lệ");
         }
         if (variant.getMinOrderQty() != null && quantity.compareTo(variant.getMinOrderQty()) < 0) {
-            throw new IllegalArgumentException("So luong dat nho hon muc toi thieu");
+            throw new IllegalArgumentException("Số lượng đặt nhỏ hơn mức tối thiểu");
         }
         if (variant.getMaxOrderQty() != null && quantity.compareTo(variant.getMaxOrderQty()) > 0) {
-            throw new IllegalArgumentException("So luong dat vuot muc toi da");
+            throw new IllegalArgumentException("Số lượng đặt vượt mức tối đa");
         }
     }
 
@@ -393,13 +393,13 @@ public class OrderServiceImpl implements OrderService {
         Set<Long> variantIds = new HashSet<>();
         for (PlaceOrderRequest.OrderLineRequest line : items) {
             if (line == null) {
-                throw new IllegalArgumentException("Dong san pham khong hop le");
+                throw new IllegalArgumentException("Dòng sản phẩm không hợp lệ");
             }
             if (line.getVariantId() == null) {
-                throw new IllegalArgumentException("variantId khong duoc de trong");
+                throw new IllegalArgumentException("variantId không được để trống");
             }
             if (!variantIds.add(line.getVariantId())) {
-                throw new IllegalArgumentException("Gio hang co bien the bi trung lap: " + line.getVariantId());
+                throw new IllegalArgumentException("Giỏ hàng có biến thể bị trùng lặp: " + line.getVariantId());
             }
         }
     }
@@ -424,7 +424,7 @@ public class OrderServiceImpl implements OrderService {
         LocalDateTime now = LocalDateTime.now();
 
         if (voucher.getStatus() != Voucher.Status.active) {
-            throw new IllegalArgumentException("Voucher khong con hoat dong");
+            throw new IllegalArgumentException("Voucher không còn hoạt động");
         }
         if (voucher.getActiveFrom() != null && voucher.getActiveFrom().isAfter(now)) {
             throw new IllegalArgumentException("Voucher chua den thoi gian ap dung");
@@ -435,7 +435,7 @@ public class OrderServiceImpl implements OrderService {
 
         BigDecimal minOrderValue = voucher.getMinOrderValue() != null ? voucher.getMinOrderValue() : BigDecimal.ZERO;
         if (orderSubtotal.compareTo(minOrderValue) < 0) {
-            throw new IllegalArgumentException("Don hang chua dat gia tri toi thieu de dung voucher");
+            throw new IllegalArgumentException("Đơn hàng chưa đạt giá trị tối thiểu để dùng voucher");
         }
 
         Integer maxUses = voucher.getMaxUses();
@@ -446,7 +446,7 @@ public class OrderServiceImpl implements OrderService {
 
         if (voucher.getComboItemThreshold() != null
                 && totalQuantity.compareTo(BigDecimal.valueOf(voucher.getComboItemThreshold())) < 0) {
-            throw new IllegalArgumentException("Don hang chua du so luong san pham de ap voucher");
+            throw new IllegalArgumentException("Đơn hàng chưa đủ số lượng sản phẩm để áp voucher");
         }
 
         if (voucher.getTargetProvince() != null && !voucher.getTargetProvince().isBlank()) {
@@ -454,7 +454,7 @@ public class OrderServiceImpl implements OrderService {
                 throw new IllegalArgumentException("Voucher yeu cau co dia chi giao hang hop le");
             }
             if (!voucher.getTargetProvince().trim().equalsIgnoreCase(province.trim())) {
-                throw new IllegalArgumentException("Voucher khong ap dung cho khu vuc giao hang hien tai");
+                throw new IllegalArgumentException("Voucher không áp dụng cho khu vực giao hàng hiện tại");
             }
         }
 
@@ -509,7 +509,7 @@ public class OrderServiceImpl implements OrderService {
     private BigDecimal resolveUnitPrice(ProductVariant variant) {
         BigDecimal price = variant.getSalePrice() != null ? variant.getSalePrice() : variant.getListPrice();
         if (price == null || price.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("San pham " + variant.getName() + " chua co gia ban hop le");
+            throw new IllegalArgumentException("Sản phẩm " + variant.getName() + " chưa có giá bán hợp lệ");
         }
         return price;
     }
@@ -521,8 +521,8 @@ public class OrderServiceImpl implements OrderService {
         }
         if (available.compareTo(quantity) < 0) {
             throw new IllegalArgumentException(
-                    "San pham \"" + variant.getProduct().getName() + " - " + variant.getName()
-                            + "\" khong du ton kho (con " + available.stripTrailingZeros().toPlainString() + ")"
+                    "Sản phẩm \"" + variant.getProduct().getName() + " - " + variant.getName()
+                            + "\" không đủ tồn kho (còn " + available.stripTrailingZeros().toPlainString() + ")"
             );
         }
 
@@ -557,7 +557,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         if (toReserve.compareTo(BigDecimal.ZERO) > 0) {
-            throw new IllegalArgumentException("Khong the giu ton kho cho don hang nay");
+            throw new IllegalArgumentException("Không thể giữ tồn kho cho đơn hàng này");
         }
     }
 
@@ -737,7 +737,7 @@ public class OrderServiceImpl implements OrderService {
         if (currentStatus == OrderSellerOrder.SellerOrderStatus.completed
                 || currentStatus == OrderSellerOrder.SellerOrderStatus.cancelled
                 || currentStatus == OrderSellerOrder.SellerOrderStatus.refunded) {
-            throw new IllegalArgumentException("Don hang da o trang thai cuoi");
+            throw new IllegalArgumentException("Đơn hàng đã ở trạng thái cuối");
         }
         if (newStatus == OrderSellerOrder.SellerOrderStatus.cancelled) {
             return;
@@ -757,7 +757,7 @@ public class OrderServiceImpl implements OrderService {
 
         OrderSellerOrder.SellerOrderStatus allowed = next.get(currentStatus);
         if (allowed == null || allowed != newStatus) {
-            throw new IllegalArgumentException("Chuyen trang thai khong hop le");
+            throw new IllegalArgumentException("Chuyển trạng thái không hợp lệ");
         }
     }
 
@@ -926,7 +926,7 @@ public class OrderServiceImpl implements OrderService {
 
     private Order.PaymentMethod parsePaymentMethod(String value) {
         if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("Phuong thuc thanh toan khong hop le");
+            throw new IllegalArgumentException("Phương thức thanh toán không hợp lệ");
         }
         try {
             Order.PaymentMethod paymentMethod = Order.PaymentMethod.valueOf(value.trim().toLowerCase());
@@ -940,7 +940,7 @@ public class OrderServiceImpl implements OrderService {
             if (e instanceof IllegalArgumentException) {
                 throw (IllegalArgumentException) e;
             }
-            throw new IllegalArgumentException("Phuong thuc thanh toan khong duoc ho tro: " + value);
+            throw new IllegalArgumentException("Phương thức thanh toán không được hỗ trợ: " + value);
         }
     }
 
@@ -948,7 +948,7 @@ public class OrderServiceImpl implements OrderService {
         try {
             return OrderSellerOrder.SellerOrderStatus.valueOf(value);
         } catch (Exception e) {
-            throw new IllegalArgumentException("Trang thai khong hop le: " + value);
+            throw new IllegalArgumentException("Trạng thái không hợp lệ: " + value);
         }
     }
 

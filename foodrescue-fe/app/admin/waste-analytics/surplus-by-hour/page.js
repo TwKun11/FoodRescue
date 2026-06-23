@@ -14,8 +14,8 @@ export default function WasteSurplusByHourPage() {
   return (
     <div className="space-y-5">
       <WastePageHero
-        title="Thoi diem du thua trong ngay"
-        subtitle="Xac dinh khung gio phat sinh du thua de toi uu nhan su, chuong trinh flash sale va dieu phoi."
+        title="Thời điểm dư thừa trong ngày"
+        subtitle="Xác định khung giờ phát sinh dư thừa để tối ưu nhân sự, chương trình flash sale và điều phối."
         imageSrc="/images/landingpage/landingpage.png"
         imageAlt="Surplus by hour"
       />
@@ -24,7 +24,7 @@ export default function WasteSurplusByHourPage() {
         <h2 className="text-base font-bold text-gray-900">Biểu đồ dư thừa theo giờ</h2>
         <p className="mt-1 text-xs text-gray-500">Khung giờ có lượng thừa cao nhất trong ngày.</p>
         <div className="mt-4">
-          <HorizontalBars rows={rows} colorClass="bg-indigo-500" unit="dv" emptyText="Chua co du lieu" />
+          <HorizontalBars rows={rows} colorClass="bg-indigo-500" unit="đv" emptyText="Chưa có dữ liệu" />
         </div>
       </section>
 

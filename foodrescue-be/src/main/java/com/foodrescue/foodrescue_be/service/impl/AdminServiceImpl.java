@@ -325,10 +325,10 @@ public class AdminServiceImpl implements AdminService {
                 .batchId(batch.getId())
                 .batchCode(batch.getBatchCode())
                 .productId(productId)
-                .productName(product != null ? product.getName() : "Khong ro")
+                .productName(product != null ? product.getName() : "Không rõ")
                 .productCode(product != null ? product.getProductCode() : null)
-                .category(product != null && product.getCategory() != null ? product.getCategory().getName() : "Khac")
-                .sellerName(batch.getSeller() != null ? batch.getSeller().getShopName() : "Khong ro")
+                .category(product != null && product.getCategory() != null ? product.getCategory().getName() : "Khác")
+                .sellerName(batch.getSeller() != null ? batch.getSeller().getShopName() : "Không rõ")
                 .imageUrl(productId != null ? imageByProduct.get(productId) : null)
                 .expiredAt(batch.getExpiredAt())
                 .hoursToExpire(hoursToExpire)
@@ -595,7 +595,7 @@ public class AdminServiceImpl implements AdminService {
                 && !batch.getVariant().getProduct().getOriginProvince().isBlank()) {
             return batch.getVariant().getProduct().getOriginProvince().trim();
         }
-        return "Chua ro";
+        return "Chưa rõ";
     }
 
     private static List<AdminWasteAnalyticsResponse.SurplusByHour> buildHourSeries(Map<Integer, BigDecimal> byHour) {
@@ -748,7 +748,7 @@ public class AdminServiceImpl implements AdminService {
             bucket.productId = product.getId();
             bucket.productName = product.getName();
             bucket.productCode = product.getProductCode();
-            bucket.category = product.getCategory() != null ? product.getCategory().getName() : "Khac";
+            bucket.category = product.getCategory() != null ? product.getCategory().getName() : "Khác";
             bucket.originProvince = product.getOriginProvince();
             return bucket;
         }

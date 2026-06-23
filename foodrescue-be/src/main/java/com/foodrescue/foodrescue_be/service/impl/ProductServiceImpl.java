@@ -44,10 +44,11 @@ public class ProductServiceImpl implements ProductService {
                 pageable.getPageNumber(),
                 pageable.getPageSize()
         );
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
         Page<Product> page = switch (sort == null ? "" : sort) {
-            case "salePrice_asc" -> productRepository.searchPublicOrderByPriceAsc(categoryId, null, keyword, minPrice, maxPrice, province, unsortedPageable);
-            case "salePrice_desc" -> productRepository.searchPublicOrderByPriceDesc(categoryId, null, keyword, minPrice, maxPrice, province, unsortedPageable);
-            default -> productRepository.searchPublic(categoryId, null, keyword, minPrice, maxPrice, province, pageable);
+            case "salePrice_asc" -> productRepository.searchPublicOrderByPriceAsc(categoryId, null, keyword, minPrice, maxPrice, province, now, unsortedPageable);
+            case "salePrice_desc" -> productRepository.searchPublicOrderByPriceDesc(categoryId, null, keyword, minPrice, maxPrice, province, now, unsortedPageable);
+            default -> productRepository.searchPublic(categoryId, null, keyword, minPrice, maxPrice, province, now, pageable);
         };
         return page
                 .map(this::toResponse);
@@ -57,7 +58,7 @@ public class ProductServiceImpl implements ProductService {
     @Transactional(readOnly = true)
     public ProductResponse getProductDetail(Long productId) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại"));
+                .orElseThrow(() -> new IllegalArgumentException("Sáº£n pháº©m khÃ´ng tá»“n táº¡i"));
         return toResponse(product);
     }
 
@@ -72,18 +73,18 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public ProductResponse createProduct(Long sellerId, CreateProductRequest req) {
         Seller seller = sellerRepository.findById(sellerId)
-                .orElseThrow(() -> new IllegalArgumentException("Cửa hàng không tồn tại"));
+                .orElseThrow(() -> new IllegalArgumentException("Cá»­a hÃ ng khÃ´ng tá»“n táº¡i"));
         Category category = categoryRepository.findById(req.getCategoryId())
-                .orElseThrow(() -> new IllegalArgumentException("Danh mục không tồn tại"));
+                .orElseThrow(() -> new IllegalArgumentException("Danh má»¥c khÃ´ng tá»“n táº¡i"));
 
         Brand brand = null;
         if (req.getBrandId() != null) {
             brand = brandRepository.findById(req.getBrandId())
-                    .orElseThrow(() -> new IllegalArgumentException("Thương hiệu không tồn tại"));
+                    .orElseThrow(() -> new IllegalArgumentException("ThÆ°Æ¡ng hiá»‡u khÃ´ng tá»“n táº¡i"));
         }
 
         if (productRepository.existsByProductCode(req.getProductCode())) {
-            throw new IllegalArgumentException("Mã sản phẩm đã tồn tại. Vui lòng thử lại hoặc dùng mã sản phẩm khác.");
+            throw new IllegalArgumentException("MÃ£ sáº£n pháº©m Ä‘Ã£ tá»“n táº¡i. Vui lÃ²ng thá»­ láº¡i hoáº·c dÃ¹ng mÃ£ sáº£n pháº©m khÃ¡c.");
         }
 
         Product product = Product.builder()
@@ -116,19 +117,19 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public ProductResponse updateProduct(Long sellerId, Long productId, UpdateProductRequest req) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại"));
+                .orElseThrow(() -> new IllegalArgumentException("Sáº£n pháº©m khÃ´ng tá»“n táº¡i"));
         if (!product.getSeller().getId().equals(sellerId)) {
-            throw new IllegalArgumentException("Bạn không có quyền sửa sản phẩm này");
+            throw new IllegalArgumentException("Báº¡n khÃ´ng cÃ³ quyá»n sá»­a sáº£n pháº©m nÃ y");
         }
 
         if (req.getCategoryId() != null) {
             Category category = categoryRepository.findById(req.getCategoryId())
-                    .orElseThrow(() -> new IllegalArgumentException("Danh mục không tồn tại"));
+                    .orElseThrow(() -> new IllegalArgumentException("Danh má»¥c khÃ´ng tá»“n táº¡i"));
             product.setCategory(category);
         }
         if (req.getBrandId() != null) {
             Brand brand = brandRepository.findById(req.getBrandId())
-                    .orElseThrow(() -> new IllegalArgumentException("Thương hiệu không tồn tại"));
+                    .orElseThrow(() -> new IllegalArgumentException("ThÆ°Æ¡ng hiá»‡u khÃ´ng tá»“n táº¡i"));
             product.setBrand(brand);
         }
         if (req.getName() != null) product.setName(req.getName());
@@ -159,9 +160,9 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public ProductResponse addVariantToProduct(Long sellerId, Long productId, CreateProductVariantRequest req) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại"));
+                .orElseThrow(() -> new IllegalArgumentException("Sáº£n pháº©m khÃ´ng tá»“n táº¡i"));
         if (!product.getSeller().getId().equals(sellerId)) {
-            throw new IllegalArgumentException("Bạn không có quyền thêm biến thể cho sản phẩm này");
+            throw new IllegalArgumentException("Báº¡n khÃ´ng cÃ³ quyá»n thÃªm biáº¿n thá»ƒ cho sáº£n pháº©m nÃ y");
         }
 
         ProductVariant variant = ProductVariant.builder()
@@ -192,9 +193,9 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public void deleteProduct(Long sellerId, Long productId) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại"));
+                .orElseThrow(() -> new IllegalArgumentException("Sáº£n pháº©m khÃ´ng tá»“n táº¡i"));
         if (!product.getSeller().getId().equals(sellerId)) {
-            throw new IllegalArgumentException("Bạn không có quyền xóa sản phẩm này");
+            throw new IllegalArgumentException("Báº¡n khÃ´ng cÃ³ quyá»n xÃ³a sáº£n pháº©m nÃ y");
         }
         productRepository.delete(product);
     }
@@ -203,9 +204,9 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public InventoryBatchResponse addBatch(Long sellerId, CreateBatchRequest req) {
         Seller seller = sellerRepository.findById(sellerId)
-                .orElseThrow(() -> new IllegalArgumentException("Cửa hàng không tồn tại"));
+                .orElseThrow(() -> new IllegalArgumentException("Cá»­a hÃ ng khÃ´ng tá»“n táº¡i"));
         ProductVariant variant = variantRepository.findById(req.getVariantId())
-                .orElseThrow(() -> new IllegalArgumentException("Biến thể sản phẩm không tồn tại"));
+                .orElseThrow(() -> new IllegalArgumentException("Biáº¿n thá»ƒ sáº£n pháº©m khÃ´ng tá»“n táº¡i"));
 
         InventoryBatch batch = InventoryBatch.builder()
                 .variant(variant)
@@ -240,15 +241,15 @@ public class ProductServiceImpl implements ProductService {
         return stock != null ? stock : java.math.BigDecimal.ZERO;
     }
 
-    // ── Image management ──────────────────────────────────────────────────
+    // â”€â”€ Image management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Override
     @Transactional(readOnly = true)
     public List<ProductImageResponse> getProductImages(Long sellerId, Long productId) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại"));
+                .orElseThrow(() -> new IllegalArgumentException("Sáº£n pháº©m khÃ´ng tá»“n táº¡i"));
         if (!product.getSeller().getId().equals(sellerId)) {
-            throw new IllegalArgumentException("Bạn không có quyền xem ảnh sản phẩm này");
+            throw new IllegalArgumentException("Báº¡n khÃ´ng cÃ³ quyá»n xem áº£nh sáº£n pháº©m nÃ y");
         }
         return imageRepository.findByProductIdOrderBySortOrderAsc(productId).stream()
                 .map(ProductImageResponse::fromEntity)
@@ -259,9 +260,9 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public ProductImageResponse addProductImage(Long sellerId, Long productId, String imageUrl) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại"));
+                .orElseThrow(() -> new IllegalArgumentException("Sáº£n pháº©m khÃ´ng tá»“n táº¡i"));
         if (!product.getSeller().getId().equals(sellerId)) {
-            throw new IllegalArgumentException("Bạn không có quyền thêm ảnh cho sản phẩm này");
+            throw new IllegalArgumentException("Báº¡n khÃ´ng cÃ³ quyá»n thÃªm áº£nh cho sáº£n pháº©m nÃ y");
         }
         List<ProductImage> existing = imageRepository.findByProductIdOrderBySortOrderAsc(productId);
         boolean noPrimary = existing.stream().noneMatch(img -> Boolean.TRUE.equals(img.getIsPrimary()));
@@ -279,12 +280,12 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public void deleteProductImage(Long sellerId, Long productId, Long imageId) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại"));
+                .orElseThrow(() -> new IllegalArgumentException("Sáº£n pháº©m khÃ´ng tá»“n táº¡i"));
         if (!product.getSeller().getId().equals(sellerId)) {
-            throw new IllegalArgumentException("Bạn không có quyền xóa ảnh sản phẩm này");
+            throw new IllegalArgumentException("Báº¡n khÃ´ng cÃ³ quyá»n xÃ³a áº£nh sáº£n pháº©m nÃ y");
         }
         ProductImage image = imageRepository.findById(imageId)
-                .orElseThrow(() -> new IllegalArgumentException("Ảnh không tồn tại"));
+                .orElseThrow(() -> new IllegalArgumentException("áº¢nh khÃ´ng tá»“n táº¡i"));
         boolean wasPrimary = Boolean.TRUE.equals(image.getIsPrimary());
         imageRepository.delete(image);
         // If deleted image was primary, promote next image
@@ -301,9 +302,9 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public ProductImageResponse setProductImagePrimary(Long sellerId, Long productId, Long imageId) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại"));
+                .orElseThrow(() -> new IllegalArgumentException("Sáº£n pháº©m khÃ´ng tá»“n táº¡i"));
         if (!product.getSeller().getId().equals(sellerId)) {
-            throw new IllegalArgumentException("Bạn không có quyền thao tác ảnh sản phẩm này");
+            throw new IllegalArgumentException("Báº¡n khÃ´ng cÃ³ quyá»n thao tÃ¡c áº£nh sáº£n pháº©m nÃ y");
         }
         // Unset all primaries for this product
         List<ProductImage> allImages = imageRepository.findByProductIdOrderBySortOrderAsc(productId);
@@ -313,7 +314,7 @@ public class ProductServiceImpl implements ProductService {
         ProductImage target = allImages.stream()
                 .filter(img -> img.getId().equals(imageId))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Ảnh không tồn tại hoặc không thuộc sản phẩm này"));
+                .orElseThrow(() -> new IllegalArgumentException("áº¢nh khÃ´ng tá»“n táº¡i hoáº·c khÃ´ng thuá»™c sáº£n pháº©m nÃ y"));
         target.setIsPrimary(true);
         return ProductImageResponse.fromEntity(imageRepository.save(target));
     }
@@ -381,8 +382,8 @@ public class ProductServiceImpl implements ProductService {
         if (value == null) return "";
         String normalized = Normalizer.normalize(value, Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "")
-                .replace('đ', 'd')
-                .replace('Đ', 'D')
+                .replace('\u0111', 'd')
+                .replace('\u0110', 'D')
                 .toLowerCase(Locale.ROOT);
         return normalized
                 .replaceAll("[^a-z0-9\\s-]", "")

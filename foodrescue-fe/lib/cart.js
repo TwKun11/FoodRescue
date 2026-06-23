@@ -31,7 +31,7 @@ export function normalizeCartItem(item) {
     id: String(item.variantId),
     variantId: Number(item.variantId),
     productId: item.productId != null ? Number(item.productId) : null,
-    name: item.name || "San pham",
+    name: item.name || "Sản phẩm",
     variantName: item.variantName || "",
     image: item.image || "/images/products/raucai.jpg",
     price,

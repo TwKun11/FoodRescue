@@ -58,6 +58,8 @@ const SELL_MODES = [
 ];
 
 
+const MAX_PRODUCT_IMAGES = 3;
+
 function genProductCode() {
   const ts = Date.now().toString(36).toUpperCase();
   const rand = Math.random().toString(36).substring(2, 5).toUpperCase();
@@ -93,6 +95,8 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
   const isEdit = !!initialData;
   const initialProductId = initialData?.id ?? null;
   const initialProductImages = initialData?.images ?? null;
+  const createImageLimitReached = createImgQueue.length >= MAX_PRODUCT_IMAGES;
+  const galleryImageLimitReached = galleryImages.length + galleryFileQueue.length >= MAX_PRODUCT_IMAGES;
 
   const [initVariant, setInitVariant] = useState({
     variantCode: genVarCode(),
@@ -214,9 +218,18 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
 
   const handleCreateImgAdd = (e) => {
     const files = Array.from(e.target.files || []);
-    if (!files.length) return;
-    setCreateImgQueue((prev) => [...prev, ...files.map((f) => ({ file: f, previewUrl: URL.createObjectURL(f) }))]);
     e.target.value = "";
+    if (!files.length) return;
+    setCreateImgQueue((prev) => {
+      const remainingSlots = Math.max(0, MAX_PRODUCT_IMAGES - prev.length);
+      const acceptedFiles = files.slice(0, remainingSlots);
+      if (files.length > remainingSlots) {
+        setError(`Chỉ được đăng tối đa ${MAX_PRODUCT_IMAGES} ảnh cho mỗi sản phẩm. Hệ thống đã giữ ${acceptedFiles.length} ảnh đầu tiên.`);
+      } else {
+        setError("");
+      }
+      return [...prev, ...acceptedFiles.map((f) => ({ file: f, previewUrl: URL.createObjectURL(f) }))];
+    });
   };
   const removeCreateImg = (idx) =>
     setCreateImgQueue((prev) => {
@@ -329,6 +342,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
               minOrderQty: 1,
               stepQty: 1,
               trackInventory: true,
+              status: "active",
             });
             if (!varRes.ok) {
               setError(varRes.data?.message || "Tạo sản phẩm thành công nhưng không thêm được biến thể");
@@ -374,10 +388,18 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
   // Gallery helpers (available for edit mode after save)
   const handleGalleryFileSelect = (e) => {
     const files = Array.from(e.target.files || []);
-    if (!files.length) return;
-    const newQueue = files.map((f) => ({ file: f, previewUrl: URL.createObjectURL(f) }));
-    setGalleryFileQueue((prev) => [...prev, ...newQueue]);
     e.target.value = "";
+    if (!files.length) return;
+    const usedSlots = galleryImages.length + galleryFileQueue.length;
+    const remainingSlots = Math.max(0, MAX_PRODUCT_IMAGES - usedSlots);
+    const acceptedFiles = files.slice(0, remainingSlots);
+    if (files.length > remainingSlots) {
+      setError(`Chỉ được đăng tối đa ${MAX_PRODUCT_IMAGES} ảnh cho mỗi sản phẩm. Hệ thống đã giữ ${acceptedFiles.length} ảnh đầu tiên.`);
+    } else {
+      setError("");
+    }
+    const newQueue = acceptedFiles.map((f) => ({ file: f, previewUrl: URL.createObjectURL(f) }));
+    setGalleryFileQueue((prev) => [...prev, ...newQueue]);
   };
 
   const removeQueuedImage = (idx) => {
@@ -494,9 +516,22 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
             )}
             {/* Add + Upload  */}
             <div className="flex items-center gap-3">
-              <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition inline-block">
+              <label
+                className={`text-sm font-medium px-4 py-2 rounded-lg transition inline-block ${
+                  galleryImageLimitReached
+                    ? "cursor-not-allowed bg-gray-100 text-gray-400"
+                    : "cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-700"
+                }`}
+              >
                 + Thêm ảnh
-                <input type="file" accept="image/*" multiple className="hidden" onChange={handleGalleryFileSelect} />
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleGalleryFileSelect}
+                  disabled={galleryImageLimitReached}
+                />
               </label>
               {galleryFileQueue.length > 0 && (
                 <button
@@ -509,8 +544,11 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
                 </button>
               )}
             </div>
+            <p className="text-xs font-medium text-emerald-700">
+              Đã chọn {galleryImages.length + galleryFileQueue.length}/{MAX_PRODUCT_IMAGES} ảnh.
+            </p>
             <p className="text-xs text-gray-400">
-              Bấm vào ảnh để đặt làm ảnh chính hoặc xóa • JPG, PNG, WEBP – tối đa 10MB/ảnh
+              Bấm vào ảnh để đặt làm ảnh chính hoặc xóa • Tối đa 3 ảnh/sản phẩm • JPG, PNG, WEBP – tối đa 10MB/ảnh
             </p>
           </div>
         ) : (
@@ -542,7 +580,13 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
               </div>
             )}
             <div className="flex items-center gap-3">
-              <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition inline-block">
+              <label
+                className={`text-sm font-medium px-4 py-2 rounded-lg transition inline-block ${
+                  createImageLimitReached
+                    ? "cursor-not-allowed bg-gray-100 text-gray-400"
+                    : "cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-700"
+                }`}
+              >
                 + Thêm ảnh
                 <input
                   type="file"
@@ -550,14 +594,17 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
                   multiple
                   className="hidden"
                   onChange={handleCreateImgAdd}
-                  disabled={uploading}
+                  disabled={uploading || createImageLimitReached}
                 />
               </label>
               {createImgQueue.length === 0 && <span className="text-xs text-gray-400">Chưa chọn ảnh nào</span>}
               {uploading && <span className="text-xs text-blue-500">Đang tải ảnh lên...</span>}
             </div>
+            <p className="text-xs font-medium text-emerald-700">
+              Đã chọn {createImgQueue.length}/{MAX_PRODUCT_IMAGES} ảnh.
+            </p>
             <p className="text-xs text-gray-400">
-              Ảnh đầu tiên sẽ là ảnh đại diện • Có thể chọn nhiều ảnh • JPG, PNG, WEBP – tối đa 10MB/ảnh
+              Ảnh đầu tiên sẽ là ảnh đại diện • Tối đa 3 ảnh/sản phẩm • JPG, PNG, WEBP – tối đa 10MB/ảnh
             </p>
           </div>
         )}

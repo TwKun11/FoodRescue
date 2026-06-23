@@ -17,7 +17,7 @@ public class AddressRequest {
     @NotBlank(message = "Tỉnh/Thành phố không được để trống")
     private String province;
 
-    @NotBlank(message = "Quận/Huyện không được để trống")
+    @NotBlank(message = "Quận/H?yện không được để trống")
     private String district;
 
     @NotBlank(message = "Phường/Xã không được để trống")

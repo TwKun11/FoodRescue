@@ -132,15 +132,6 @@ export default function CheckoutPage() {
   );
 
   useEffect(() => {
-    const token =
-      typeof window !== "undefined"
-        ? localStorage.getItem("accessToken")
-        : null;
-    if (!token) {
-      router.replace("/login");
-      return;
-    }
-
     apiGetAddresses()
       .then((res) => {
         if (res.ok && res.data?.data) {
@@ -517,16 +508,37 @@ export default function CheckoutPage() {
     <div className="min-h-screen bg-brand-bg">
       <div className="mx-auto max-w-6xl px-4 py-8">
         <div className="mb-6 flex flex-col gap-3 rounded-3xl border border-white/70 bg-white p-6 shadow-sm sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-dark">
-              Checkout
-            </p>
-            <h1 className="mt-2 text-3xl font-bold text-gray-900">
-              Thanh toán
-            </h1>
-            <p className="mt-1 text-sm text-gray-500">
-              Chọn cách thanh toán phù hợp và xác nhận đơn hàng.
-            </p>
+          <div className="flex items-start gap-4">
+            <Link
+              href="/"
+              className="flex h-11 shrink-0 items-center gap-2.5 text-emerald-900"
+              aria-label="Food Rescue trang chu"
+            >
+              <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-emerald-100">
+                <Image
+                  src="/images/logo.png"
+                  alt=""
+                  width={40}
+                  height={40}
+                  className="h-full w-full object-contain"
+                  priority
+                />
+              </span>
+              <span className="whitespace-nowrap text-xl font-extrabold leading-none tracking-tight">
+                Food Rescue
+              </span>
+            </Link>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-dark">
+                Checkout
+              </p>
+              <h1 className="mt-2 text-3xl font-bold text-gray-900">
+                Thanh toán
+              </h1>
+              <p className="mt-1 text-sm text-gray-500">
+                Chọn cách thanh toán phù hợp và xác nhận đơn hàng.
+              </p>
+            </div>
           </div>
           <Badge
             variant="default"

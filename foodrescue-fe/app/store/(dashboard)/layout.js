@@ -3,6 +3,8 @@ import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Sidebar from "@/components/store/Sidebar";
 import StoreGuard from "@/components/store/StoreGuard";
+import ThemeToggle from "@/components/common/ThemeToggle";
+import { apiLogout, getAuthUser, subscribeAuth } from "@/lib/api";
 import { apiGetMyShop } from "@/lib/api";
 
 export default function DashboardLayout({ children }) {
@@ -25,11 +27,9 @@ export default function DashboardLayout({ children }) {
     return () => document.removeEventListener("click", handleClickOutside);
   }, [dropdownOpen]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user");
+  const handleLogout = async () => {
     setDropdownOpen(false);
+    await apiLogout().catch(() => {});
     router.push("/login");
   };
 
@@ -55,7 +55,7 @@ export default function DashboardLayout({ children }) {
 
   return (
     <StoreGuard>
-      <div className="flex min-h-screen bg-gray-50">
+      <div className="store-dashboard flex min-h-screen bg-gray-50">
         <Sidebar />
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Top Header */}
@@ -82,6 +82,8 @@ export default function DashboardLayout({ children }) {
               />
             </div>
             <div className="flex items-center gap-3 ml-auto">
+              <ThemeToggle compact />
+
               {/* Add button */}
               <button
                 type="button"

@@ -10,6 +10,7 @@ import com.foodrescue.foodrescue_be.model.User;
 import com.foodrescue.foodrescue_be.repository.SellerRepository;
 import com.foodrescue.foodrescue_be.repository.UserRepository;
 import com.foodrescue.foodrescue_be.service.CloudinaryService;
+import com.foodrescue.foodrescue_be.service.EmailService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -17,6 +18,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -33,6 +36,7 @@ public class SellerApplicationController {
     private final SellerRepository sellerRepository;
     private final UserRepository userRepository;
     private final CloudinaryService cloudinaryService;
+    private final EmailService emailService;
 
     @GetMapping("/api/seller-applications/me")
     public ResponseData<SellerResponse> getMyApplication(Authentication auth) {
@@ -101,6 +105,11 @@ public class SellerApplicationController {
         return ResponseData.ok("Gửi đơn đăng ký thành công", SellerResponse.fromEntity(saved));
     }
 
+    @GetMapping("/api/admin/seller-applications/pending-count")
+    public ResponseData<Long> getPendingSellerApplicationCount() {
+        return ResponseData.ok("OK", sellerRepository.countByStatus(Seller.Status.pending));
+    }
+
     @GetMapping("/api/admin/seller-applications")
     public ResponseData<Page<SellerResponse>> adminListApplications(
             @RequestParam(defaultValue = "0") int page,
@@ -140,6 +149,7 @@ public class SellerApplicationController {
         seller.setIsVerified(true);
         seller.setReviewedAt(LocalDateTime.now());
         Seller saved = sellerRepository.save(seller);
+        registerSellerApprovalEmailAfterCommit(user, saved);
         return ResponseData.ok("Duyệt hồ sơ seller thành công", SellerResponse.fromEntity(saved));
     }
 
@@ -182,6 +192,20 @@ public class SellerApplicationController {
                 "Tải ảnh thành công",
                 cloudinaryService.uploadImage(file, "foodrescue/seller-applications")
         );
+    }
+
+    private void registerSellerApprovalEmailAfterCommit(User user, Seller seller) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            emailService.sendSellerApplicationApprovedEmail(user, seller);
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                emailService.sendSellerApplicationApprovedEmail(user, seller);
+            }
+        });
     }
 
     private User resolveUser(Authentication auth) {

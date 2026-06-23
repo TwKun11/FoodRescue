@@ -8,6 +8,7 @@ import BannerCarousel from "@/components/customer/BannerCarousel";
 import { apiGetProducts, apiGetCategories, apiGetActiveBannerAds } from "@/lib/api";
 import { addItemToCart } from "@/lib/cart";
 import { formatDistanceMeters, getCurrentPosition, haversineDistanceMeters } from "@/lib/location";
+import { isDealExpired, isMappedProductPurchasable, resolveDealEndsAt } from "@/lib/product-availability";
 import { resolveVariantPricing } from "@/lib/product-pricing";
 import { fetchProvinces, fetchDistricts, fetchWards } from "@/lib/vn-locations";
 
@@ -108,7 +109,7 @@ function mapProductFromApi(p) {
   const defaultSku = p.variants?.find((s) => s.isDefault) || p.variants?.[0];
   const pricing = resolveVariantPricing(defaultSku);
   const shelfDays = p.shelfLifeDays ?? 0;
-  const dealEndsAt = p.dealEndsAt || null;
+  const dealEndsAt = resolveDealEndsAt(p);
   const address = p.sellerPickupAddress || [p.originProvince].filter(Boolean).join(", ") || "";
   return {
     id: String(p.id),
@@ -130,6 +131,8 @@ function mapProductFromApi(p) {
     sellerLongitude: p.sellerLongitude ?? null,
     distanceMeters: null,
     distanceLabel: "",
+    status: p.status,
+    dealEndsAt,
     district: null,
     ward: null,
     stock: defaultSku?.stockAvailable ?? defaultSku?.stockQuantity ?? 0,
@@ -233,7 +236,7 @@ export default function ProductsPage() {
         });
       })
       .catch(() => {
-        toast.error("Khong lay duoc vi tri hien tai de tinh khoang cach.");
+        toast.error("Không lấy được vị trí hiện tại để tính khoảng cách.");
       });
   }, [nearMe, viewerLocation]);
 
@@ -283,7 +286,7 @@ export default function ProductsPage() {
               distanceMeters,
               distanceLabel: distanceMeters != null ? `Cách bạn ${formatDistanceMeters(distanceMeters)}` : "",
             };
-          });
+          }).filter(isMappedProductPurchasable);
 
           if (useClientLocationRefine) {
             const districtNeedle = normalizeLocationText(selectedDistrict);
@@ -341,6 +344,10 @@ export default function ProductsPage() {
       toast.error("Sản phẩm đã hết hàng.");
       return;
     }
+    if (isDealExpired(product.expiryAt)) {
+      toast.error("Ưu đãi đã kết thúc, sản phẩm không thể thêm vào giỏ.");
+      return;
+    }
     const nextCart = addItemToCart({
       variantId: product.variantId,
       productId: product.id,
@@ -355,6 +362,7 @@ export default function ProductsPage() {
       maxQty: Number(product.stock) || null,
     });
     toast.success(`Đã thêm "${product.name}" vào giỏ hàng`, {
+      id: "cart-added",
       duration: 3500,
       icon: "🛒",
     });
