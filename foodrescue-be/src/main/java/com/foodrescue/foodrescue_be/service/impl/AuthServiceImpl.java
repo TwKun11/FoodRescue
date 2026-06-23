@@ -104,12 +104,12 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("Email ho?c m?t kh?u kh?ng ??ng"));
+                .orElseThrow(() -> new IllegalArgumentException("Email hoặc mật khẩu không đúng"));
         if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new IllegalArgumentException("T?i kho?n ch?a k?ch ho?t ho?c ?? b? kh?a");
+            throw new IllegalArgumentException("Tài khoản chưa kích hoạt hoặc đã bị khóa");
         }
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("Email ho?c m?t kh?u kh?ng ??ng");
+            throw new IllegalArgumentException("Email hoặc mật khẩu không đúng");
         }
         return issueAuthSession(user, UUID.randomUUID().toString(), null);
     }
