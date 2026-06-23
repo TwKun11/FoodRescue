@@ -1,10 +1,10 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import AdminGuard from "@/components/common/AdminGuard";
 import ThemeToggle from "@/components/common/ThemeToggle";
-import { apiLogout, getAuthUser, subscribeAuth } from "@/lib/api";
+import { apiAdminGetPendingSellerApplicationCount, apiLogout, getAuthUser, subscribeAuth } from "@/lib/api";
 
 const NAV = [
   {
@@ -142,6 +142,28 @@ export default function AdminLayout({ children }) {
 function AdminSidebar() {
   const pathname = usePathname();
   const [expandedMenu, setExpandedMenu] = useState(null);
+  const [pendingSellerApplicationCount, setPendingSellerApplicationCount] = useState(0);
+
+  const loadPendingSellerApplicationCount = useCallback(() => {
+    apiAdminGetPendingSellerApplicationCount()
+      .then((res) => {
+        if (res.ok) {
+          setPendingSellerApplicationCount(Number(res.data?.data ?? 0));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    loadPendingSellerApplicationCount();
+    const intervalId = window.setInterval(loadPendingSellerApplicationCount, 30000);
+    window.addEventListener("seller-application-count-updated", loadPendingSellerApplicationCount);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("seller-application-count-updated", loadPendingSellerApplicationCount);
+    };
+  }, [loadPendingSellerApplicationCount]);
 
   return (
     <aside className="w-52 shrink-0 bg-white border-r border-gray-200 min-h-screen flex flex-col">
@@ -214,6 +236,8 @@ function AdminSidebar() {
             );
           }
 
+          const showPendingBadge = item.href === "/admin/seller-applications" && pendingSellerApplicationCount > 0;
+
           return (
             <Link
               key={item.href}
@@ -225,7 +249,12 @@ function AdminSidebar() {
               }`}
             >
               <span className={active ? "text-gray-900" : "text-gray-400"}>{item.icon}</span>
-              {item.label}
+              <span className="min-w-0 flex-1 truncate">{item.label}</span>
+              {showPendingBadge && (
+                <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 text-[11px] font-bold leading-none text-white">
+                  {pendingSellerApplicationCount > 99 ? "99+" : pendingSellerApplicationCount}
+                </span>
+              )}
             </Link>
           );
         })}

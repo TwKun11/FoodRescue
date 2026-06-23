@@ -132,15 +132,6 @@ export default function CheckoutPage() {
   );
 
   useEffect(() => {
-    const token =
-      typeof window !== "undefined"
-        ? getAccessToken()
-        : null;
-    if (!token) {
-      router.replace("/login");
-      return;
-    }
-
     apiGetAddresses()
       .then((res) => {
         if (res.ok && res.data?.data) {
