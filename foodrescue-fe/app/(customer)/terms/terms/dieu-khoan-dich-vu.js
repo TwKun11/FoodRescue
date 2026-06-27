@@ -160,7 +160,7 @@ Việc tiếp tục sử dụng Food Rescue sau khi Điều khoản Dịch vụ 
 22. Thông tin liên hệ
 Nếu có câu hỏi, góp ý hoặc yêu cầu hỗ trợ liên quan đến Điều khoản Dịch vụ, người dùng có thể liên hệ Food Rescue thông qua các kênh chính thức được công bố trên website hoặc fanpage của Food Rescue.
 Email:Foodrescue888@gmail.com 
-Facebook: Food Rescue
+Facebook: https://www.facebook.com/profile.php?id=61590746305008
 TikTok:https://www.tiktok.com/@foodrescue888  
 Website: https://foodrescue.store/
 23. Hiệu lực áp dụng

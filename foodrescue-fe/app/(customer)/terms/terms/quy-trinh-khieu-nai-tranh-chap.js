@@ -62,7 +62,7 @@ c. Fanpage chính thức của Food Rescue.
 d. Các kênh liên hệ khác được Food Rescue công bố trên website hoặc nền tảng chính thức.
 Thông tin liên hệ dự kiến:
 Email: Foodrescue888@gmail.com
-Facebook: Facebook 
+Facebook: https://www.facebook.com/profile.php?id=61590746305008 
 TikTok: (17)FOODRESCUE (FR) (@foodrescue888) | TikTok  
 Website: https://foodrescue.store/
 8. Thông tin và bằng chứng cần cung cấp
@@ -219,7 +219,7 @@ Việc tiếp tục sử dụng Food Rescue sau khi Quy trình được cập nh
 Nếu người mua hoặc cửa hàng có câu hỏi, khiếu nại hoặc cần hỗ trợ liên quan đến tranh chấp trên Food Rescue, vui lòng liên hệ thông qua các kênh chính thức được công bố trên website hoặc fanpage của Food Rescue.
 Thông tin liên hệ dự kiến:
 Email:Foodrescue888@gmail.com 
-Facebook: Food Rescue
+Facebook: https://www.facebook.com/profile.php?id=61590746305008
 TikTok:https://www.tiktok.com/@foodrescue888  
 Website: https://foodrescue.store/
 22. Hiệu lực áp dụng

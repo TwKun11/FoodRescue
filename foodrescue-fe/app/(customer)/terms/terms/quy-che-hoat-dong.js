@@ -264,7 +264,7 @@ Việc tiếp tục sử dụng Food Rescue sau khi Quy chế Hoạt động đ�
 Nếu có câu hỏi, góp ý hoặc yêu cầu hỗ trợ liên quan đến Quy chế Hoạt động của Food Rescue, người dùng và cửa hàng có thể liên hệ thông qua các kênh chính thức được công bố trên website hoặc fanpage của Food Rescue.
 Thông tin liên hệ dự kiến:
 Email:Foodrescue888@gmail.com 
-Facebook: Food Rescue
+Facebook: https://www.facebook.com/profile.php?id=61590746305008
 TikTok:https://www.tiktok.com/@foodrescue888  
 Website: https://foodrescue.store/
 25. Hiệu lực áp dụng

@@ -298,6 +298,15 @@ function AdminHeader() {
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-4 shrink-0">
       <div className="flex-1" />
+      <Link
+        href="/"
+        className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100"
+      >
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l9-9 9 9M5 10v10h14V10" />
+        </svg>
+        Giao diện người mua
+      </Link>
       <ThemeToggle compact />
       <span className="text-xs font-semibold bg-brand-bg text-brand-dark px-2.5 py-1 rounded-full border border-brand/30">
         ADMIN

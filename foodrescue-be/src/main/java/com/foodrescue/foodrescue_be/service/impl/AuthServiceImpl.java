@@ -59,14 +59,15 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public void register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
+        String normalizedEmail = request.getEmail().trim().toLowerCase();
+        if (userRepository.existsByEmail(normalizedEmail)) {
             throw new IllegalArgumentException("Email đã được sử dụng");
         }
-        pendingRegistrationRepository.findByEmail(request.getEmail()).ifPresent(pendingRegistrationRepository::delete);
+        pendingRegistrationRepository.findByEmail(normalizedEmail).ifPresent(pendingRegistrationRepository::delete);
         String token = UUID.randomUUID().toString();
         Instant expiresAt = Instant.now().plusMillis(jwtProperties.getRefreshExpirationMs());
         PendingRegistration pending = PendingRegistration.builder()
-                .email(request.getEmail().trim().toLowerCase())
+                .email(normalizedEmail)
                 .password(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName())
                 .dateOfBirth(request.getDateOfBirth())
