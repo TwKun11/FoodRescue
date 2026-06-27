@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+const FACEBOOK_URL = "https://www.facebook.com/profile.php?id=61590746305008";
+
 export default function Footer() {
   return (
     <footer className="mt-auto bg-gray-900 text-sm text-gray-400">
@@ -69,6 +71,11 @@ export default function Footer() {
             </li>
             <li>Đang thử nghiệm tại trung tâm Đà Nẵng</li>
             <li>foodrescue888@gmail.com</li>
+            <li>
+              <a href={FACEBOOK_URL} target="_blank" rel="noreferrer" className="transition hover:text-brand">
+                Fanpage Food Rescue
+              </a>
+            </li>
           </ul>
         </div>
       </div>

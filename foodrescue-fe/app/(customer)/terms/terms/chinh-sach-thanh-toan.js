@@ -168,7 +168,7 @@ Việc tiếp tục sử dụng Food Rescue sau khi Chính sách được cập 
 Nếu người mua hoặc cửa hàng có câu hỏi, góp ý hoặc cần hỗ trợ liên quan đến thanh toán trên Food Rescue, vui lòng liên hệ thông qua các kênh chính thức được công bố trên website hoặc fanpage của Food Rescue.
 Thông tin liên hệ dự kiến:
 Email:Foodrescue888@gmail.com 
-Facebook: Food Rescue
+Facebook: https://www.facebook.com/profile.php?id=61590746305008
 TikTok:https://www.tiktok.com/@foodrescue888  
 Website: https://foodrescue.store/
 23. Hiệu lực áp dụng

@@ -164,7 +164,7 @@ Việc tiếp tục sử dụng Food Rescue sau khi Chính sách Bảo mật đ�
 Nếu người dùng có câu hỏi, yêu cầu chỉnh sửa/xóa thông tin cá nhân, khiếu nại hoặc góp ý liên quan đến Chính sách Bảo mật, vui lòng liên hệ Food Rescue thông qua các kênh chính thức được công bố trên website hoặc fanpage của Food Rescue.
 Thông tin liên hệ dự kiến:
 Email:Foodrescue888@gmail.com 
-Facebook: Food Rescue
+Facebook: https://www.facebook.com/profile.php?id=61590746305008
 TikTok:https://www.tiktok.com/@foodrescue888  
 Website: https://foodrescue.store/
 17. Hiệu lực áp dụng

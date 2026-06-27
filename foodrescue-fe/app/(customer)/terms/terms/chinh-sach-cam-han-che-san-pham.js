@@ -199,7 +199,7 @@ Việc tiếp tục đăng sản phẩm trên Food Rescue sau khi Chính sách �
 Nếu cửa hàng hoặc người mua có câu hỏi, góp ý hoặc cần hỗ trợ liên quan đến Chính sách Cấm và Hạn chế Sản phẩm, vui lòng liên hệ thông qua các kênh chính thức được công bố trên website hoặc fanpage của Food Rescue.
 Thông tin liên hệ dự kiến:
 Email:Foodrescue888@gmail.com 
-Facebook: Food Rescue
+Facebook: https://www.facebook.com/profile.php?id=61590746305008
 TikTok:https://www.tiktok.com/@foodrescue888  
 Website: https://foodrescue.store/
 15. Hiệu lực áp dụng
