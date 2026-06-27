@@ -184,10 +184,10 @@ export default function Header() {
           : "border-b border-emerald-100 bg-white/95 shadow-sm backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/95"
       }`}
     >
-      <div className="mx-auto flex h-[72px] max-w-[1320px] items-center gap-5 px-5">
+      <div className="mx-auto flex h-[72px] max-w-[1320px] items-center gap-2 px-3 sm:gap-5 sm:px-5">
         <Link
           href="/"
-          className={`flex h-11 min-w-[174px] items-center gap-2.5 transition-colors ${
+          className={`flex h-11 min-w-0 items-center gap-2 transition-colors sm:min-w-[174px] sm:gap-2.5 ${
             transparent ? "text-white" : "text-emerald-900 dark:text-emerald-100"
           }`}
           onClick={() => setMenuOpen(false)}
@@ -196,7 +196,7 @@ export default function Header() {
           <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-emerald-100">
             <Image src="/images/logo.png" alt="" width={40} height={40} className="h-full w-full object-contain" priority />
           </span>
-          <span className="whitespace-nowrap text-xl font-extrabold leading-none tracking-tight">Food Rescue</span>
+          <span className="hidden whitespace-nowrap text-xl font-extrabold leading-none tracking-tight sm:inline">Food Rescue</span>
         </Link>
 
         <nav className="hidden flex-1 items-center justify-center gap-5 text-sm font-semibold xl:flex">
@@ -214,7 +214,7 @@ export default function Header() {
           })}
         </nav>
 
-        <div className="ml-auto flex shrink-0 items-center justify-end gap-3">
+        <div className="ml-auto flex shrink-0 items-center justify-end gap-1.5 sm:gap-3">
           <ThemeToggle compact />
 
           <Link
