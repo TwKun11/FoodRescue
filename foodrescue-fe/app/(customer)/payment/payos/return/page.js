@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { restoreAuthSession, apiGetOrderDetail, apiSyncOrderPayment } from "@/lib/api";
+import * as analytics from "@/lib/analytics";
+
 function formatRemaining(seconds) {
   if (seconds == null) return null;
 
@@ -94,6 +96,7 @@ export default function PayOSReturnPage() {
   const orderId = searchParams.get("orderId");
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(() => Boolean(orderId));
+  const [trackedSuccess, setTrackedSuccess] = useState(false);
 
   const loadOrder = useCallback(
     async ({ silent = false } = {}) => {
@@ -136,7 +139,23 @@ export default function PayOSReturnPage() {
     };
   }, [loadOrder]);
 
+  useEffect(() => {
+    if (order && !trackedSuccess) {
+      const isPaid = normalizeStatus(order.paymentStatus) === "paid";
+      if (isPaid) {
+        analytics.event("submit_order_test", {
+          order_id: order.id,
+          order_value: order.totalAmount,
+          payment_method: "payos",
+          order_status: "paid",
+        });
+        setTrackedSuccess(true);
+      }
+    }
+  }, [order, trackedSuccess]);
+
   const summary = useMemo(() => getPaymentSummary(order), [order]);
+
 
   return (
     <div className="min-h-screen bg-brand-bg px-4 py-12">

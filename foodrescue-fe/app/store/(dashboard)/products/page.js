@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiSellerGetProducts, apiSellerAddVariant, apiSellerAddBatch, apiSellerUpdateProduct } from "@/lib/api";
 import ProductForm from "@/components/store/ProductForm";
+import * as analytics from "@/lib/analytics";
 
 const VARIANT_UNITS = [
   { value: "piece", label: "Cái" },
@@ -198,6 +199,7 @@ export default function StoreProductsPage() {
   }, []);
 
   const openCreate = useCallback(() => {
+    analytics.event("click_create_product");
     setEditingProduct(null);
     setShowForm(true);
   }, []);

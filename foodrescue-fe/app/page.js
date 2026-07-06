@@ -8,6 +8,8 @@ import ScrollReveal from "@/components/common/ScrollReveal";
 import { apiGetProducts } from "@/lib/api";
 import { isProductPurchasable } from "@/lib/product-availability";
 import { resolveVariantPricing } from "@/lib/product-pricing";
+import * as analytics from "@/lib/analytics";
+
 
 const PRODUCTS_ROUTE = "/products"; // TODO: support deep-linking near-me filter when products page reads query params.
 const STORE_SIGNUP_URL = "https://foodrescue.store/become-seller";
@@ -134,6 +136,20 @@ export default function HomePage() {
   const [submitted, setSubmitted] = useState(false);
   const [dealProducts, setDealProducts] = useState([]);
   const [dealsLoading, setDealsLoading] = useState(true);
+  const [formInteracted, setFormInteracted] = useState(false);
+
+  useEffect(() => {
+    analytics.event("view_home");
+  }, []);
+
+  const handleFormInteraction = () => {
+    if (!formInteracted) {
+      analytics.event("click_feedback_form", {
+        form_type: audience === "buyer" ? "buyer_survey" : "seller_interest",
+      });
+      setFormInteracted(true);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -206,9 +222,34 @@ export default function HomePage() {
       return;
     }
 
+    if (audience === "buyer") {
+      analytics.event("submit_feedback", {
+        feedback_type: "buyer_survey",
+        city: form.city,
+        ward: form.ward,
+        user_group: form.userGroup,
+      });
+      analytics.event("submit_survey", {
+        survey_type: "buyer_survey",
+        city: form.city,
+        ward: form.ward,
+        user_group: form.userGroup,
+      });
+    } else {
+      analytics.event("click_b2b_contact", {
+        contact_type: "seller_interest",
+        store_type: form.storeType,
+      });
+      analytics.event("seller_signup", {
+        seller_type: form.storeType,
+        seller_area: `${form.ward}, ${form.city}`,
+      });
+    }
+
     // TODO: Connect to lead/subscribe API when backend endpoint is available.
     setSubmitted(true);
   };
+
 
   return (
     <div className="landing-page min-h-screen flex flex-col bg-[#f8fdf9] dark:bg-[#06111f]">
@@ -256,6 +297,7 @@ export default function HomePage() {
                 </Link>
                 <Link
                   href={STORE_SIGNUP_URL}
+                  onClick={() => analytics.event("click_seller_register", { location: "hero_section" })}
                   className="inline-flex items-center justify-center rounded-xl border border-emerald-500 bg-emerald-600 px-7 py-3.5 text-sm font-extrabold text-white shadow-xl shadow-emerald-950/20 transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/70"
                 >
                   Đăng ký cửa hàng
@@ -586,8 +628,10 @@ export default function HomePage() {
             <ScrollReveal direction="up" delay={120}>
               <form
                 onSubmit={handleInterestSubmit}
+                onFocus={handleFormInteraction}
                 className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-xl shadow-emerald-900/8 sm:p-7 dark:border-emerald-900/60 dark:bg-[#0d1b2f] dark:shadow-black/30"
               >
+
                 <div className="mb-6 grid grid-cols-2 gap-2 rounded-2xl bg-emerald-50 p-1.5 dark:bg-[#10233a]">
                   <button
                     type="button"

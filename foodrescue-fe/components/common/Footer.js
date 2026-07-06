@@ -1,4 +1,5 @@
 import Link from "next/link";
+import * as analytics from "@/lib/analytics";
 
 const FACEBOOK_URL = "https://www.facebook.com/profile.php?id=61590746305008";
 
@@ -39,17 +40,29 @@ export default function Footer() {
           <p className="mb-3 font-semibold text-white">Cửa hàng</p>
           <ul className="space-y-2">
             <li>
-              <Link href="/#for-stores" className="transition hover:text-brand">
+              <Link
+                href="/#for-stores"
+                className="transition hover:text-brand"
+                onClick={() => analytics.event("click_b2b_contact")}
+              >
                 Dành cho cửa hàng
               </Link>
             </li>
             <li>
-              <Link href="/#interest-form" className="transition hover:text-brand">
+              <Link
+                href="/#interest-form"
+                className="transition hover:text-brand"
+                onClick={() => analytics.event("click_seller_register")}
+              >
                 Đăng ký quan tâm
               </Link>
             </li>
             <li>
-              <Link href="/store/login" className="transition hover:text-brand">
+              <Link
+                href="/store/login"
+                className="transition hover:text-brand"
+                onClick={() => analytics.event("click_b2b_contact")}
+              >
                 Đăng nhập cửa hàng
               </Link>
             </li>
@@ -70,9 +83,23 @@ export default function Footer() {
               </Link>
             </li>
             <li>Đang thử nghiệm tại trung tâm Đà Nẵng</li>
-            <li>foodrescue888@gmail.com</li>
             <li>
-              <a href={FACEBOOK_URL} target="_blank" rel="noreferrer" className="transition hover:text-brand">
+              <a
+                href="mailto:foodrescue888@gmail.com"
+                className="transition hover:text-brand"
+                onClick={() => analytics.event("click_contact_foodrescue", { platform: "email" })}
+              >
+                foodrescue888@gmail.com
+              </a>
+            </li>
+            <li>
+              <a
+                href={FACEBOOK_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="transition hover:text-brand"
+                onClick={() => analytics.event("click_contact_foodrescue", { platform: "facebook" })}
+              >
                 Fanpage Food Rescue
               </a>
             </li>

@@ -16,6 +16,8 @@ import { getAccessToken, setAuthSession } from "@/lib/auth";
 
 import { getCurrentPosition, mapLocationToAddress, reverseGeocode } from "@/lib/location";
 
+import * as analytics from "@/lib/analytics";
+
 const STATUS_META = {
   pending: {
     label: "Chờ duyệt",
@@ -129,6 +131,8 @@ export default function BecomeSellerPage() {
 
   useEffect(() => {
     let cancelled = false;
+
+    analytics.event("click_seller_register");
 
     async function load() {
       try {
@@ -341,6 +345,12 @@ export default function BecomeSellerPage() {
       }
 
       const data = res.data?.data ?? null;
+
+      analytics.event("seller_signup", {
+        seller_type: form.businessType || "",
+        seller_area: form.pickupAddress || "",
+        product_category: form.businessType || "",
+      });
 
       setApplication(data);
       setForm((prev) => ({ ...prev, acceptedTerms: true }));

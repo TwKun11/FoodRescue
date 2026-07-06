@@ -3,6 +3,7 @@ import GoogleAuthProvider from "@/components/GoogleAuthProvider";
 import AuthProvider from "@/components/common/AuthProvider";
 import { Toaster } from "react-hot-toast";
 import { normalizeApiBaseUrl } from "@/lib/normalize-runtime-config";
+import AnalyticsTracker from "@/components/common/AnalyticsTracker";
 
 export const metadata = {
   title: "Food Rescue - Tìm thực phẩm giảm giá gần bạn",
@@ -47,6 +48,7 @@ try {
         />
       </head>
       <body className="antialiased">
+        <AnalyticsTracker />
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <script dangerouslySetInnerHTML={{ __html: runtimeConfigScript }} />
         <GoogleAuthProvider>

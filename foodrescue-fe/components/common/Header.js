@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { CART_UPDATED_EVENT, getCartQuantityCount, readCart } from "@/lib/cart";
 import { apiGetMyVouchers, apiLogout, getAuthUser, subscribeAuth } from "@/lib/api";
 import ThemeToggle from "@/components/common/ThemeToggle";
+import * as analytics from "@/lib/analytics";
 
 const NAV_ITEMS = [
   { id: "home", label: "Trang chủ" },
@@ -292,7 +293,17 @@ export default function Header() {
                     Kho voucher{unusedVoucherCount > 0 ? ` (${unusedVoucherCount})` : ""}
                   </DropdownLink>
                   <DropdownLink href="/profile/addresses" onClick={() => setDropdownOpen(false)}>Địa chỉ giao hàng</DropdownLink>
-                  {user?.role === "CUSTOMER" && <DropdownLink href="/become-seller" onClick={() => setDropdownOpen(false)}>Trở thành nhà bán hàng</DropdownLink>}
+                  {user?.role === "CUSTOMER" && (
+                    <DropdownLink
+                      href="/become-seller"
+                      onClick={() => {
+                        setDropdownOpen(false);
+                        analytics.event("click_seller_register");
+                      }}
+                    >
+                      Trở thành nhà bán hàng
+                    </DropdownLink>
+                  )}
                   {user?.role === "SELLER" && <DropdownLink href="/store" onClick={() => setDropdownOpen(false)}>Chuyển đến kênh người bán</DropdownLink>}
                   <DropdownLink href="/change-password" onClick={() => setDropdownOpen(false)}>Đổi mật khẩu</DropdownLink>
                   <button type="button" onClick={handleLogout} className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-950/30">
@@ -353,7 +364,17 @@ export default function Header() {
                 Kho voucher{unusedVoucherCount > 0 ? ` (${unusedVoucherCount})` : ""}
               </Link>
               <Link href="/profile/addresses" onClick={() => setMenuOpen(false)}>Địa chỉ giao hàng</Link>
-              {user?.role === "CUSTOMER" && <Link href="/become-seller" onClick={() => setMenuOpen(false)}>Trở thành nhà bán hàng</Link>}
+              {user?.role === "CUSTOMER" && (
+                <Link
+                  href="/become-seller"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    analytics.event("click_seller_register");
+                  }}
+                >
+                  Trở thành nhà bán hàng
+                </Link>
+              )}
               {user?.role === "SELLER" && <Link href="/store" onClick={() => setMenuOpen(false)}>Chuyển đến kênh người bán</Link>}
               <Link href="/change-password" onClick={() => setMenuOpen(false)}>Đổi mật khẩu</Link>
               <button type="button" onClick={handleLogout} className="text-left text-red-600 dark:text-red-300">Đăng xuất</button>

@@ -13,6 +13,7 @@ import {
   apiSellerAddVariant,
   apiSellerAddBatch,
 } from "@/lib/api";
+import * as analytics from "@/lib/analytics";
 
 const VARIANT_UNITS = [
   { value: "piece", label: "Cái" },
@@ -371,6 +372,17 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
             }
           }
         }
+
+        if (!isEdit) {
+          const catObj = categories.find((c) => String(c.id) === String(form.categoryId));
+          analytics.event("seller_publish_product", {
+            product_id: savedProduct?.id,
+            product_name: savedProduct?.name,
+            product_category: catObj ? catObj.name : String(form.categoryId),
+            price: Number(initVariant.salePrice || initVariant.listPrice || 0),
+          });
+        }
+
         const finalSlug = savedProduct?.slug;
         onSuccess?.(savedProduct, isEdit ? "edit" : "create", {
           slugChanged: Boolean(finalSlug && requestedSlug && finalSlug !== requestedSlug),

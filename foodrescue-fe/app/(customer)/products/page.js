@@ -4,6 +4,8 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import ProductCardListing from "@/components/customer/ProductCardListing";
+import * as analytics from "@/lib/analytics";
+
 import BannerCarousel from "@/components/customer/BannerCarousel";
 import { apiGetProducts, apiGetCategories, apiGetActiveBannerAds } from "@/lib/api";
 import { addItemToCart } from "@/lib/cart";
@@ -168,9 +170,14 @@ export default function ProductsPage() {
   const [seeMoreCategoriesOpen, setSeeMoreCategoriesOpen] = useState(false);
 
   useEffect(() => {
+    analytics.event("view_product_list");
+  }, []);
+
+  useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 400);
     return () => clearTimeout(t);
   }, [search]);
+
 
   useEffect(() => {
     apiGetCategories().then(({ ok, data }) => {
@@ -361,6 +368,15 @@ export default function ProductsPage() {
       quantity: 1,
       maxQty: Number(product.stock) || null,
     });
+    analytics.event("click_add_to_cart", {
+      product_id: product.id,
+      product_name: product.name,
+      product_category: product.categoryId,
+      seller_name: product.storeName,
+      price: product.discountPrice,
+      pickup_area: product.address,
+      deal_time: product.expiryAt,
+    });
     toast.success(`Đã thêm "${product.name}" vào giỏ hàng`, {
       id: "cart-added",
       duration: 3500,
@@ -368,6 +384,7 @@ export default function ProductsPage() {
     });
     return nextCart;
   };
+
 
   return (
     <div className="min-h-screen bg-slate-50">

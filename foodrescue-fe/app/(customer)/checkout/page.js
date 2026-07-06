@@ -3,6 +3,8 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import * as analytics from "@/lib/analytics";
+
 import { useRouter, useSearchParams } from "next/navigation";
 import Badge from "@/components/common/Badge";
 import VoucherPanel from "@/components/customer/VoucherPanel";
@@ -114,6 +116,8 @@ export default function CheckoutPage() {
   const [placed, setPlaced] = useState(false);
   const [orderId, setOrderId] = useState(null);
   const [placing, setPlacing] = useState(false);
+  const [startedTracking, setStartedTracking] = useState(false);
+
   const [voucherCode, setVoucherCode] = useState("");
   const [myVouchers, setMyVouchers] = useState([]);
   const [eligibleVouchers, setEligibleVouchers] = useState([]);
@@ -221,7 +225,19 @@ export default function CheckoutPage() {
     PAYMENT_METHODS[0];
 
   useEffect(() => {
+    if (isClient && items.length > 0 && !startedTracking) {
+      analytics.event("start_order_test", {
+        order_value: subtotal,
+        item_count: qtyCount,
+        payment_method: paymentMethod,
+      });
+      setStartedTracking(true);
+    }
+  }, [isClient, items.length, startedTracking, subtotal, qtyCount, paymentMethod]);
+
+  useEffect(() => {
     const fromQuery = (searchParams.get("voucher") || "").trim().toUpperCase();
+
     const fromStorage =
       typeof window !== "undefined"
         ? (localStorage.getItem("checkoutVoucherCode") || "")
@@ -378,6 +394,11 @@ export default function CheckoutPage() {
           if (order.paymentMethod === "payos") {
             if (order.payment?.checkoutUrl) {
               removeCheckoutItemsFromCart(items);
+              analytics.event("view_payment_qr", {
+                order_id: order.id,
+                order_value: order.totalAmount || finalTotal,
+                payment_method: "payos",
+              });
               window.location.assign(order.payment.checkoutUrl);
               return;
             }
@@ -388,9 +409,16 @@ export default function CheckoutPage() {
           }
 
           removeCheckoutItemsFromCart(items);
+          analytics.event("submit_order_test", {
+            order_id: order.id,
+            order_value: order.totalAmount || finalTotal,
+            payment_method: "cod",
+            order_status: "pending",
+          });
           setOrderId(order.orderCode || order.id || "");
           setPlaced(true);
           return;
+
         }
 
         if (res.status === 401) {

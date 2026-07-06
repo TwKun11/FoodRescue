@@ -5,7 +5,9 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import * as analytics from "@/lib/analytics";
 import CountdownTimer from "@/components/customer/CountdownTimer";
+
 import ProductCardListing from "@/components/customer/ProductCardListing";
 import ReviewForm from "@/components/customer/ReviewForm";
 import ReviewDisplay from "@/components/customer/ReviewDisplay";
@@ -288,8 +290,18 @@ export default function ProductDetailPage() {
           return null;
         }
         setProduct(mappedProduct);
+        analytics.event("view_product_detail", {
+          product_id: mappedProduct.id,
+          product_name: mappedProduct.name,
+          product_category: mappedProduct.categoryName || mappedProduct.categoryId,
+          seller_name: mappedProduct.sellerName,
+          price: mappedProduct.discountPrice,
+          pickup_area: mappedProduct.sellerPickupAddress || mappedProduct.originProvince,
+          deal_time: mappedProduct.dealEndsAt,
+        });
         setSelectedSku((raw.variants || []).find((v) => v.isDefault) || raw.variants?.[0] || null);
         setDealEndsISO(mappedProduct?.dealEndsAt || "");
+
         return mappedProduct?.categoryId ? apiGetProducts({ categoryId: mappedProduct.categoryId, size: 6 }) : null;
       })
       .then((res2) => {
@@ -398,6 +410,15 @@ export default function ProductDetailPage() {
     }
     try {
       addItemToCart(checkoutItem);
+      analytics.event("click_add_to_cart", {
+        product_id: checkoutItem.productId,
+        product_name: checkoutItem.name,
+        product_category: product.categoryName || product.categoryId,
+        seller_name: checkoutItem.storeName,
+        price: checkoutItem.price,
+        pickup_area: product.sellerPickupAddress || product.originProvince,
+        deal_time: product.dealEndsAt,
+      });
       setAddedToCart(true);
       toast.success(`Đã thêm "${product.name}" vào giỏ hàng`, {
         id: "cart-added",
@@ -420,12 +441,23 @@ export default function ProductDetailPage() {
     try {
       setBuyingNow(true);
       startDirectCheckout(checkoutItem);
+      analytics.event("click_add_to_cart", {
+        product_id: checkoutItem.productId,
+        product_name: checkoutItem.name,
+        product_category: product.categoryName || product.categoryId,
+        seller_name: checkoutItem.storeName,
+        price: checkoutItem.price,
+        pickup_area: product.sellerPickupAddress || product.originProvince,
+        deal_time: product.dealEndsAt,
+        direct_checkout: true,
+      });
       router.push("/checkout");
     } catch (e) {
       setBuyingNow(false);
       toast.error("Không chuyển được sang thanh toán. Vui lòng thử lại.");
     }
   };
+
 
   if (loading) {
     return (
