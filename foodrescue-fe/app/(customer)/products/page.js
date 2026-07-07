@@ -4,10 +4,13 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import ProductCardListing from "@/components/customer/ProductCardListing";
+import * as analytics from "@/lib/analytics";
+
 import BannerCarousel from "@/components/customer/BannerCarousel";
 import { apiGetProducts, apiGetCategories, apiGetActiveBannerAds } from "@/lib/api";
 import { addItemToCart } from "@/lib/cart";
 import { formatDistanceMeters, getCurrentPosition, haversineDistanceMeters } from "@/lib/location";
+import { isDealExpired, isMappedProductPurchasable, resolveDealEndsAt } from "@/lib/product-availability";
 import { resolveVariantPricing } from "@/lib/product-pricing";
 import { fetchProvinces, fetchDistricts, fetchWards } from "@/lib/vn-locations";
 
@@ -108,7 +111,7 @@ function mapProductFromApi(p) {
   const defaultSku = p.variants?.find((s) => s.isDefault) || p.variants?.[0];
   const pricing = resolveVariantPricing(defaultSku);
   const shelfDays = p.shelfLifeDays ?? 0;
-  const expiryAt = shelfDays ? new Date(Date.now() + shelfDays * 24 * 60 * 60 * 1000).toISOString() : null;
+  const dealEndsAt = resolveDealEndsAt(p);
   const address = p.sellerPickupAddress || [p.originProvince].filter(Boolean).join(", ") || "";
   return {
     id: String(p.id),
@@ -119,8 +122,9 @@ function mapProductFromApi(p) {
     discountPrice: pricing.discountPrice,
     discountPercent: pricing.discountPercent,
     storeName: p.sellerName || "",
-    expiryAt,
-    expiryLabel: shelfDays ? `Hết hạn trong: ${shelfDays} ngày` : "",
+    expiryAt: dealEndsAt,
+    expiryLabel: dealEndsAt ? "Ưu đãi kết thúc sau" : "",
+    shelfLifeLabel: shelfDays ? `Hạn sử dụng: ${shelfDays} ngày` : "",
     rating: p.sellerRatingAvg != null ? Number(p.sellerRatingAvg) : 0,
     categoryId: p.categoryId,
     address,
@@ -129,6 +133,8 @@ function mapProductFromApi(p) {
     sellerLongitude: p.sellerLongitude ?? null,
     distanceMeters: null,
     distanceLabel: "",
+    status: p.status,
+    dealEndsAt,
     district: null,
     ward: null,
     stock: defaultSku?.stockAvailable ?? defaultSku?.stockQuantity ?? 0,
@@ -164,9 +170,14 @@ export default function ProductsPage() {
   const [seeMoreCategoriesOpen, setSeeMoreCategoriesOpen] = useState(false);
 
   useEffect(() => {
+    analytics.event("view_product_list");
+  }, []);
+
+  useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 400);
     return () => clearTimeout(t);
   }, [search]);
+
 
   useEffect(() => {
     apiGetCategories().then(({ ok, data }) => {
@@ -232,7 +243,7 @@ export default function ProductsPage() {
         });
       })
       .catch(() => {
-        toast.error("Khong lay duoc vi tri hien tai de tinh khoang cach.");
+        toast.error("Không lấy được vị trí hiện tại để tính khoảng cách.");
       });
   }, [nearMe, viewerLocation]);
 
@@ -282,7 +293,7 @@ export default function ProductsPage() {
               distanceMeters,
               distanceLabel: distanceMeters != null ? `Cách bạn ${formatDistanceMeters(distanceMeters)}` : "",
             };
-          });
+          }).filter(isMappedProductPurchasable);
 
           if (useClientLocationRefine) {
             const districtNeedle = normalizeLocationText(selectedDistrict);
@@ -340,7 +351,11 @@ export default function ProductsPage() {
       toast.error("Sản phẩm đã hết hàng.");
       return;
     }
-    addItemToCart({
+    if (isDealExpired(product.expiryAt)) {
+      toast.error("Ưu đãi đã kết thúc, sản phẩm không thể thêm vào giỏ.");
+      return;
+    }
+    const nextCart = addItemToCart({
       variantId: product.variantId,
       productId: product.id,
       name: product.name,
@@ -353,11 +368,23 @@ export default function ProductsPage() {
       quantity: 1,
       maxQty: Number(product.stock) || null,
     });
+    analytics.event("click_add_to_cart", {
+      product_id: product.id,
+      product_name: product.name,
+      product_category: product.categoryId,
+      seller_name: product.storeName,
+      price: product.discountPrice,
+      pickup_area: product.address,
+      deal_time: product.expiryAt,
+    });
     toast.success(`Đã thêm "${product.name}" vào giỏ hàng`, {
+      id: "cart-added",
       duration: 3500,
       icon: "🛒",
     });
+    return nextCart;
   };
+
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -580,11 +607,6 @@ export default function ProductsPage() {
               placeholder="Tìm kiếm sản phẩm, cửa hàng..."
               className="w-full pl-10 pr-10 py-2.5 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-400 text-sm"
             />
-            {search && (
-              <button type="button" onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            )}
           </div>
           <button type="button" onClick={clearFilters} className="text-sm font-medium text-emerald-600 hover:text-emerald-700 hover:underline shrink-0">
             Xóa bộ lọc

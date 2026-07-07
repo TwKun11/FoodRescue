@@ -36,6 +36,7 @@ public class ProductResponse {
     private String originCountry;
     private String originProvince;
     private Integer shelfLifeDays;
+    private LocalDateTime dealEndsAt;
     private Integer minPreparationMinutes;
     private String status;
     private LocalDateTime createdAt;
@@ -70,6 +71,7 @@ public class ProductResponse {
                 .originCountry(product.getOriginCountry())
                 .originProvince(product.getOriginProvince())
                 .shelfLifeDays(product.getShelfLifeDays())
+                .dealEndsAt(product.getDealEndsAt())
                 .minPreparationMinutes(product.getMinPreparationMinutes())
                 .status(product.getStatus() != null ? product.getStatus().name() : null)
                 .createdAt(product.getCreatedAt())

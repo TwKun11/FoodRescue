@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getAuthUser, restoreAuthSession, subscribeAuth } from "@/lib/api";
 
 /**
  * Chỉ cho phép user đã đăng nhập và có role SELLER vào /store.
@@ -13,13 +14,37 @@ export default function StoreGuard({ children }) {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const raw = localStorage.getItem("user");
-    const user = raw ? JSON.parse(raw) : null;
-    if (!user || user?.role !== "SELLER") {
-      router.replace("/");
-      return;
-    }
-    queueMicrotask(() => setAllowed(true));
+    let cancelled = false;
+
+    const checkUser = (user) => {
+      if (cancelled) return;
+      if (!user || user?.role !== "SELLER") {
+        setAllowed(false);
+        router.replace("/");
+        return;
+      }
+      setAllowed(true);
+    };
+
+    let restored = false;
+    const unsubscribe = subscribeAuth(({ user }) => {
+      if (restored || user) checkUser(user);
+    });
+
+    restoreAuthSession()
+      .then(() => {
+        restored = true;
+        checkUser(getAuthUser());
+      })
+      .catch(() => {
+        restored = true;
+        checkUser(getAuthUser());
+      });
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
   }, [router]);
 
   if (!allowed) {

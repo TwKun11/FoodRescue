@@ -16,7 +16,7 @@ node_modules
 target
 build
 dist
-
+.vscode
 .idea
 .DS_Store
 *.log

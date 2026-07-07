@@ -1,13 +1,22 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #f4fbf6;
-  --foreground: #163125;
-  --surface-white: #f9fdfb;
-  --surface-soft: #f4faf6;
-  --surface-muted: #edf6f0;
-  --input-surface: #f8fcfa;
+  --background: #f6faf7;
+  --foreground: #0f1f19;
+  --surface-white: #ffffff;
+  --surface-soft: #f2f7f4;
+  --surface-muted: #e8f1ec;
+  --input-surface: #ffffff;
+  --body-start: #fbfefc;
   --page-glow: rgba(52, 211, 153, 0.1);
+  --brand: #059669;
+  --brand-secondary: #047857;
+  --brand-dark: #065f46;
+  --brand-bg: #dcfce7;
+  --border-soft: #cfe5d9;
+  color-scheme: light;
 }
 
 @theme inline {
@@ -16,18 +25,33 @@
   --font-sans: "Be Vietnam Pro", "Segoe UI", sans-serif;
   --font-mono: "SFMono-Regular", "Cascadia Code", Consolas, monospace;
   /* Food Rescue brand */
-  --color-brand: #33ff99;
-  --color-brand-secondary: #12d18e;
-  --color-brand-dark: #0faf74;
-  --color-brand-bg: #e5f8ec;
+  --color-brand: var(--brand);
+  --color-brand-secondary: var(--brand-secondary);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-bg: var(--brand-bg);
 }
 
-/* Dark mode disabled – app uses light theme only */
+.dark {
+  --background: #07111f;
+  --foreground: #f5f7fb;
+  --surface-white: #0d1b2f;
+  --surface-soft: #10233a;
+  --surface-muted: #142b45;
+  --input-surface: #091525;
+  --body-start: #050b16;
+  --page-glow: rgba(16, 185, 129, 0.14);
+  --brand: #34d399;
+  --brand-secondary: #10b981;
+  --brand-dark: #6ee7b7;
+  --brand-bg: #12352a;
+  --border-soft: #26364a;
+  color-scheme: dark;
+}
 
 body {
   background:
     radial-gradient(circle at top, var(--page-glow), transparent 32%),
-    linear-gradient(180deg, #f8fdf9 0%, var(--background) 100%);
+    linear-gradient(180deg, var(--body-start) 0%, var(--background) 100%);
   color: var(--foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -36,6 +60,11 @@ body {
 
 html {
   background: var(--background);
+  overflow-x: hidden;
+}
+
+body {
+  overflow-x: hidden;
 }
 
 @layer base {
@@ -45,7 +74,7 @@ html {
   h4,
   h5,
   h6 {
-    color: #143524;
+    color: var(--foreground);
     letter-spacing: -0.02em;
   }
 }
@@ -59,6 +88,14 @@ html {
 }
 
 .bg-gray-100 {
+  background-color: var(--surface-muted) !important;
+}
+
+.bg-slate-50 {
+  background-color: var(--surface-soft) !important;
+}
+
+.bg-slate-100 {
   background-color: var(--surface-muted) !important;
 }
 
@@ -78,11 +115,445 @@ html {
 input,
 textarea,
 select {
-  color: #111827;
+  color: var(--foreground);
   background-color: var(--input-surface);
 }
 
-/* ─── LANDING PAGE ANIMATIONS ─────────────────────────────────────── */
+.text-gray-400,
+.text-slate-400 {
+  color: #64748b !important;
+}
+
+.text-gray-500,
+.text-slate-500 {
+  color: #475569 !important;
+}
+
+.text-gray-600,
+.text-slate-600 {
+  color: #24415f !important;
+}
+
+.text-emerald-600,
+.text-green-600,
+.text-brand-dark {
+  color: #047857 !important;
+}
+
+.bg-brand,
+.bg-emerald-600,
+.bg-green-600 {
+  color: #ffffff;
+}
+
+.dark .text-gray-900,
+.dark .text-slate-900,
+.dark .text-gray-800,
+.dark .text-slate-800,
+.dark .text-gray-700,
+.dark .text-slate-700 {
+  color: #f5f7fb !important;
+}
+
+.dark .text-gray-600,
+.dark .text-slate-600,
+.dark .text-gray-500,
+.dark .text-slate-500,
+.dark .text-gray-400,
+.dark .text-slate-400 {
+  color: #d1d5db !important;
+}
+
+.dark .border-gray-100,
+.dark .border-gray-200,
+.dark .border-slate-100,
+.dark .border-slate-200,
+.dark .border-emerald-100 {
+  border-color: var(--border-soft) !important;
+}
+
+.dark input,
+.dark textarea,
+.dark select {
+  border-color: var(--border-soft);
+  color: #f5f7fb;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #8fa3bb;
+}
+
+.dark .bg-emerald-50,
+.dark .bg-brand-bg {
+  background-color: #12352a !important;
+}
+
+.dark .bg-blue-50 {
+  background-color: #172554 !important;
+}
+
+.dark .bg-red-50 {
+  background-color: #3f1217 !important;
+}
+
+.dark .bg-yellow-50,
+.dark .bg-amber-50,
+.dark .bg-orange-50 {
+  background-color: #422006 !important;
+}
+
+.dark .bg-yellow-100,
+.dark .bg-amber-100,
+.dark .bg-orange-100 {
+  background-color: #713f12 !important;
+}
+
+.dark .text-emerald-900,
+.dark .text-emerald-800,
+.dark .text-emerald-700,
+.dark .text-green-700,
+.dark .text-green-600,
+.dark .text-brand-dark {
+  color: #86efac !important;
+}
+
+.dark .text-blue-700,
+.dark .text-blue-600 {
+  color: #bfdbfe !important;
+}
+
+.dark .text-red-800,
+.dark .text-red-700,
+.dark .text-red-600 {
+  color: #fecaca !important;
+}
+
+.dark .text-yellow-700,
+.dark .text-amber-800,
+.dark .text-amber-700,
+.dark .text-orange-700,
+.dark .text-orange-600 {
+  color: #fde68a !important;
+}
+
+.dark .hover\:bg-gray-50:hover,
+.dark .hover\:bg-slate-50:hover,
+.dark .hover\:bg-emerald-50:hover {
+  background-color: #10233a !important;
+}
+
+.dark .hover\:bg-emerald-100:hover,
+.dark .hover\:bg-brand-bg:hover {
+  background-color: #12352a !important;
+}
+
+.dark .divide-gray-50 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--border-soft) !important;
+}
+
+.dark .ring-slate-200\/60,
+.dark .ring-emerald-100 {
+  --tw-ring-color: var(--border-soft) !important;
+}
+
+.landing-transparency-bg {
+  background:
+    radial-gradient(circle at 20% 10%, rgba(16, 185, 129, 0.22), transparent 32%),
+    linear-gradient(135deg, #ecfdf5 0%, #ffffff 48%, #d1fae5 100%);
+}
+
+.landing-page {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+.landing-page #home {
+  background-color: #06111f;
+}
+
+.landing-page #home > .absolute.inset-0 {
+  width: 100%;
+  min-width: 100%;
+}
+
+.dark .landing-transparency-bg {
+  background:
+    radial-gradient(circle at 20% 10%, rgba(16, 185, 129, 0.16), transparent 34%),
+    linear-gradient(135deg, #0b1220 0%, #0d1b2f 48%, #07111f 100%) !important;
+}
+
+.dark .landing-page .text-gray-950,
+.dark .landing-page .text-slate-950,
+.dark .landing-page .text-gray-900,
+.dark .landing-page .text-slate-900 {
+  color: #f1f5f9 !important;
+}
+
+.dark .landing-page .text-gray-800,
+.dark .landing-page .text-slate-800 {
+  color: #e2e8f0 !important;
+}
+
+.dark .landing-page .text-gray-600,
+.dark .landing-page .text-slate-600,
+.dark .landing-page .text-gray-500,
+.dark .landing-page .text-slate-500 {
+  color: #b6c2d2 !important;
+}
+
+.dark .landing-page .bg-brand-bg,
+.dark .landing-page #deals,
+.dark .landing-page #interest-form {
+  background-color: #07111f !important;
+}
+
+.dark .landing-page .bg-white,
+.dark .landing-page [class*="bg-white/"] {
+  background-color: #0d1b2f !important;
+}
+
+.dark .landing-page .border-emerald-100,
+.dark .landing-page .border-emerald-200 {
+  border-color: #1f3b35 !important;
+}
+
+.dark .store-dashboard {
+  background: #07111f !important;
+  color: #e5edf6;
+}
+
+.dark .store-dashboard aside,
+.dark .store-dashboard header,
+.dark .store-dashboard .bg-white,
+.dark .store-dashboard [class*="bg-white/"] {
+  background-color: #0d1b2f !important;
+  color: #e5edf6 !important;
+}
+
+.dark .store-dashboard .bg-gray-50,
+.dark .store-dashboard .bg-gray-100,
+.dark .store-dashboard .bg-slate-50,
+.dark .store-dashboard .bg-slate-100,
+.dark .store-dashboard [class*="bg-gray-50/"] {
+  background-color: #10233a !important;
+}
+
+.dark .store-dashboard .text-gray-900,
+.dark .store-dashboard .text-gray-800,
+.dark .store-dashboard .text-gray-700,
+.dark .store-dashboard .text-slate-900,
+.dark .store-dashboard .text-slate-800,
+.dark .store-dashboard .text-slate-700 {
+  color: #f1f5f9 !important;
+}
+
+.dark .store-dashboard .text-gray-600,
+.dark .store-dashboard .text-gray-500,
+.dark .store-dashboard .text-gray-400,
+.dark .store-dashboard .text-slate-600,
+.dark .store-dashboard .text-slate-500,
+.dark .store-dashboard .text-slate-400 {
+  color: #b6c2d2 !important;
+}
+
+.dark .store-dashboard .border-gray-50,
+.dark .store-dashboard .border-gray-100,
+.dark .store-dashboard .border-gray-200,
+.dark .store-dashboard .border-gray-300,
+.dark .store-dashboard .border-slate-100,
+.dark .store-dashboard .border-slate-200 {
+  border-color: #26364a !important;
+}
+
+.dark .store-dashboard input,
+.dark .store-dashboard textarea,
+.dark .store-dashboard select {
+  background-color: #07111f !important;
+  border-color: #24415f !important;
+  color: #f1f5f9 !important;
+}
+
+.dark .store-dashboard input::placeholder,
+.dark .store-dashboard textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+.dark .store-dashboard table,
+.dark .store-dashboard tbody,
+.dark .store-dashboard tr {
+  color: #e5edf6;
+}
+
+.dark .store-dashboard .hover\:bg-gray-50:hover,
+.dark .store-dashboard .hover\:bg-gray-100:hover,
+.dark .store-dashboard .hover\:bg-slate-50:hover {
+  background-color: #10233a !important;
+}
+
+.dark .admin-dashboard,
+.dark .admin-dashboard main {
+  background: #07111f !important;
+  color: #e5edf6;
+}
+
+.dark .admin-dashboard aside,
+.dark .admin-dashboard header,
+.dark .admin-dashboard .bg-white,
+.dark .admin-dashboard [class*="bg-white/"] {
+  background-color: #0d1b2f !important;
+  color: #e5edf6 !important;
+}
+
+.dark .admin-dashboard .bg-gray-50,
+.dark .admin-dashboard .bg-gray-100,
+.dark .admin-dashboard .bg-slate-50,
+.dark .admin-dashboard .bg-slate-100,
+.dark .admin-dashboard [class*="bg-gray-50/"] {
+  background-color: #10233a !important;
+}
+
+.dark .admin-dashboard .text-gray-900,
+.dark .admin-dashboard .text-gray-800,
+.dark .admin-dashboard .text-gray-700,
+.dark .admin-dashboard .text-slate-900,
+.dark .admin-dashboard .text-slate-800,
+.dark .admin-dashboard .text-slate-700 {
+  color: #f1f5f9 !important;
+}
+
+.dark .admin-dashboard .text-gray-600,
+.dark .admin-dashboard .text-gray-500,
+.dark .admin-dashboard .text-gray-400,
+.dark .admin-dashboard .text-slate-600,
+.dark .admin-dashboard .text-slate-500,
+.dark .admin-dashboard .text-slate-400 {
+  color: #b6c2d2 !important;
+}
+
+.dark .admin-dashboard .border-gray-50,
+.dark .admin-dashboard .border-gray-100,
+.dark .admin-dashboard .border-gray-200,
+.dark .admin-dashboard .border-gray-300,
+.dark .admin-dashboard .border-slate-100,
+.dark .admin-dashboard .border-slate-200 {
+  border-color: #26364a !important;
+}
+
+.dark .admin-dashboard input,
+.dark .admin-dashboard textarea,
+.dark .admin-dashboard select {
+  background-color: #07111f !important;
+  border-color: #24415f !important;
+  color: #f1f5f9 !important;
+}
+
+.dark .admin-dashboard input::placeholder,
+.dark .admin-dashboard textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+.dark .admin-dashboard .hover\:bg-gray-50:hover,
+.dark .admin-dashboard .hover\:bg-gray-100:hover,
+.dark .admin-dashboard .hover\:bg-slate-50:hover {
+  background-color: #10233a !important;
+}
+
+.dark .product-detail-page {
+  background-color: #07111f !important;
+  color: #e5edf6;
+}
+
+.dark .product-detail-page .bg-white,
+.dark .product-detail-page [class*="bg-white/"] {
+  background-color: #0d1b2f !important;
+  color: #e5edf6 !important;
+}
+
+.dark .product-detail-page .from-white {
+  --tw-gradient-from: #0d1b2f var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgb(17 24 39 / 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+.dark .product-detail-page .to-red-50\/30 {
+  --tw-gradient-to: rgba(127, 29, 29, 0.34) var(--tw-gradient-to-position) !important;
+}
+
+.dark .product-detail-page .text-slate-950,
+.dark .product-detail-page .text-slate-900,
+.dark .product-detail-page .text-slate-800,
+.dark .product-detail-page .text-gray-950,
+.dark .product-detail-page .text-gray-900,
+.dark .product-detail-page .text-gray-800 {
+  color: #f8fafc !important;
+}
+
+.dark .product-detail-page .text-slate-700,
+.dark .product-detail-page .text-slate-600,
+.dark .product-detail-page .text-slate-500,
+.dark .product-detail-page .text-gray-700,
+.dark .product-detail-page .text-gray-600,
+.dark .product-detail-page .text-gray-500,
+.dark .product-detail-page .text-gray-400 {
+  color: #cbd5e1 !important;
+}
+
+.dark .product-detail-page .text-red-600,
+.dark .product-detail-page .text-red-700,
+.dark .product-detail-page .text-red-800 {
+  color: #fca5a5 !important;
+}
+
+.dark .product-detail-page .border-slate-100,
+.dark .product-detail-page .border-slate-200,
+.dark .product-detail-page .border-slate-300,
+.dark .product-detail-page .border-gray-100,
+.dark .product-detail-page .border-gray-200,
+.dark .product-detail-page .border-gray-300,
+.dark .product-detail-page .border-red-100 {
+  border-color: #24415f !important;
+}
+
+.dark .product-detail-page .bg-red-50\/40 {
+  background-color: rgba(127, 29, 29, 0.34) !important;
+}
+
+.dark .product-detail-page .bg-green-50 {
+  background-color: rgba(6, 78, 59, 0.36) !important;
+}
+
+.dark .product-detail-page .bg-gray-200 {
+  background-color: #24415f !important;
+}
+
+.dark .product-detail-page .hover\:bg-slate-50:hover,
+.dark .product-detail-page .hover\:bg-gray-50:hover {
+  background-color: #10233a !important;
+}
+
+.dark .product-detail-page a.bg-white {
+  background-color: #07111f !important;
+  color: #fde68a !important;
+  border: 1px solid rgba(251, 191, 36, 0.35);
+}
+
+.terms-page {
+  --terms-heading-color: #064e3b;
+}
+
+.dark .terms-page,
+html[data-theme="dark"] .terms-page {
+  --terms-heading-color: #d1fae5;
+}
+
+.terms-page .terms-page-heading {
+  color: var(--terms-heading-color, #064e3b) !important;
+}
+
+/* â”€â”€â”€ LANDING PAGE ANIMATIONS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 /* Ticker / Marquee */
 @keyframes ticker {
@@ -135,7 +606,7 @@ select {
   animation: scrollDot 1.6s ease-in-out infinite;
 }
 
-/* Fade in up — attach with data-animate or direct class */
+/* Fade in up â€” attach with data-animate or direct class */
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -221,3 +692,4 @@ select {
 .section-underline:hover::after {
   transform: scaleX(1);
 }
+

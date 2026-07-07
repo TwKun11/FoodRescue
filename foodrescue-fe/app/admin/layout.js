@@ -1,8 +1,10 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import AdminGuard from "@/components/common/AdminGuard";
+import ThemeToggle from "@/components/common/ThemeToggle";
+import { apiAdminGetPendingSellerApplicationCount, apiLogout, getAuthUser, subscribeAuth } from "@/lib/api";
 
 const NAV = [
   {
@@ -126,11 +128,11 @@ const NAV = [
 export default function AdminLayout({ children }) {
   return (
     <AdminGuard>
-      <div className="flex min-h-screen bg-gray-50">
+      <div className="admin-dashboard flex min-h-screen flex-col bg-gray-50 md:flex-row">
         <AdminSidebar />
         <div className="flex-1 flex flex-col overflow-hidden">
           <AdminHeader />
-          <main className="flex-1 overflow-y-auto p-6 sm:p-8">{children}</main>
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8">{children}</main>
         </div>
       </div>
     </AdminGuard>
@@ -140,9 +142,31 @@ export default function AdminLayout({ children }) {
 function AdminSidebar() {
   const pathname = usePathname();
   const [expandedMenu, setExpandedMenu] = useState(null);
+  const [pendingSellerApplicationCount, setPendingSellerApplicationCount] = useState(0);
+
+  const loadPendingSellerApplicationCount = useCallback(() => {
+    apiAdminGetPendingSellerApplicationCount()
+      .then((res) => {
+        if (res.ok) {
+          setPendingSellerApplicationCount(Number(res.data?.data ?? 0));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    loadPendingSellerApplicationCount();
+    const intervalId = window.setInterval(loadPendingSellerApplicationCount, 30000);
+    window.addEventListener("seller-application-count-updated", loadPendingSellerApplicationCount);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("seller-application-count-updated", loadPendingSellerApplicationCount);
+    };
+  }, [loadPendingSellerApplicationCount]);
 
   return (
-    <aside className="w-52 shrink-0 bg-white border-r border-gray-200 min-h-screen flex flex-col">
+    <aside className="w-full shrink-0 border-b border-gray-200 bg-white md:min-h-screen md:w-52 md:border-b-0 md:border-r flex flex-col">
       <div className="px-4 py-4 border-b border-gray-100">
         <Link href="/admin" className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-brand flex items-center justify-center shrink-0">
@@ -154,7 +178,7 @@ function AdminSidebar() {
           </div>
         </Link>
       </div>
-      <nav className="flex-1 px-2 py-3 space-y-0.5">
+      <nav className="flex gap-1 overflow-x-auto px-2 py-3 md:block md:flex-1 md:space-y-0.5 md:overflow-visible">
         {NAV.map((item) => {
           const active = item.href
             ? item.href === "/admin"
@@ -169,7 +193,7 @@ function AdminSidebar() {
               <div key={item.label}>
                 <button
                   onClick={() => setExpandedMenu(isMenuOpen ? null : item.label)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                  className={`flex min-w-max items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all md:w-full ${
                     isMenuOpen
                       ? "bg-brand text-gray-900 shadow-sm"
                       : active
@@ -212,18 +236,25 @@ function AdminSidebar() {
             );
           }
 
+          const showPendingBadge = item.href === "/admin/seller-applications" && pendingSellerApplicationCount > 0;
+
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              className={`flex min-w-max items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all md:w-full ${
                 active
                   ? "bg-brand text-gray-900 shadow-sm"
                   : "text-gray-500 hover:bg-gray-100 hover:text-gray-800"
               }`}
             >
               <span className={active ? "text-gray-900" : "text-gray-400"}>{item.icon}</span>
-              {item.label}
+              <span className="min-w-0 flex-1 truncate">{item.label}</span>
+              {showPendingBadge && (
+                <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 text-[11px] font-bold leading-none text-white">
+                  {pendingSellerApplicationCount > 99 ? "99+" : pendingSellerApplicationCount}
+                </span>
+              )}
             </Link>
           );
         })}
@@ -258,17 +289,25 @@ function AdminHeader() {
     return () => document.removeEventListener("click", handleClickOutside);
   }, [dropdownOpen]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user");
+  const handleLogout = async () => {
     setDropdownOpen(false);
+    await apiLogout().catch(() => {});
     router.push("/login");
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-4 shrink-0">
+    <header className="flex shrink-0 items-center gap-2 border-b border-gray-200 bg-white px-3 py-3 sm:gap-4 sm:px-6">
       <div className="flex-1" />
+      <Link
+        href="/"
+        aria-label="Giao diện người mua" className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 transition hover:bg-emerald-100 sm:h-auto sm:w-auto sm:gap-2 sm:px-3 sm:py-2 sm:text-sm sm:font-semibold"
+      >
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l9-9 9 9M5 10v10h14V10" />
+        </svg>
+        <span className="hidden sm:inline">Giao diện người mua</span>
+      </Link>
+      <ThemeToggle compact />
       <span className="text-xs font-semibold bg-brand-bg text-brand-dark px-2.5 py-1 rounded-full border border-brand/30">
         ADMIN
       </span>

@@ -3,6 +3,8 @@ import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Sidebar from "@/components/store/Sidebar";
 import StoreGuard from "@/components/store/StoreGuard";
+import ThemeToggle from "@/components/common/ThemeToggle";
+import { apiLogout, getAuthUser, subscribeAuth } from "@/lib/api";
 import { apiGetMyShop } from "@/lib/api";
 
 export default function DashboardLayout({ children }) {
@@ -25,16 +27,19 @@ export default function DashboardLayout({ children }) {
     return () => document.removeEventListener("click", handleClickOutside);
   }, [dropdownOpen]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user");
+  const handleLogout = async () => {
     setDropdownOpen(false);
+    await apiLogout().catch(() => {});
     router.push("/login");
   };
 
   const handleAddProduct = () => {
     router.push(`/store/products?create=${Date.now()}`);
+  };
+
+  const handleSwitchToCustomer = () => {
+    setDropdownOpen(false);
+    router.push("/");
   };
 
   useEffect(() => {
@@ -50,7 +55,7 @@ export default function DashboardLayout({ children }) {
 
   return (
     <StoreGuard>
-      <div className="flex min-h-screen bg-gray-50">
+      <div className="store-dashboard flex min-h-screen bg-gray-50">
         <Sidebar />
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Top Header */}
@@ -77,6 +82,8 @@ export default function DashboardLayout({ children }) {
               />
             </div>
             <div className="flex items-center gap-3 ml-auto">
+              <ThemeToggle compact />
+
               {/* Add button */}
               <button
                 type="button"
@@ -129,6 +136,16 @@ export default function DashboardLayout({ children }) {
                 </button>
                 {dropdownOpen && (
                   <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
+                    <button
+                      type="button"
+                      onClick={handleSwitchToCustomer}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 transition"
+                    >
+                      <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l9-9 9 9M5 10v10h14V10" />
+                      </svg>
+                      Kênh người dùng
+                    </button>
                     <button
                       type="button"
                       onClick={handleLogout}

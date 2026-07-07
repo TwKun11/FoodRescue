@@ -49,7 +49,7 @@ export default function VoucherWalletPage() {
     setBusyId(null);
   };
 
-  const useVoucherNow = (code) => {
+  const handleUseVoucherNow = (code) => {
     if (!code || typeof window === "undefined") return;
     const normalizedCode = code.trim().toUpperCase();
     localStorage.setItem("checkoutVoucherCode", normalizedCode);
@@ -96,7 +96,7 @@ export default function VoucherWalletPage() {
                   {v.claimed ? (
                     <button
                       type="button"
-                      onClick={() => useVoucherNow(v.code)}
+                      onClick={() => handleUseVoucherNow(v.code)}
                       className="rounded-lg border border-brand px-3 py-2 text-sm font-semibold text-brand-dark transition hover:bg-brand-bg"
                     >
                       Dùng ngay

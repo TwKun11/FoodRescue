@@ -3,11 +3,44 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getApiBaseUrl } from "@/lib/runtime-config";
+import { apiGetMe, apiUpdateMe, updateAuthUser } from "@/lib/api";
 
-const API_URL = getApiBaseUrl();
+const MAX_AVATAR_SIZE_BYTES = 2 * 1024 * 1024;
+const ALLOWED_AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+function normalizeFullName(value) {
+  return (value || "").trim().replace(/\s+/g, " ");
+}
+
+function parseDateInput(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value || "")) return null;
+
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+    return null;
+  }
+
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function addYears(date, years) {
+  const next = new Date(date);
+  next.setFullYear(next.getFullYear() + years);
+  return next;
+}
 
 function validateFullName(value) {
+  const normalized = normalizeFullName(value);
+
+  if (!normalized) return "Vui lòng nhập họ và tên.";
+  if (normalized.length < 2) return "Họ và tên phải có ít nhất 2 ký tự.";
+  if (normalized.length > 80) return "Họ và tên không được vượt quá 80 ký tự.";
+  if (/\p{N}/u.test(normalized)) return "Họ và tên không được chứa số.";
+  if (/[@#$%^*<>/\\{}\[\]=+]/.test(normalized)) return "Họ và tên chứa ký tự không hợp lệ.";
+  if (!/^[\p{L}\s'.-]+$/u.test(normalized)) return "Họ và tên chỉ được chứa chữ cái, khoảng trắng, dấu ', dấu - và dấu .";
+
   return "";
 }
 
@@ -16,18 +49,57 @@ function validatePhone(value) {
   if (!v) return "";
   if (!/^\d+$/.test(v)) return "Số điện thoại chỉ được chứa chữ số.";
   if (v.length !== 10) return "Số điện thoại phải đúng 10 chữ số.";
-  if (v[0] !== "0") return "Số điện thoại phải bắt đầu bằng 0.";
+  if (!v.startsWith("0")) return "Số điện thoại phải bắt đầu bằng 0.";
+  if (!/^(03|05|07|08|09)/.test(v)) return "Số điện thoại phải thuộc đầu số Việt Nam hợp lệ.";
   return "";
 }
 
 function validateDateOfBirth(value) {
   if (!value) return "";
-  const chosen = new Date(value);
+
+  const chosen = parseDateInput(value);
+  if (!chosen) return "Ngày sinh không hợp lệ.";
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  chosen.setHours(0, 0, 0, 0);
-  if (chosen >= today) return "Ngày sinh không được là hiện tại hoặc tương lai.";
+  if (chosen >= today) return "Ngày sinh không được là hôm nay hoặc tương lai.";
+
+  const oldestAllowed = addYears(today, -120);
+  if (chosen < oldestAllowed) return "Tuổi không được lớn hơn 120.";
+
+  const youngestAllowed = addYears(today, -13);
+  if (chosen > youngestAllowed) return "Bạn phải đủ ít nhất 13 tuổi.";
+
   return "";
+}
+
+function validateAvatarFile(file) {
+  if (!file) return "";
+  if (!ALLOWED_AVATAR_TYPES.includes(file.type)) return "Avatar chỉ chấp nhận ảnh JPEG, PNG hoặc WEBP.";
+  if (file.size > MAX_AVATAR_SIZE_BYTES) return "Avatar không được vượt quá 2MB.";
+  return "";
+}
+
+function validateProfileForm(form, avatarError = "") {
+  const normalizedFullName = normalizeFullName(form.fullName);
+  const phone = (form.phone || "").trim();
+  const dateOfBirth = form.dateOfBirth || "";
+  const avatar = (form.avatar || "").trim();
+
+  return {
+    errors: {
+      fullName: validateFullName(normalizedFullName),
+      phone: validatePhone(phone),
+      dateOfBirth: validateDateOfBirth(dateOfBirth),
+      avatar: avatarError,
+    },
+    values: {
+      fullName: normalizedFullName,
+      phone: phone || null,
+      dateOfBirth: dateOfBirth || null,
+      avatar: avatar || null,
+    },
+  };
 }
 
 export default function ProfilePage() {
@@ -42,7 +114,7 @@ export default function ProfilePage() {
     dateOfBirth: "",
     avatar: "",
   });
-  const [errors, setErrors] = useState({ fullName: "", phone: "", dateOfBirth: "" });
+  const [errors, setErrors] = useState({ fullName: "", phone: "", dateOfBirth: "", avatar: "" });
 
   const validateField = useCallback((field, value) => {
     switch (field) {
@@ -57,33 +129,40 @@ export default function ProfilePage() {
     }
   }, []);
 
+  const applyUserToForm = useCallback((nextUser) => {
+    setUser(nextUser);
+    setForm({
+      fullName: nextUser.fullName || "",
+      phone: nextUser.phone || "",
+      dateOfBirth: nextUser.dateOfBirth ? nextUser.dateOfBirth.slice(0, 10) : "",
+      avatar: nextUser.avatar || "",
+    });
+  }, []);
+
   useEffect(() => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
-    if (!token) {
-      router.replace("/login");
-      return;
-    }
-    fetch(`${API_URL}/api/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        const u = data?.data ?? data;
-        if (!u?.email) {
+    let cancelled = false;
+
+    apiGetMe()
+      .then((res) => {
+        if (cancelled) return;
+        const u = res.data?.data ?? res.data;
+        if (!res.ok || !u?.email) {
           router.replace("/login");
           return;
         }
-        setUser(u);
-        setForm({
-          fullName: u.fullName || "",
-          phone: u.phone || "",
-          dateOfBirth: u.dateOfBirth ? u.dateOfBirth.slice(0, 10) : "",
-          avatar: u.avatar || "",
-        });
+        applyUserToForm(u);
       })
-      .catch(() => router.replace("/login"))
-      .finally(() => setLoading(false));
-  }, [router]);
+      .catch(() => {
+        if (!cancelled) router.replace("/login");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [applyUserToForm, router]);
 
   const setField = (field) => (e) => {
     const value = e.target.value;
@@ -92,59 +171,56 @@ export default function ProfilePage() {
   };
 
   const handleBlur = (field) => () => {
-    setErrors((prev) => ({ ...prev, [field]: validateField(field, form[field]) }));
+    const value = field === "fullName" ? normalizeFullName(form.fullName) : form[field];
+    if (field === "fullName") {
+      setForm((prev) => ({ ...prev, fullName: value }));
+    }
+    setErrors((prev) => ({ ...prev, [field]: validateField(field, value) }));
   };
 
   const handleAvatarChange = (e) => {
     const file = e.target.files?.[0];
-    if (!file || !file.type.startsWith("image/")) return;
+    const error = validateAvatarFile(file);
+
+    if (error) {
+      setErrors((prev) => ({ ...prev, avatar: error }));
+      e.target.value = "";
+      return;
+    }
+
+    if (!file) return;
+
     const reader = new FileReader();
-    reader.onload = () => setForm((prev) => ({ ...prev, avatar: reader.result }));
+    reader.onload = () => {
+      setForm((prev) => ({ ...prev, avatar: typeof reader.result === "string" ? reader.result : "" }));
+      setErrors((prev) => ({ ...prev, avatar: "" }));
+    };
+    reader.onerror = () => setErrors((prev) => ({ ...prev, avatar: "Không thể đọc file avatar." }));
     reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage({ type: null, text: "" });
-    const newErrors = {
-      fullName: validateFullName(form.fullName),
-      phone: validatePhone(form.phone),
-      dateOfBirth: validateDateOfBirth(form.dateOfBirth),
-    };
-    setErrors(newErrors);
-    if (Object.values(newErrors).some((err) => err !== "")) return;
 
-    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
-    if (!token) {
-      router.replace("/login");
-      return;
-    }
+    const { errors: nextErrors, values } = validateProfileForm(form, errors.avatar);
+    setErrors(nextErrors);
+    setForm((prev) => ({ ...prev, fullName: values.fullName, phone: values.phone || "", dateOfBirth: values.dateOfBirth || "" }));
+    if (Object.values(nextErrors).some(Boolean)) return;
 
     setSaving(true);
     try {
-      const res = await fetch(`${API_URL}/api/auth/me`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          fullName: form.fullName.trim() || null,
-          phone: form.phone.trim() || null,
-          dateOfBirth: form.dateOfBirth || null,
-          avatar: form.avatar.trim() || null,
-        }),
-      });
-      const data = await res.json();
+      const res = await apiUpdateMe(values);
+      const data = res.data;
       if (!res.ok) {
-        setMessage({ type: "error", text: data?.message || "Cập nhật thất bại." });
+        setMessage({ type: "error", text: data?.message || data?.error || "Cập nhật thất bại." });
         return;
       }
+
       const updated = data?.data ?? data;
-      setUser(updated);
-      if (typeof window !== "undefined") {
-        localStorage.setItem("user", JSON.stringify(updated));
-      }
+      applyUserToForm(updated);
+      updateAuthUser(updated);
+      setErrors({ fullName: "", phone: "", dateOfBirth: "", avatar: "" });
       setMessage({ type: "success", text: "Cập nhật thông tin thành công." });
     } catch (err) {
       setMessage({ type: "error", text: "Không kết nối được server." });
@@ -161,7 +237,7 @@ export default function ProfilePage() {
     );
   }
 
-  const avatarPreview = form.avatar || (user?.avatar || null);
+  const avatarPreview = form.avatar || user?.avatar || null;
   const displayName = user?.fullName?.trim() || user?.email || "Bạn";
 
   return (
@@ -183,8 +259,7 @@ export default function ProfilePage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Avatar */}
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <div className="flex flex-col items-center gap-3">
               <div className="relative">
                 {avatarPreview ? (
@@ -201,14 +276,15 @@ export default function ProfilePage() {
                 <label className="absolute bottom-0 right-0 bg-brand text-gray-900 rounded-full p-1.5 cursor-pointer hover:bg-brand-dark transition">
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp"
                     className="hidden"
                     onChange={handleAvatarChange}
                   />
-                  <span className="text-lg">📷</span>
+                  <span className="text-lg" aria-hidden="true">📷</span>
                 </label>
               </div>
               <span className="text-xs text-gray-500">Bấm icon để đổi ảnh đại diện</span>
+              {errors.avatar && <p className="text-sm text-red-500 text-center">{errors.avatar}</p>}
             </div>
 
             <div>
@@ -219,6 +295,7 @@ export default function ProfilePage() {
                 onChange={setField("fullName")}
                 onBlur={handleBlur("fullName")}
                 placeholder="Nguyễn Văn A"
+                aria-invalid={Boolean(errors.fullName)}
                 className={`w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/50 ${
                   errors.fullName ? "border-red-400" : "border-gray-200"
                 }`}
@@ -250,6 +327,7 @@ export default function ProfilePage() {
                 }}
                 onBlur={handleBlur("phone")}
                 placeholder="0901234567"
+                aria-invalid={Boolean(errors.phone)}
                 className={`w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/50 ${
                   errors.phone ? "border-red-400" : "border-gray-200"
                 }`}
@@ -264,6 +342,7 @@ export default function ProfilePage() {
                 value={form.dateOfBirth}
                 onChange={setField("dateOfBirth")}
                 onBlur={handleBlur("dateOfBirth")}
+                aria-invalid={Boolean(errors.dateOfBirth)}
                 className={`w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/50 ${
                   errors.dateOfBirth ? "border-red-400" : "border-gray-200"
                 }`}

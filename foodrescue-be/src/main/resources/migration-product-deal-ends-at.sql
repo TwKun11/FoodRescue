@@ -1,0 +1,2 @@
+ALTER TABLE products
+    ADD COLUMN IF NOT EXISTS deal_ends_at DATETIME NULL;

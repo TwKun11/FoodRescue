@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { apiGetOrderDetail, apiSyncOrderPayment } from "@/lib/api";
+import { restoreAuthSession, apiGetOrderDetail, apiSyncOrderPayment } from "@/lib/api";
+import * as analytics from "@/lib/analytics";
 
 function formatRemaining(seconds) {
   if (seconds == null) return null;
@@ -95,6 +96,7 @@ export default function PayOSReturnPage() {
   const orderId = searchParams.get("orderId");
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(() => Boolean(orderId));
+  const [trackedSuccess, setTrackedSuccess] = useState(false);
 
   const loadOrder = useCallback(
     async ({ silent = false } = {}) => {
@@ -122,16 +124,38 @@ export default function PayOSReturnPage() {
   );
 
   useEffect(() => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
-    if (!token) {
-      router.replace("/login");
-      return;
+    let active = true;
+
+    async function restoreAndLoad() {
+      await restoreAuthSession();
+      if (active) {
+        void loadOrder();
+      }
     }
 
-    void loadOrder();
-  }, [loadOrder, router]);
+    void restoreAndLoad();
+    return () => {
+      active = false;
+    };
+  }, [loadOrder]);
+
+  useEffect(() => {
+    if (order && !trackedSuccess) {
+      const isPaid = normalizeStatus(order.paymentStatus) === "paid";
+      if (isPaid) {
+        analytics.event("submit_order_test", {
+          order_id: order.id,
+          order_value: order.totalAmount,
+          payment_method: "payos",
+          order_status: "paid",
+        });
+        setTrackedSuccess(true);
+      }
+    }
+  }, [order, trackedSuccess]);
 
   const summary = useMemo(() => getPaymentSummary(order), [order]);
+
 
   return (
     <div className="min-h-screen bg-brand-bg px-4 py-12">

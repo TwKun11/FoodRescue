@@ -6,8 +6,10 @@ import {
   apiCreateProductReview, 
   apiUpdateProductReview, 
   apiDeleteProductReview,
-  apiUploadReviewImage 
+  apiUploadReviewImage,
+  getAuthUser
 } from "@/lib/api";
+import * as analytics from "@/lib/analytics";
 
 // Comprehensive emoji list
 const EMOJI_LIST = [
@@ -108,6 +110,13 @@ export default function ReviewForm({ productId, existingReview, onSubmit, onDele
       }
 
       if (res.ok) {
+        analytics.event("submit_feedback", {
+          feedback_type: "product_review",
+          rating: rating,
+          page_location: typeof window !== "undefined" ? window.location.href : "",
+          user_type: getAuthUser()?.role || "anonymous",
+        });
+
         toast.success(existingReview ? "Cập nhật đánh giá thành công!" : "Cảm ơn bạn đã đánh giá!");
         console.log("[ReviewForm] Review submitted successfully. Calling onSubmit...");
         // Call onSubmit to reload data - this will cause parent to update existingReview

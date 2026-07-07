@@ -8,6 +8,13 @@ import { getApiBaseUrl } from "@/lib/runtime-config";
 const API_URL = getApiBaseUrl();
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PASSWORD_REQUIREMENTS = [
+  { test: (value) => value.length >= 8, message: "Mật khẩu phải có ít nhất 8 ký tự." },
+  { test: (value) => /[A-Z]/.test(value), message: "Mật khẩu cần ít nhất 1 chữ cái viết hoa." },
+  { test: (value) => /[a-z]/.test(value), message: "Mật khẩu cần ít nhất 1 chữ cái viết thường." },
+  { test: (value) => /\d/.test(value), message: "Mật khẩu cần ít nhất 1 chữ số." },
+  { test: (value) => /[^A-Za-z0-9]/.test(value), message: "Mật khẩu cần ít nhất 1 ký tự đặc biệt." },
+];
 
 function validateEmail(value) {
   const v = (value || "").trim();
@@ -18,11 +25,17 @@ function validateEmail(value) {
 
 function validatePassword(value) {
   if (!value) return "Mật khẩu không được để trống.";
-  if (value.length < 6) return "Mật khẩu phải từ 6 ký tự trở lên.";
+  const failedRequirement = PASSWORD_REQUIREMENTS.find((requirement) => !requirement.test(value));
+  if (failedRequirement) return failedRequirement.message;
   return "";
 }
 
-function validateFullName() {
+function validateFullName(value) {
+  const v = (value || "").trim();
+  if (!v) return "";
+  if (v.length < 2) return "Họ và tên phải có ít nhất 2 ký tự.";
+  if (v.length > 80) return "Họ và tên không được vượt quá 80 ký tự.";
+  if (/[0-9]/.test(v)) return "Họ và tên không được chứa chữ số.";
   return "";
 }
 
@@ -189,12 +202,22 @@ export default function RegisterPage() {
                 value={form.password}
                 onChange={setField("password")}
                 onBlur={handleBlur("password")}
-                placeholder="Tối thiểu 6 ký tự"
+                placeholder="Tối thiểu 8 ký tự"
                 className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/50 ${
                   errors.password ? "border-red-400 focus:border-red-400" : "border-gray-200 focus:border-brand"
                 }`}
               />
               {errors.password && <p className="mt-1 text-sm text-red-500">{errors.password}</p>}
+              <ul className="mt-2 grid gap-1 text-xs text-gray-500">
+                {PASSWORD_REQUIREMENTS.map((requirement) => {
+                  const passed = form.password && requirement.test(form.password);
+                  return (
+                    <li key={requirement.message} className={passed ? "text-green-700" : ""}>
+                      {passed ? "✓" : "•"} {requirement.message}
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
 
             <div>

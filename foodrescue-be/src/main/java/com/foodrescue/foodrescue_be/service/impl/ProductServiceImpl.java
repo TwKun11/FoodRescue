@@ -18,7 +18,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.text.Normalizer;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 @Service
@@ -42,10 +44,11 @@ public class ProductServiceImpl implements ProductService {
                 pageable.getPageNumber(),
                 pageable.getPageSize()
         );
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
         Page<Product> page = switch (sort == null ? "" : sort) {
-            case "salePrice_asc" -> productRepository.searchPublicOrderByPriceAsc(categoryId, null, keyword, minPrice, maxPrice, province, unsortedPageable);
-            case "salePrice_desc" -> productRepository.searchPublicOrderByPriceDesc(categoryId, null, keyword, minPrice, maxPrice, province, unsortedPageable);
-            default -> productRepository.searchPublic(categoryId, null, keyword, minPrice, maxPrice, province, pageable);
+            case "salePrice_asc" -> productRepository.searchPublicOrderByPriceAsc(categoryId, null, keyword, minPrice, maxPrice, province, now, unsortedPageable);
+            case "salePrice_desc" -> productRepository.searchPublicOrderByPriceDesc(categoryId, null, keyword, minPrice, maxPrice, province, now, unsortedPageable);
+            default -> productRepository.searchPublic(categoryId, null, keyword, minPrice, maxPrice, province, now, pageable);
         };
         return page
                 .map(this::toResponse);
@@ -55,7 +58,7 @@ public class ProductServiceImpl implements ProductService {
     @Transactional(readOnly = true)
     public ProductResponse getProductDetail(Long productId) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại"));
+                .orElseThrow(() -> new IllegalArgumentException("Sáº£n pháº©m khÃ´ng tá»“n táº¡i"));
         return toResponse(product);
     }
 
@@ -70,14 +73,18 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public ProductResponse createProduct(Long sellerId, CreateProductRequest req) {
         Seller seller = sellerRepository.findById(sellerId)
-                .orElseThrow(() -> new IllegalArgumentException("Cửa hàng không tồn tại"));
+                .orElseThrow(() -> new IllegalArgumentException("Cá»­a hÃ ng khÃ´ng tá»“n táº¡i"));
         Category category = categoryRepository.findById(req.getCategoryId())
-                .orElseThrow(() -> new IllegalArgumentException("Danh mục không tồn tại"));
+                .orElseThrow(() -> new IllegalArgumentException("Danh má»¥c khÃ´ng tá»“n táº¡i"));
 
         Brand brand = null;
         if (req.getBrandId() != null) {
             brand = brandRepository.findById(req.getBrandId())
-                    .orElseThrow(() -> new IllegalArgumentException("Thương hiệu không tồn tại"));
+                    .orElseThrow(() -> new IllegalArgumentException("ThÆ°Æ¡ng hiá»‡u khÃ´ng tá»“n táº¡i"));
+        }
+
+        if (productRepository.existsByProductCode(req.getProductCode())) {
+            throw new IllegalArgumentException("MÃ£ sáº£n pháº©m Ä‘Ã£ tá»“n táº¡i. Vui lÃ²ng thá»­ láº¡i hoáº·c dÃ¹ng mÃ£ sáº£n pháº©m khÃ¡c.");
         }
 
         Product product = Product.builder()
@@ -86,7 +93,7 @@ public class ProductServiceImpl implements ProductService {
                 .brand(brand)
                 .productCode(req.getProductCode())
                 .name(req.getName())
-                .slug(req.getSlug())
+                .slug(generateUniqueSlug(req.getSlug(), req.getName(), null))
                 .shortDescription(req.getShortDescription())
                 .description(req.getDescription())
                 .productType(parseEnum(Product.ProductType.class, req.getProductType(), Product.ProductType.other))
@@ -95,6 +102,7 @@ public class ProductServiceImpl implements ProductService {
                 .originCountry(req.getOriginCountry())
                 .originProvince(req.getOriginProvince())
                 .shelfLifeDays(req.getShelfLifeDays())
+                .dealEndsAt(req.getDealEndsAt())
                 .minPreparationMinutes(req.getMinPreparationMinutes())
                 .status(parseEnum(Product.ProductStatus.class, req.getStatus(), Product.ProductStatus.draft))
                 .isActive(true)
@@ -109,23 +117,25 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public ProductResponse updateProduct(Long sellerId, Long productId, UpdateProductRequest req) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại"));
+                .orElseThrow(() -> new IllegalArgumentException("Sáº£n pháº©m khÃ´ng tá»“n táº¡i"));
         if (!product.getSeller().getId().equals(sellerId)) {
-            throw new IllegalArgumentException("Bạn không có quyền sửa sản phẩm này");
+            throw new IllegalArgumentException("Báº¡n khÃ´ng cÃ³ quyá»n sá»­a sáº£n pháº©m nÃ y");
         }
 
         if (req.getCategoryId() != null) {
             Category category = categoryRepository.findById(req.getCategoryId())
-                    .orElseThrow(() -> new IllegalArgumentException("Danh mục không tồn tại"));
+                    .orElseThrow(() -> new IllegalArgumentException("Danh má»¥c khÃ´ng tá»“n táº¡i"));
             product.setCategory(category);
         }
         if (req.getBrandId() != null) {
             Brand brand = brandRepository.findById(req.getBrandId())
-                    .orElseThrow(() -> new IllegalArgumentException("Thương hiệu không tồn tại"));
+                    .orElseThrow(() -> new IllegalArgumentException("ThÆ°Æ¡ng hiá»‡u khÃ´ng tá»“n táº¡i"));
             product.setBrand(brand);
         }
         if (req.getName() != null) product.setName(req.getName());
-        if (req.getSlug() != null) product.setSlug(req.getSlug());
+        if (req.getSlug() != null) {
+            product.setSlug(generateUniqueSlug(req.getSlug(), product.getName(), product.getId()));
+        }
         if (req.getShortDescription() != null) product.setShortDescription(req.getShortDescription());
         if (req.getDescription() != null) product.setDescription(req.getDescription());
         if (req.getProductType() != null) product.setProductType(parseEnum(Product.ProductType.class, req.getProductType(), product.getProductType()));
@@ -134,6 +144,7 @@ public class ProductServiceImpl implements ProductService {
         if (req.getOriginCountry() != null) product.setOriginCountry(req.getOriginCountry());
         if (req.getOriginProvince() != null) product.setOriginProvince(req.getOriginProvince());
         if (req.getShelfLifeDays() != null) product.setShelfLifeDays(req.getShelfLifeDays());
+        if (req.getDealEndsAt() != null) product.setDealEndsAt(req.getDealEndsAt());
         if (req.getMinPreparationMinutes() != null) product.setMinPreparationMinutes(req.getMinPreparationMinutes());
         if (req.getStatus() != null) product.setStatus(parseEnum(Product.ProductStatus.class, req.getStatus(), product.getStatus()));
 
@@ -149,9 +160,9 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public ProductResponse addVariantToProduct(Long sellerId, Long productId, CreateProductVariantRequest req) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại"));
+                .orElseThrow(() -> new IllegalArgumentException("Sáº£n pháº©m khÃ´ng tá»“n táº¡i"));
         if (!product.getSeller().getId().equals(sellerId)) {
-            throw new IllegalArgumentException("Bạn không có quyền thêm biến thể cho sản phẩm này");
+            throw new IllegalArgumentException("Báº¡n khÃ´ng cÃ³ quyá»n thÃªm biáº¿n thá»ƒ cho sáº£n pháº©m nÃ y");
         }
 
         ProductVariant variant = ProductVariant.builder()
@@ -182,9 +193,9 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public void deleteProduct(Long sellerId, Long productId) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại"));
+                .orElseThrow(() -> new IllegalArgumentException("Sáº£n pháº©m khÃ´ng tá»“n táº¡i"));
         if (!product.getSeller().getId().equals(sellerId)) {
-            throw new IllegalArgumentException("Bạn không có quyền xóa sản phẩm này");
+            throw new IllegalArgumentException("Báº¡n khÃ´ng cÃ³ quyá»n xÃ³a sáº£n pháº©m nÃ y");
         }
         productRepository.delete(product);
     }
@@ -193,9 +204,9 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public InventoryBatchResponse addBatch(Long sellerId, CreateBatchRequest req) {
         Seller seller = sellerRepository.findById(sellerId)
-                .orElseThrow(() -> new IllegalArgumentException("Cửa hàng không tồn tại"));
+                .orElseThrow(() -> new IllegalArgumentException("Cá»­a hÃ ng khÃ´ng tá»“n táº¡i"));
         ProductVariant variant = variantRepository.findById(req.getVariantId())
-                .orElseThrow(() -> new IllegalArgumentException("Biến thể sản phẩm không tồn tại"));
+                .orElseThrow(() -> new IllegalArgumentException("Biáº¿n thá»ƒ sáº£n pháº©m khÃ´ng tá»“n táº¡i"));
 
         InventoryBatch batch = InventoryBatch.builder()
                 .variant(variant)
@@ -230,15 +241,15 @@ public class ProductServiceImpl implements ProductService {
         return stock != null ? stock : java.math.BigDecimal.ZERO;
     }
 
-    // ── Image management ──────────────────────────────────────────────────
+    // â”€â”€ Image management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Override
     @Transactional(readOnly = true)
     public List<ProductImageResponse> getProductImages(Long sellerId, Long productId) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại"));
+                .orElseThrow(() -> new IllegalArgumentException("Sáº£n pháº©m khÃ´ng tá»“n táº¡i"));
         if (!product.getSeller().getId().equals(sellerId)) {
-            throw new IllegalArgumentException("Bạn không có quyền xem ảnh sản phẩm này");
+            throw new IllegalArgumentException("Báº¡n khÃ´ng cÃ³ quyá»n xem áº£nh sáº£n pháº©m nÃ y");
         }
         return imageRepository.findByProductIdOrderBySortOrderAsc(productId).stream()
                 .map(ProductImageResponse::fromEntity)
@@ -249,9 +260,9 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public ProductImageResponse addProductImage(Long sellerId, Long productId, String imageUrl) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại"));
+                .orElseThrow(() -> new IllegalArgumentException("Sáº£n pháº©m khÃ´ng tá»“n táº¡i"));
         if (!product.getSeller().getId().equals(sellerId)) {
-            throw new IllegalArgumentException("Bạn không có quyền thêm ảnh cho sản phẩm này");
+            throw new IllegalArgumentException("Báº¡n khÃ´ng cÃ³ quyá»n thÃªm áº£nh cho sáº£n pháº©m nÃ y");
         }
         List<ProductImage> existing = imageRepository.findByProductIdOrderBySortOrderAsc(productId);
         boolean noPrimary = existing.stream().noneMatch(img -> Boolean.TRUE.equals(img.getIsPrimary()));
@@ -269,12 +280,12 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public void deleteProductImage(Long sellerId, Long productId, Long imageId) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại"));
+                .orElseThrow(() -> new IllegalArgumentException("Sáº£n pháº©m khÃ´ng tá»“n táº¡i"));
         if (!product.getSeller().getId().equals(sellerId)) {
-            throw new IllegalArgumentException("Bạn không có quyền xóa ảnh sản phẩm này");
+            throw new IllegalArgumentException("Báº¡n khÃ´ng cÃ³ quyá»n xÃ³a áº£nh sáº£n pháº©m nÃ y");
         }
         ProductImage image = imageRepository.findById(imageId)
-                .orElseThrow(() -> new IllegalArgumentException("Ảnh không tồn tại"));
+                .orElseThrow(() -> new IllegalArgumentException("áº¢nh khÃ´ng tá»“n táº¡i"));
         boolean wasPrimary = Boolean.TRUE.equals(image.getIsPrimary());
         imageRepository.delete(image);
         // If deleted image was primary, promote next image
@@ -291,9 +302,9 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public ProductImageResponse setProductImagePrimary(Long sellerId, Long productId, Long imageId) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại"));
+                .orElseThrow(() -> new IllegalArgumentException("Sáº£n pháº©m khÃ´ng tá»“n táº¡i"));
         if (!product.getSeller().getId().equals(sellerId)) {
-            throw new IllegalArgumentException("Bạn không có quyền thao tác ảnh sản phẩm này");
+            throw new IllegalArgumentException("Báº¡n khÃ´ng cÃ³ quyá»n thao tÃ¡c áº£nh sáº£n pháº©m nÃ y");
         }
         // Unset all primaries for this product
         List<ProductImage> allImages = imageRepository.findByProductIdOrderBySortOrderAsc(productId);
@@ -303,7 +314,7 @@ public class ProductServiceImpl implements ProductService {
         ProductImage target = allImages.stream()
                 .filter(img -> img.getId().equals(imageId))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Ảnh không tồn tại hoặc không thuộc sản phẩm này"));
+                .orElseThrow(() -> new IllegalArgumentException("áº¢nh khÃ´ng tá»“n táº¡i hoáº·c khÃ´ng thuá»™c sáº£n pháº©m nÃ y"));
         target.setIsPrimary(true);
         return ProductImageResponse.fromEntity(imageRepository.save(target));
     }
@@ -340,6 +351,46 @@ public class ProductServiceImpl implements ProductService {
         } catch (IllegalArgumentException e) {
             return defaultValue;
         }
+    }
+
+    private String generateUniqueSlug(String requestedSlug, String fallbackName, Long currentProductId) {
+        String baseSlug = slugify(requestedSlug);
+        if (baseSlug.isBlank()) {
+            baseSlug = slugify(fallbackName);
+        }
+        if (baseSlug.isBlank()) {
+            baseSlug = "san-pham";
+        }
+
+        String candidate = baseSlug;
+        int suffix = 2;
+        while (slugExists(candidate, currentProductId)) {
+            candidate = baseSlug + "-" + suffix;
+            suffix++;
+        }
+        return candidate;
+    }
+
+    private boolean slugExists(String slug, Long currentProductId) {
+        if (currentProductId == null) {
+            return productRepository.existsBySlug(slug);
+        }
+        return productRepository.existsBySlugAndIdNot(slug, currentProductId);
+    }
+
+    private String slugify(String value) {
+        if (value == null) return "";
+        String normalized = Normalizer.normalize(value, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .replace('\u0111', 'd')
+                .replace('\u0110', 'D')
+                .toLowerCase(Locale.ROOT);
+        return normalized
+                .replaceAll("[^a-z0-9\\s-]", "")
+                .trim()
+                .replaceAll("\\s+", "-")
+                .replaceAll("-+", "-")
+                .replaceAll("^-|-$", "");
     }
 
     private void saveImages(Product product, java.util.List<String> imageUrls) {

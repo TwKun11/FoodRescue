@@ -5,7 +5,9 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import * as analytics from "@/lib/analytics";
 import CountdownTimer from "@/components/customer/CountdownTimer";
+
 import ProductCardListing from "@/components/customer/ProductCardListing";
 import ReviewForm from "@/components/customer/ReviewForm";
 import ReviewDisplay from "@/components/customer/ReviewDisplay";
@@ -13,48 +15,142 @@ import ViolationReportForm from "@/components/customer/ViolationReportForm";
 import { apiGetProduct, apiGetProducts, apiGetMyReviewForProduct, apiCheckCanReviewProduct } from "@/lib/api";
 import { addItemToCart, startDirectCheckout } from "@/lib/cart";
 import { formatDistanceMeters, getCurrentPosition, haversineDistanceMeters } from "@/lib/location";
+import { isDealExpired, isProductPurchasable, resolveDealEndsAt } from "@/lib/product-availability";
 import { resolveVariantPricing } from "@/lib/product-pricing";
 
 function ImageGallery({ images, name, discountPercent }) {
   const [active, setActive] = useState(0);
+  const [viewerOpen, setViewerOpen] = useState(false);
   const list = images?.length > 0 ? images : [{ imageUrl: "/images/products/raucai.jpg" }];
   const src = list[active]?.imageUrl || "/images/products/raucai.jpg";
   const showBadge = Number(discountPercent) > 0;
+
+  useEffect(() => {
+    if (!viewerOpen) return;
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") setViewerOpen(false);
+      if (event.key === "ArrowLeft") setActive((index) => (index - 1 + list.length) % list.length);
+      if (event.key === "ArrowRight") setActive((index) => (index + 1) % list.length);
+    };
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [viewerOpen, list.length]);
+
+  const showPrevious = () => setActive((index) => (index - 1 + list.length) % list.length);
+  const showNext = () => setActive((index) => (index + 1) % list.length);
+
   return (
     <div className="space-y-4">
-      <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-100 border border-slate-200/60">
-        <img src={src} alt={name} className="w-full h-full object-contain" />
+      <button
+        type="button"
+        onClick={() => setViewerOpen(true)}
+        className="relative block aspect-square w-full overflow-hidden rounded-2xl border border-slate-200/60 bg-slate-100 text-left focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+        aria-label="Phóng to sản phẩm"
+      >
+        <img src={src} alt={name} className="h-full w-full object-contain transition duration-300 hover:scale-[1.02]" />
+        <span className="absolute bottom-3 right-3 rounded-full bg-slate-900/75 px-3 py-1.5 text-xs font-semibold text-white shadow-lg backdrop-blur-sm">
+          Phóng to
+        </span>
         {showBadge && (
           <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 rounded-xl bg-red-500 px-4 py-2.5 shadow-lg shadow-red-600/40 ring-2 ring-white/80">
-            <svg className="h-5 w-5 text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7a2 2 0 010-2.828l7-7A2 2 0 0112 3h5" /></svg>
-            <span className="text-lg font-black text-white leading-none">−{discountPercent}%</span>
+            <svg className="h-5 w-5 shrink-0 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2.5}
+                d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7a2 2 0 010-2.828l7-7A2 2 0 0112 3h5"
+              />
+            </svg>
+            <span className="text-lg font-black leading-none text-white">Giảm giá {discountPercent}%</span>
           </div>
         )}
         {list.length > 1 && (
-          <span className="absolute top-3 right-3 bg-slate-800/80 text-white text-xs font-medium px-2 py-1 rounded-lg">
+          <span className="absolute top-3 right-3 rounded-lg bg-slate-800/80 px-2 py-1 text-xs font-medium text-white">
             {active + 1}/{list.length}
           </span>
         )}
-      </div>
+      </button>
+
       {list.length > 1 && (
-        <div className="flex gap-3">
+        <div className="flex gap-3 overflow-x-auto pb-1">
           {list.map((img, i) => (
             <button
               key={i}
+              type="button"
               onClick={() => setActive(i)}
-              className={`w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden shrink-0 transition-all ${
-                i === active ? "ring-2 ring-green-500 ring-offset-2" : "opacity-70 hover:opacity-100 border border-gray-200"
+              className={`h-16 w-16 shrink-0 overflow-hidden rounded-xl transition-all sm:h-20 sm:w-20 ${
+                i === active
+                  ? "ring-2 ring-green-500 ring-offset-2"
+                  : "border border-gray-200 opacity-70 hover:opacity-100"
               }`}
+              aria-label={`Xem ảnh ${i + 1}`}
             >
-              <img src={img.imageUrl} alt="" className="w-full h-full object-cover" />
+              <img src={img.imageUrl} alt="" className="h-full w-full object-cover" />
             </button>
           ))}
+        </div>
+      )}
+
+      {viewerOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/88 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Ảnh sản phẩm phóng to"
+          onClick={() => setViewerOpen(false)}
+        >
+          <div
+            className="relative flex h-full max-h-[92vh] w-full max-w-6xl items-center justify-center"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setViewerOpen(false)}
+              className="absolute right-0 top-0 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-900 shadow-lg transition hover:bg-slate-100"
+              aria-label="Đóng ảnh phóng to"
+            >
+              ×
+            </button>
+
+            {list.length > 1 && (
+              <button
+                type="button"
+                onClick={showPrevious}
+                className="absolute left-0 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-white/95 text-2xl font-bold text-slate-900 shadow-lg transition hover:bg-white"
+                aria-label="Ảnh trước"
+              >
+                ‹
+              </button>
+            )}
+
+            <img src={src} alt={name} className="max-h-full max-w-full rounded-2xl object-contain shadow-2xl" />
+
+            {list.length > 1 && (
+              <button
+                type="button"
+                onClick={showNext}
+                className="absolute right-0 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-white/95 text-2xl font-bold text-slate-900 shadow-lg transition hover:bg-white"
+                aria-label="Ảnh tiếp theo"
+              >
+                ›
+              </button>
+            )}
+
+            <div className="absolute bottom-0 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full bg-slate-950/70 px-4 py-2 text-xs font-semibold text-white shadow-lg">
+              {active + 1}/{list.length}
+            </div>
+          </div>
         </div>
       )}
     </div>
   );
 }
-
 function mapProductDetail(p) {
   if (!p) return null;
   const variant = (p.variants || []).find((v) => v.isDefault) || p.variants?.[0] || {};
@@ -65,7 +161,7 @@ function mapProductDetail(p) {
     id: String(p.id),
     name: p.name,
     primaryImageUrl: p.primaryImageUrl || "/images/products/raucai.jpg",
-    images: p.images?.length > 0 ? p.images : (p.primaryImageUrl ? [{ imageUrl: p.primaryImageUrl }] : []),
+    images: p.images?.length > 0 ? p.images : p.primaryImageUrl ? [{ imageUrl: p.primaryImageUrl }] : [],
     originalPrice: pricing.originalPrice,
     discountPrice: pricing.discountPrice,
     discountPercent: pricing.discountPercent,
@@ -76,6 +172,7 @@ function mapProductDetail(p) {
     categoryName: p.categoryName || "",
     categoryId: p.categoryId,
     shelfLifeDays,
+    dealEndsAt: resolveDealEndsAt(p),
     originCountry: p.originCountry || "",
     originProvince: p.originProvince || "",
     storageType: p.storageType || "",
@@ -87,6 +184,7 @@ function mapProductDetail(p) {
     sellerLongitude: p.sellerLongitude ?? null,
     sellerRatingAvg: p.sellerRatingAvg ?? 0,
     sellerVerified: p.sellerVerified ?? false,
+    status: p.status,
     brandName: p.brandName || "",
     variants: p.variants || [],
   };
@@ -97,6 +195,7 @@ function mapRelated(p) {
   const pricing = resolveVariantPricing(v);
   const stock = v.stockAvailable ?? v.stockQuantity ?? 0;
   const shelfDays = p.shelfLifeDays ?? 0;
+  const dealEndsAt = resolveDealEndsAt(p);
   return {
     id: String(p.id),
     name: p.name,
@@ -104,10 +203,14 @@ function mapRelated(p) {
     originalPrice: pricing.originalPrice,
     discountPrice: pricing.discountPrice,
     discountPercent: pricing.discountPercent,
-    expiryLabel: shelfDays ? `Hết hạn trong: ${shelfDays} ngày` : "",
-    expiryAt: shelfDays ? new Date(Date.now() + shelfDays * 24 * 60 * 60 * 1000).toISOString() : null,
+    expiryLabel: dealEndsAt ? "Ưu đãi kết thúc sau" : "",
+    expiryAt: dealEndsAt,
+    shelfLifeLabel: shelfDays ? `Hạn sử dụng: ${shelfDays} ngày` : "",
     stock,
     storeName: p.sellerName || "",
+    variantId: v.id ?? null,
+    status: p.status,
+    dealEndsAt,
     address: p.sellerPickupAddress || p.originProvince || "",
     province: p.originProvince || "",
     sellerLatitude: p.sellerLatitude ?? null,
@@ -123,6 +226,19 @@ const STORAGE_LABELS = {
   frozen: "Bảo quản đông lạnh",
 };
 
+function formatDealEndDateTime(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -133,21 +249,21 @@ export default function ProductDetailPage() {
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [expiryISO, setExpiryISO] = useState("");
+  const [dealEndsISO, setDealEndsISO] = useState("");
   const [selectedSku, setSelectedSku] = useState(null);
   const [qty, setQty] = useState(1);
   const [addedToCart, setAddedToCart] = useState(false);
   const [buyingNow, setBuyingNow] = useState(false);
- const [detailTab, setDetailTab] = useState(searchParams?.get("tab") || "description");
+  const [detailTab, setDetailTab] = useState(searchParams?.get("tab") || "description");
 
-// Review states
-const [myReview, setMyReview] = useState(null);
-const [canReview, setCanReview] = useState(false);
-const [reviewLoading, setReviewLoading] = useState(false);
-const [reviewsRefreshTrigger, setReviewsRefreshTrigger] = useState(0);
+  // Review states
+  const [myReview, setMyReview] = useState(null);
+  const [canReview, setCanReview] = useState(false);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewsRefreshTrigger, setReviewsRefreshTrigger] = useState(0);
 
-// Location state
-const [viewerLocation, setViewerLocation] = useState(null);
+  // Location state
+  const [viewerLocation, setViewerLocation] = useState(null);
   useEffect(() => {
     getCurrentPosition()
       .then((position) => {
@@ -168,19 +284,31 @@ const [viewerLocation, setViewerLocation] = useState(null);
           return null;
         }
         const raw = res.data.data;
-        setProduct(mapProductDetail(raw));
-        setSelectedSku((raw.variants || []).find((v) => v.isDefault) || raw.variants?.[0] || null);
-        if (raw.shelfLifeDays) {
-          setExpiryISO(new Date(Date.now() + raw.shelfLifeDays * 24 * 60 * 60 * 1000).toISOString());
+        const mappedProduct = mapProductDetail(raw);
+        if (!isProductPurchasable(raw)) {
+          setError("Sản phẩm đã hết thời gian ưu đãi hoặc tạm hết hàng.");
+          return null;
         }
-        const mapped = mapProductDetail(raw);
-        return mapped?.categoryId ? apiGetProducts({ categoryId: mapped.categoryId, size: 6 }) : null;
+        setProduct(mappedProduct);
+        analytics.event("view_product_detail", {
+          product_id: mappedProduct.id,
+          product_name: mappedProduct.name,
+          product_category: mappedProduct.categoryName || mappedProduct.categoryId,
+          seller_name: mappedProduct.sellerName,
+          price: mappedProduct.discountPrice,
+          pickup_area: mappedProduct.sellerPickupAddress || mappedProduct.originProvince,
+          deal_time: mappedProduct.dealEndsAt,
+        });
+        setSelectedSku((raw.variants || []).find((v) => v.isDefault) || raw.variants?.[0] || null);
+        setDealEndsISO(mappedProduct?.dealEndsAt || "");
+
+        return mappedProduct?.categoryId ? apiGetProducts({ categoryId: mappedProduct.categoryId, size: 6 }) : null;
       })
       .then((res2) => {
         if (res2?.ok && res2.data?.data?.content) {
           setRelatedProducts(
             res2.data.data.content
-              .filter((r) => String(r.id) !== String(id))
+              .filter((r) => String(r.id) !== String(id) && isProductPurchasable(r))
               .slice(0, 4)
               .map((item) => {
                 const mapped = mapRelated(item);
@@ -194,7 +322,7 @@ const [viewerLocation, setViewerLocation] = useState(null);
                   ...mapped,
                   distanceLabel: distanceMeters != null ? `Cách bạn ${formatDistanceMeters(distanceMeters)}` : "",
                 };
-              })
+              }),
           );
         }
       })
@@ -204,12 +332,9 @@ const [viewerLocation, setViewerLocation] = useState(null);
   // Load review info when tab=reviews
   useEffect(() => {
     if (detailTab !== "reviews" || !id) return;
-    
+
     setReviewLoading(true);
-    Promise.all([
-      apiGetMyReviewForProduct(id),
-      apiCheckCanReviewProduct(id)
-    ])
+    Promise.all([apiGetMyReviewForProduct(id), apiCheckCanReviewProduct(id)])
       .then(([reviewRes, canReviewRes]) => {
         if (reviewRes.ok && reviewRes.data?.data) {
           setMyReview(reviewRes.data.data);
@@ -233,13 +358,10 @@ const [viewerLocation, setViewerLocation] = useState(null);
   // Reload review data when review is created or updated
   const reloadReviewData = async () => {
     if (!id) return;
-    
+
     console.log("[Page] reloadReviewData() called");
-    const [reviewRes, canReviewRes] = await Promise.all([
-      apiGetMyReviewForProduct(id),
-      apiCheckCanReviewProduct(id)
-    ]);
-    
+    const [reviewRes, canReviewRes] = await Promise.all([apiGetMyReviewForProduct(id), apiCheckCanReviewProduct(id)]);
+
     console.log("[Page] reviewRes:", reviewRes);
     if (reviewRes.ok && reviewRes.data?.data) {
       console.log("[Page] Setting myReview:", reviewRes.data.data);
@@ -248,18 +370,19 @@ const [viewerLocation, setViewerLocation] = useState(null);
       console.log("[Page] No review found, setting null");
       setMyReview(null);
     }
-    
+
     if (canReviewRes.ok && canReviewRes.data?.data) {
       setCanReview(canReviewRes.data.data.canReview || false);
     }
-    
+
     // Trigger ReviewDisplay to reload
     console.log("[Page] Triggering ReviewDisplay refresh");
-    setReviewsRefreshTrigger(prev => prev + 1);
+    setReviewsRefreshTrigger((prev) => prev + 1);
   };
 
   const buildCheckoutItem = () => {
     if (!product || !selectedSku) return null;
+    if (isDealExpired(product.dealEndsAt)) return null;
     const remaining = selectedSku.stockAvailable ?? selectedSku.stockQuantity ?? product.remaining ?? 0;
     if (remaining <= 0) return null;
     const pricing = resolveVariantPricing(selectedSku);
@@ -281,11 +404,24 @@ const [viewerLocation, setViewerLocation] = useState(null);
 
   const handleAddToCart = () => {
     const checkoutItem = buildCheckoutItem();
-    if (!checkoutItem) return;
+    if (!checkoutItem) {
+      toast.error("Sản phẩm đã hết hàng hoặc ưu đãi đã kết thúc.");
+      return;
+    }
     try {
       addItemToCart(checkoutItem);
+      analytics.event("click_add_to_cart", {
+        product_id: checkoutItem.productId,
+        product_name: checkoutItem.name,
+        product_category: product.categoryName || product.categoryId,
+        seller_name: checkoutItem.storeName,
+        price: checkoutItem.price,
+        pickup_area: product.sellerPickupAddress || product.originProvince,
+        deal_time: product.dealEndsAt,
+      });
       setAddedToCart(true);
       toast.success(`Đã thêm "${product.name}" vào giỏ hàng`, {
+        id: "cart-added",
         style: { border: "2px solid #059669", background: "#ecfdf5" },
         iconTheme: { primary: "#059669" },
       });
@@ -297,17 +433,31 @@ const [viewerLocation, setViewerLocation] = useState(null);
 
   const handleBuyNow = () => {
     const checkoutItem = buildCheckoutItem();
-    if (!checkoutItem) return;
+    if (!checkoutItem) {
+      toast.error("Sản phẩm đã hết hàng hoặc ưu đãi đã kết thúc.");
+      return;
+    }
 
     try {
       setBuyingNow(true);
       startDirectCheckout(checkoutItem);
+      analytics.event("click_add_to_cart", {
+        product_id: checkoutItem.productId,
+        product_name: checkoutItem.name,
+        product_category: product.categoryName || product.categoryId,
+        seller_name: checkoutItem.storeName,
+        price: checkoutItem.price,
+        pickup_area: product.sellerPickupAddress || product.originProvince,
+        deal_time: product.dealEndsAt,
+        direct_checkout: true,
+      });
       router.push("/checkout");
     } catch (e) {
       setBuyingNow(false);
       toast.error("Không chuyển được sang thanh toán. Vui lòng thử lại.");
     }
   };
+
 
   if (loading) {
     return (
@@ -324,7 +474,9 @@ const [viewerLocation, setViewerLocation] = useState(null);
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 font-sans">
         <div className="text-center max-w-sm">
-          <div className="w-16 h-16 rounded-2xl bg-slate-200 flex items-center justify-center text-3xl mx-auto mb-5">😕</div>
+          <div className="w-16 h-16 rounded-2xl bg-slate-200 flex items-center justify-center text-3xl mx-auto mb-5">
+            😕
+          </div>
           <p className="text-slate-800 font-semibold mb-2">{error || "Không tìm thấy sản phẩm."}</p>
           <Link
             href="/products"
@@ -347,7 +499,7 @@ const [viewerLocation, setViewerLocation] = useState(null);
   const discPct = displayPricing.discountPercent;
   const remaining =
     (displaySku.stockAvailable ?? displaySku.stockQuantity) != null
-      ? displaySku.stockAvailable ?? displaySku.stockQuantity
+      ? (displaySku.stockAvailable ?? displaySku.stockQuantity)
       : product.remaining;
   const storeAddress = product.sellerPickupAddress || product.originProvince || "";
   const storeDistanceMeters = viewerLocation
@@ -357,15 +509,26 @@ const [viewerLocation, setViewerLocation] = useState(null);
       })
     : null;
   const storeDistanceLabel = storeDistanceMeters != null ? formatDistanceMeters(storeDistanceMeters) : "";
+  const dealExpired = isDealExpired(product.dealEndsAt);
+  const canPurchase = remaining > 0 && !dealExpired;
+  const dealEndLabel = formatDealEndDateTime(dealEndsISO || product.dealEndsAt);
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans antialiased">
+    <div className="product-detail-page min-h-screen bg-slate-50 font-sans antialiased dark:bg-slate-950">
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
         <nav aria-label="Breadcrumb" className="mb-10">
           <ol className="flex items-center gap-2 text-sm text-slate-500">
-            <li><Link href="/" className="hover:text-green-600 transition-colors font-medium">Trang chủ</Link></li>
+            <li>
+              <Link href="/" className="hover:text-green-600 transition-colors font-medium">
+                Trang chủ
+              </Link>
+            </li>
             <li className="text-slate-300">/</li>
-            <li><Link href="/products" className="hover:text-green-600 transition-colors font-medium">Sản phẩm</Link></li>
+            <li>
+              <Link href="/products" className="hover:text-green-600 transition-colors font-medium">
+                Sản phẩm
+              </Link>
+            </li>
             <li className="text-slate-300">/</li>
             <li className="text-slate-800 font-medium truncate max-w-[180px]">{product.name}</li>
           </ol>
@@ -386,14 +549,16 @@ const [viewerLocation, setViewerLocation] = useState(null);
                   <span className="flex items-center gap-1">
                     <span className="text-amber-400 flex">
                       {[1, 2, 3, 4, 5].map((i) => (
-                        <svg key={i} className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                        <svg key={i} className="w-4 h-4 fill-current" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
                       ))}
                     </span>
                     <span>Đánh giá</span>
                   </span>
                 )}
-                {remaining === 0 ? (
-                  <span className="font-medium text-rose-600">Hết hàng</span>
+                {!canPurchase ? (
+                  <span className="font-medium text-rose-600">{dealExpired ? "Ưu đãi đã kết thúc" : "Hết hàng"}</span>
                 ) : (
                   <span className="font-medium text-green-600">Còn hàng ({remaining} sản phẩm)</span>
                 )}
@@ -410,39 +575,84 @@ const [viewerLocation, setViewerLocation] = useState(null);
               </div>
               {origP > discP && (
                 <p className="mt-2 text-sm text-gray-500">
-                  <span className="font-medium text-gray-400 line-through decoration-2 decoration-red-400">{origP.toLocaleString("vi-VN")}₫</span>
-                  <span className="ml-2 text-red-600 font-semibold">Tiết kiệm {(origP - discP).toLocaleString("vi-VN")}₫</span>
+                  <span className="font-medium text-gray-400 line-through decoration-2 decoration-red-400">
+                    {origP.toLocaleString("vi-VN")}đ
+                  </span>
+                  <span className="ml-2 text-red-600 font-semibold">
+                    Tiết kiệm {(origP - discP).toLocaleString("vi-VN")}đ
+                  </span>
                 </p>
               )}
             </div>
 
-            {expiryISO && remaining > 0 && (
-              <div
-                className="rounded-2xl py-4 px-5 text-white shadow-lg flex flex-row items-center justify-between gap-4 overflow-x-auto overflow-y-hidden flex-nowrap"
-                style={{ background: "linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%)" }}
-              >
-                <div className="flex items-center gap-3 shrink-0 min-w-0">
-                  <div className="w-11 h-11 rounded-xl bg-white flex items-center justify-center shrink-0 shadow-md">
-                    <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold uppercase tracking-wide text-white">Ưu đãi kết thúc sau</p>
-                    <p className="text-[11px] text-white/90 mt-0.5">Đừng bỏ lỡ cơ hội tiết kiệm!</p>
-                  </div>
+            <div
+              className={`rounded-2xl py-4 px-5 shadow-lg flex flex-row items-center justify-between gap-4 overflow-x-auto overflow-y-hidden flex-nowrap ${
+                dealEndsISO && !dealExpired
+                  ? "text-white"
+                  : "border border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-400/30 dark:bg-amber-950/35 dark:text-amber-50"
+              }`}
+              style={
+                dealEndsISO && !dealExpired
+                  ? { background: "linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%)" }
+                  : undefined
+              }
+            >
+              <div className="flex items-center gap-3 shrink-0 min-w-0">
+                <div
+                  className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-md ${dealEndsISO && !dealExpired ? "bg-white" : "bg-amber-100 dark:bg-amber-400/15"}`}
+                >
+                  <svg
+                    className={`w-6 h-6 ${dealEndsISO && !dealExpired ? "text-red-500" : "text-amber-600 dark:text-amber-300"}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
                 </div>
-                <CountdownTimer targetTime={expiryISO} variant="boxes" onRedBackground />
+                <div className="min-w-0">
+                  <p className="text-xs font-bold uppercase tracking-wide">Ưu đãi kết thúc sau</p>
+                  <p
+                    className={`text-[11px] mt-0.5 ${dealEndsISO && !dealExpired ? "text-white/90" : "text-amber-800 dark:text-amber-100/85"}`}
+                  >
+                    {dealExpired
+                      ? "Ưu đãi đã kết thúc."
+                      : dealEndLabel
+                        ? `Kết thúc lúc ${dealEndLabel}`
+                        : "Chưa cập nhật thời gian kết thúc ưu đãi."}
+                  </p>
+                </div>
               </div>
-            )}
+              {dealEndsISO && !dealExpired ? (
+                <CountdownTimer targetTime={dealEndsISO} variant="boxes" onRedBackground />
+              ) : null}
+            </div>
 
             <div className="flex items-start gap-4 p-5 rounded-2xl bg-white border border-gray-200 shadow-sm">
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center shrink-0 text-green-600">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-green-100 text-green-700 dark:bg-emerald-900 dark:text-emerald-200 dark:ring-1 dark:ring-emerald-700/70">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                  />
+                </svg>
               </div>
               <div className="min-w-0">
                 <p className="text-xs text-gray-500 font-medium">Cửa hàng</p>
                 <p className="font-bold text-gray-900 mt-0.5">{product.sellerName || "—"}</p>
-                <p className="text-sm text-gray-500 mt-1">{[product.sellerPhone, storeAddress].filter(Boolean).join(" • ") || "Chưa cập nhật"}</p>
-                {storeDistanceLabel && <p className="mt-1 text-sm font-medium text-emerald-700">Cách bạn {storeDistanceLabel}</p>}
+                <p className="text-sm text-gray-500 mt-1">
+                  {[product.sellerPhone, storeAddress].filter(Boolean).join(" • ") || "Chưa cập nhật"}
+                </p>
+                {storeDistanceLabel && (
+                  <p className="mt-1 text-sm font-medium text-emerald-700">Cách bạn {storeDistanceLabel}</p>
+                )}
               </div>
             </div>
 
@@ -460,7 +670,9 @@ const [viewerLocation, setViewerLocation] = useState(null);
                           setQty(1);
                         }}
                         className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
-                          isActive ? "bg-green-600 text-white" : "bg-white border border-gray-300 text-gray-700 hover:border-green-300"
+                          isActive
+                            ? "bg-green-600 text-white"
+                            : "bg-white border border-gray-300 text-gray-700 hover:border-green-300"
                         }`}
                       >
                         {variant.name || variant.unit || "Loại " + variant.id}
@@ -473,43 +685,75 @@ const [viewerLocation, setViewerLocation] = useState(null);
 
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center rounded-xl border border-slate-200 bg-white overflow-hidden h-12">
-                <button onClick={() => setQty((q) => Math.max(1, q - 1))} disabled={qty <= 1} className="w-11 h-full flex items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-40 text-lg font-medium">−</button>
+                <button
+                  onClick={() => setQty((q) => Math.max(1, q - 1))}
+                  disabled={qty <= 1}
+                  className="w-11 h-full flex items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-40 text-lg font-medium"
+                >
+                  -
+                </button>
                 <span className="w-10 text-center text-sm font-semibold text-slate-900">{qty}</span>
-                <button onClick={() => setQty((q) => Math.min(remaining || 99, q + 1))} disabled={qty >= (remaining || 99)} className="w-11 h-full flex items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-40 text-lg font-medium">+</button>
+                <button
+                  onClick={() => setQty((q) => Math.min(remaining || 99, q + 1))}
+                  disabled={qty >= (remaining || 99)}
+                  className="w-11 h-full flex items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-40 text-lg font-medium"
+                >
+                  +
+                </button>
               </div>
               <button
                 onClick={handleBuyNow}
-                disabled={remaining === 0}
+                disabled={!canPurchase}
                 className={`flex-1 min-w-[200px] h-14 rounded-xl flex items-center justify-center gap-3 font-bold text-white transition-colors ${
-                  remaining === 0 ? "bg-gray-200 text-gray-500 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
+                  !canPurchase ? "bg-gray-200 text-gray-500 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
                 }`}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v14m7-7H5" /></svg>
-                {buyingNow ? "Đang chuyển sang thanh toán..." : remaining === 0 ? "Hết hàng" : "Mua ngay"}
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v14m7-7H5" />
+                </svg>
+                {buyingNow
+                  ? "Đang chuyển sang thanh toán..."
+                  : !canPurchase
+                    ? dealExpired
+                      ? "Hết ưu đãi"
+                      : "Hết hàng"
+                    : "Mua ngay"}
               </button>
               <button
                 onClick={handleAddToCart}
-                disabled={remaining === 0 || buyingNow}
+                disabled={!canPurchase || buyingNow}
                 className={`flex-1 min-w-[200px] h-14 rounded-xl flex items-center justify-center gap-3 font-bold transition-colors ${
-                  remaining === 0
+                  !canPurchase
                     ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                     : addedToCart
                       ? "border border-green-600 bg-green-50 text-green-700"
                       : "border border-slate-300 bg-white text-slate-800 hover:border-green-300 hover:text-green-700"
                 }`}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
-                {addedToCart ? "Đã thêm vào giỏ" : remaining === 0 ? "Hết hàng" : "Thêm vào giỏ hàng"}
-              </button>
-              <button type="button" className="w-12 h-12 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 hover:border-slate-300 hover:bg-slate-50 transition-colors group" aria-label="Yêu thích">
-                <svg className="w-5 h-5 group-hover:text-rose-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                  />
+                </svg>
+                {addedToCart
+                  ? "Đã thêm vào giỏ hàng"
+                  : !canPurchase
+                    ? dealExpired
+                      ? "Hết ưu đãi"
+                      : "Hết hàng"
+                    : "Thêm vào giỏ hàng"}
               </button>
             </div>
 
             <div className="p-4 rounded-xl border border-red-100 bg-red-50/40 flex items-center justify-between gap-3 flex-wrap">
               <div>
                 <p className="text-sm font-semibold text-red-800">Gặp vấn đề với sản phẩm?</p>
-                <p className="text-xs text-red-700 mt-0.5">Bạn có thể báo cáo trực tiếp để quản trị viên kiểm tra và xử lý.</p>
+                <p className="text-xs text-red-700 mt-0.5">
+                  Bạn có thể báo cáo trực tiếp để quản trị viên kiểm tra và xử lý.
+                </p>
               </div>
               <ViolationReportForm productId={Number(product.id)} triggerLabel="Báo cáo vi phạm" />
             </div>
@@ -527,7 +771,9 @@ const [viewerLocation, setViewerLocation] = useState(null);
                 key={tab.id}
                 onClick={() => setDetailTab(tab.id)}
                 className={`pb-4 -mb-px font-medium text-sm transition-colors border-b-2 ${
-                  detailTab === tab.id ? "border-green-600 text-slate-900" : "border-transparent text-slate-500 hover:text-slate-700"
+                  detailTab === tab.id
+                    ? "border-green-600 text-slate-900"
+                    : "border-transparent text-slate-500 hover:text-slate-700"
                 }`}
               >
                 {tab.label}
@@ -553,18 +799,18 @@ const [viewerLocation, setViewerLocation] = useState(null);
                   ) : (
                     <>
                       {canReview && !myReview && (
-                        <ReviewForm 
-                          productId={id} 
+                        <ReviewForm
+                          productId={id}
                           existingReview={myReview}
                           onSubmit={reloadReviewData}
                           onDelete={() => setMyReview(null)}
                         />
                       )}
-                      <ReviewDisplay 
-                        productId={id} 
+                      <ReviewDisplay
+                        productId={id}
                         myReview={myReview}
                         onRefresh={reloadReviewData}
-                        refreshTrigger={reviewsRefreshTrigger} 
+                        refreshTrigger={reviewsRefreshTrigger}
                       />
                     </>
                   )}
@@ -584,7 +830,9 @@ const [viewerLocation, setViewerLocation] = useState(null);
                 </div>
                 <div className="flex justify-between gap-4">
                   <dt className="text-slate-500">Hạn sử dụng</dt>
-                  <dd className={`font-medium text-right ${product.shelfLifeDays > 0 ? "text-green-600" : "text-slate-800"}`}>
+                  <dd
+                    className={`font-medium text-right ${product.shelfLifeDays > 0 ? "text-green-600" : "text-slate-800"}`}
+                  >
                     {product.shelfLifeDays > 0 ? `Còn ${product.shelfLifeDays} ngày` : "—"}
                   </dd>
                 </div>
@@ -600,10 +848,25 @@ const [viewerLocation, setViewerLocation] = useState(null);
               style={{ background: "linear-gradient(135deg, #f97316 0%, #fb923c 50%, #fbbf24 100%)" }}
             >
               <div className="flex items-center gap-3 min-w-0">
-                <svg className="h-6 w-6 text-white shrink-0 opacity-95" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+                <svg
+                  className="h-6 w-6 text-white shrink-0 opacity-95"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                  />
+                </svg>
                 <h2 className="text-lg font-bold text-white drop-shadow-sm truncate">Sản phẩm liên quan</h2>
               </div>
-              <Link href={product.categoryId ? `/products?categoryId=${product.categoryId}` : "/products"} className="text-sm font-semibold text-orange-900 hover:text-orange-950 hover:underline shrink-0 bg-white rounded-lg px-4 py-2 shadow-sm">
+              <Link
+                href={product.categoryId ? `/products?categoryId=${product.categoryId}` : "/products"}
+                className="text-sm font-semibold text-orange-900 hover:text-orange-950 hover:underline shrink-0 bg-white rounded-lg px-4 py-2 shadow-sm"
+              >
                 Xem tất cả →
               </Link>
             </div>

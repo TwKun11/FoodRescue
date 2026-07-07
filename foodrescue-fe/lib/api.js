@@ -1,17 +1,144 @@
 import { getApiBaseUrl } from "@/lib/runtime-config";
 
 const BASE = () => getApiBaseUrl();
+const USER_STORAGE_KEY = "user";
 
-function getToken() {
+let accessToken = null;
+let refreshPromise = null;
+const authListeners = new Set();
+
+function readStoredUser() {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem("accessToken");
+
+  try {
+    const raw = localStorage.getItem(USER_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
 }
 
-async function request(path, options = {}) {
-  const token = getToken();
-  const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-  const res = await fetch(`${BASE()}${path}`, { ...options, headers });
+function writeStoredUser(user) {
+  if (typeof window === "undefined") return;
+
+  try {
+    if (user) {
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+    } else {
+      localStorage.removeItem(USER_STORAGE_KEY);
+    }
+  } catch {
+    // localStorage may be unavailable in restricted browser contexts.
+  }
+}
+
+let currentUser = readStoredUser();
+
+function clearLegacyStoredTokens() {
+  if (typeof window === "undefined") return;
+
+  try {
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+  } catch {
+    // localStorage may be unavailable in restricted browser contexts.
+  }
+}
+
+clearLegacyStoredTokens();
+
+export function getAccessToken() {
+  return accessToken;
+}
+
+export function getAuthUser() {
+  return currentUser;
+}
+
+export function subscribeAuth(listener) {
+  authListeners.add(listener);
+  listener({ accessToken, user: currentUser });
+  return () => authListeners.delete(listener);
+}
+
+function notifyAuth() {
+  const snapshot = { accessToken, user: currentUser };
+  authListeners.forEach((listener) => listener(snapshot));
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("foodrescue-auth-updated", { detail: snapshot }));
+  }
+}
+
+export function setAuthSession(payload = {}) {
+  accessToken = payload.accessToken || null;
+  currentUser = payload.user || null;
+  writeStoredUser(currentUser);
+  notifyAuth();
+}
+
+export function updateAuthUser(updatedUser) {
+  currentUser = updatedUser || null;
+  writeStoredUser(currentUser);
+  notifyAuth();
+}
+
+export function clearAuthSession() {
+  accessToken = null;
+  currentUser = null;
+  writeStoredUser(null);
+  notifyAuth();
+}
+
+function isRefreshPath(path) {
+  return path === "/api/auth/refresh";
+}
+
+async function refreshAuthSession() {
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
+    const res = await fetch(`${BASE()}/api/auth/refresh`, {
+      method: "POST",
+      credentials: "include",
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      clearAuthSession();
+      return { ok: false, status: res.status, data };
+    }
+    const payload = data?.data ?? data;
+    setAuthSession({ accessToken: payload?.accessToken || null, user: payload?.user || null });
+    return { ok: true, status: res.status, data };
+  })().finally(() => {
+    refreshPromise = null;
+  });
+
+  return refreshPromise;
+}
+
+export async function restoreAuthSession() {
+  return refreshAuthSession();
+}
+
+async function request(path, options = {}, retryOnUnauthorized = true) {
+  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
+  const headers = { ...(options.headers || {}) };
+  if (!isFormData && !headers["Content-Type"]) headers["Content-Type"] = "application/json";
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+
+  const res = await fetch(`${BASE()}${path}`, {
+    ...options,
+    headers,
+    credentials: "include",
+  });
+
+  if (res.status === 401 && retryOnUnauthorized && !isRefreshPath(path)) {
+    const refreshed = await refreshAuthSession();
+    if (refreshed.ok && accessToken) {
+      return request(path, options, false);
+    }
+  }
+
   const data = await res.json().catch(() => null);
   return { ok: res.ok, status: res.status, data };
 }
@@ -34,11 +161,14 @@ export async function apiGoogleLogin(idToken) {
   });
 }
 
-export async function apiRefreshToken(refreshToken) {
-  return request("/api/auth/refresh", {
-    method: "POST",
-    body: JSON.stringify({ refreshToken }),
-  });
+export async function apiRefreshToken() {
+  return refreshAuthSession();
+}
+
+export async function apiLogout() {
+  const res = await request("/api/auth/logout", { method: "POST" }, false);
+  clearAuthSession();
+  return res;
 }
 
 export async function apiVerifyEmail(token) {
@@ -81,7 +211,16 @@ export async function apiGetCategories() {
 // ============================================================
 // PRODUCTS (public)
 // ============================================================
-export async function apiGetProducts({ categoryId, keyword, sort, minPrice, maxPrice, province, page = 0, size = 12 } = {}) {
+export async function apiGetProducts({
+  categoryId,
+  keyword,
+  sort,
+  minPrice,
+  maxPrice,
+  province,
+  page = 0,
+  size = 12,
+} = {}) {
   const params = new URLSearchParams({ page, size });
   if (categoryId) params.set("categoryId", categoryId);
   if (keyword) params.set("keyword", keyword);
@@ -155,7 +294,7 @@ export async function apiSubmitSellerApplication(body) {
 }
 
 export async function apiUploadSellerApplicationImage(file) {
-  const token = getToken();
+  const token = getAccessToken();
   const formData = new FormData();
   formData.append("file", file);
   const res = await fetch(`${BASE()}/api/seller-applications/upload`, {
@@ -179,7 +318,7 @@ export async function apiUpdateMyShop(body) {
 }
 
 export async function apiSellerUploadShopImage(file) {
-  const token = getToken();
+  const token = getAccessToken();
   const formData = new FormData();
   formData.append("file", file);
   const res = await fetch(`${BASE()}/api/seller/shop/upload`, {
@@ -194,10 +333,18 @@ export async function apiSellerUploadShopImage(file) {
 // ============================================================
 // SELLER – PRODUCTS
 // ============================================================
-export async function apiSellerGetProducts({ keyword, page = 0, size = 20 } = {}) {
-  const params = new URLSearchParams({ page, size });
-  if (keyword) params.set("keyword", keyword);
-  return request(`/api/seller/products?${params}`);
+export function apiSellerGetProducts({ page = 0, size = 20, keyword, tab = "all" } = {}) {
+  const params = new URLSearchParams();
+
+  params.set("page", String(page));
+  params.set("size", String(size));
+  params.set("tab", tab || "all");
+
+  if (keyword && keyword.trim()) {
+    params.set("keyword", keyword.trim());
+  }
+
+  return request(`/api/seller/products?${params.toString()}`);
 }
 
 export async function apiSellerCreateProduct(body) {
@@ -209,7 +356,7 @@ export async function apiSellerUpdateProduct(productId, body) {
 }
 
 export async function apiSellerUploadImage(file) {
-  const token = getToken();
+  const token = getAccessToken();
   const formData = new FormData();
   formData.append("file", file);
   const res = await fetch(`${BASE()}/api/seller/upload`, {
@@ -337,6 +484,10 @@ export async function apiAdminGetSellerApplications({ page = 0, size = 20, searc
   return request(`/api/admin/seller-applications?${params.toString()}`);
 }
 
+export async function apiAdminGetPendingSellerApplicationCount() {
+  return request("/api/admin/seller-applications/pending-count");
+}
+
 export async function apiAdminApproveSellerApplication(id) {
   return request(`/api/admin/seller-applications/${id}/approve`, { method: "PUT" });
 }
@@ -462,7 +613,7 @@ export async function apiSellerGetProductImages(productId) {
 }
 
 export async function apiSellerAddProductImage(productId, file) {
-  const token = getToken();
+  const token = getAccessToken();
   const formData = new FormData();
   formData.append("file", file);
   const res = await fetch(`${BASE()}/api/seller/products/${productId}/images`, {
@@ -520,7 +671,7 @@ export async function apiCheckCanReviewProduct(productId) {
 
 // Upload review images (similar to product images)
 export async function apiUploadReviewImage(file) {
-  const token = getToken();
+  const token = getAccessToken();
   const formData = new FormData();
   formData.append("file", file);
   const res = await fetch(`${BASE()}/api/reviews/upload-image`, {

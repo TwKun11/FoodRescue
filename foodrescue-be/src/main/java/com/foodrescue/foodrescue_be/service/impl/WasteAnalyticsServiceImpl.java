@@ -142,7 +142,7 @@ public class WasteAnalyticsServiceImpl implements WasteAnalyticsService {
                 && !batch.getVariant().getProduct().getOriginProvince().isBlank()) {
             return batch.getVariant().getProduct().getOriginProvince().trim();
         }
-        return "Chua ro";
+        return "Ch?a r?";
     }
 
     private static List<AdminWasteAnalyticsResponse.SurplusByHour> buildHourSeries(Map<Integer, BigDecimal> byHour) {

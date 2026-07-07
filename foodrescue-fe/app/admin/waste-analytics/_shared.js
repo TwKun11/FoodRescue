@@ -65,7 +65,7 @@ export function WastePageHero({ title, subtitle, imageSrc, imageAlt = "Waste ana
   );
 }
 
-export function HorizontalBars({ rows, colorClass = "bg-emerald-500", unit = "", emptyText = "Chua co du lieu" }) {
+export function HorizontalBars({ rows, colorClass = "bg-emerald-500", unit = "", emptyText = "Chưa có dữ liệu" }) {
   const list = normalizeList(rows).slice(0, 8);
   const maxValue = list.reduce((max, row) => Math.max(max, Number(row.value) || 0), 0) || 1;
 
