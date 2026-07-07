@@ -179,13 +179,13 @@ export default function Header() {
 
   return (
     <header
-      className={`fixed left-0 right-0 top-0 z-[70] transition-all duration-300 ${
+      className={`fixed left-0 right-0 top-0 z-[70] w-full max-w-full overflow-x-clip transition-all duration-300 ${
         transparent
           ? "bg-transparent"
           : "border-b border-emerald-100 bg-white/95 shadow-sm backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/95"
       }`}
     >
-      <div className="mx-auto flex h-[72px] max-w-[1320px] items-center gap-2 px-3 sm:gap-5 sm:px-5">
+      <div className="mx-auto flex h-[72px] w-full max-w-[1320px] min-w-0 items-center gap-2 px-3 sm:gap-5 sm:px-5">
         <Link
           href="/"
           className={`flex h-11 min-w-0 items-center gap-2 transition-colors sm:min-w-[174px] sm:gap-2.5 ${
@@ -215,7 +215,7 @@ export default function Header() {
           })}
         </nav>
 
-        <div className="ml-auto flex shrink-0 items-center justify-end gap-1.5 sm:gap-3">
+        <div className="ml-auto flex min-w-0 items-center justify-end gap-1.5 sm:gap-3">
           <ThemeToggle compact />
 
           <Link
