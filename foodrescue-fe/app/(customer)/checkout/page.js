@@ -112,7 +112,8 @@ export default function CheckoutPage() {
   const [addressesLoading, setAddressesLoading] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [note, setNote] = useState("");
-  const [agreed, setAgreed] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedRefundPolicy, setAcceptedRefundPolicy] = useState(false);
   const [placed, setPlaced] = useState(false);
   const [orderId, setOrderId] = useState(null);
   const [placing, setPlacing] = useState(false);
@@ -223,6 +224,7 @@ export default function CheckoutPage() {
   const selectedPayment =
     PAYMENT_METHODS.find((method) => method.id === paymentMethod) ??
     PAYMENT_METHODS[0];
+  const acceptedRequiredPolicies = acceptedTerms && acceptedRefundPolicy;
 
   useEffect(() => {
     if (isClient && items.length > 0 && !startedTracking) {
@@ -363,8 +365,8 @@ export default function CheckoutPage() {
       window.alert("Phương thức thanh toán này chưa khả dụng.");
       return;
     }
-    if (!agreed) {
-      window.alert("Vui lòng đồng ý điều khoản trước khi đặt hàng.");
+    if (!acceptedRequiredPolicies) {
+      window.alert("Vui lòng đồng ý Điều khoản dịch vụ và Chính sách hủy đơn/hoàn tiền trước khi đặt hàng.");
       return;
     }
     if (items.length === 0) {
@@ -1024,31 +1026,53 @@ export default function CheckoutPage() {
               </p>
             </div>
 
-            <label className="mt-5 flex cursor-pointer items-start gap-2">
-              <input
-                type="checkbox"
-                checked={agreed}
-                onChange={(event) => setAgreed(event.target.checked)}
-                className="mt-0.5 accent-brand-dark"
-              />
-              <span className="text-xs text-gray-500">
-                Tôi đồng ý với{" "}
-                <Link
-                  href="/terms"
-                  target="_blank"
-                  className="font-medium text-emerald-700 underline hover:text-emerald-800"
-                >
-                  Điều khoản dịch vụ và Chính sách hoàn hủy
-                </Link>{" "}
-                của nền tảng.
-              </span>
-            </label>
+            <div className="mt-5 space-y-3">
+              <label className="flex cursor-pointer items-start gap-2">
+                <input
+                  type="checkbox"
+                  checked={acceptedTerms}
+                  onChange={(event) => setAcceptedTerms(event.target.checked)}
+                  className="mt-0.5 accent-brand-dark"
+                />
+                <span className="text-xs text-gray-500">
+                  Tôi đồng ý với{" "}
+                  <Link
+                    href="/terms#dieu-khoan-dich-vu"
+                    target="_blank"
+                    className="font-medium text-emerald-700 underline hover:text-emerald-800"
+                  >
+                    Điều khoản dịch vụ
+                  </Link>{" "}
+                  của nền tảng.
+                </span>
+              </label>
+
+              <label className="flex cursor-pointer items-start gap-2">
+                <input
+                  type="checkbox"
+                  checked={acceptedRefundPolicy}
+                  onChange={(event) => setAcceptedRefundPolicy(event.target.checked)}
+                  className="mt-0.5 accent-brand-dark"
+                />
+                <span className="text-xs text-gray-500">
+                  Tôi đồng ý với{" "}
+                  <Link
+                    href="/terms#chinh-sach-huy-don-hoan-tien"
+                    target="_blank"
+                    className="font-medium text-emerald-700 underline hover:text-emerald-800"
+                  >
+                    Chính sách hủy đơn và hoàn tiền
+                  </Link>{" "}
+                  của nền tảng.
+                </span>
+              </label>
+            </div>
 
             <button
               type="button"
               onClick={handlePlaceOrder}
               disabled={
-                !agreed ||
+                !acceptedRequiredPolicies ||
                 placing ||
                 items.length === 0 ||
                 !selectedPayment?.enabled
