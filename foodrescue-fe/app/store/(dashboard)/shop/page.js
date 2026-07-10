@@ -480,11 +480,11 @@ export default function ShopPage() {
                     onChange={setField("shopName")}
                   />
                   <ReadOnlyField
-                    label="Slug cua hang"
+                    label="Slug cửa hàng"
                     value={form.shopSlug || "—"}
                   />
                   <Field
-                    label="Ten phap ly / ho kinh doanh *"
+                    label="Tên pháp lý / hộ kinh doanh *"
                     value={form.legalName}
                     onChange={setField("legalName")}
                   />

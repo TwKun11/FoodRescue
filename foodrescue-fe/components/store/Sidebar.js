@@ -9,7 +9,7 @@ const NAV_ITEMS = [
   { href: "/store/products", label: "Sản phẩm", icon: BoxIcon },
   { href: "/store/orders", label: "Đơn hàng", icon: OrderIcon },
   { href: "/store/reviews", label: "Đánh giá", icon: ReviewIcon },  { href: "/store/stats", label: "Doanh thu", icon: RevenueIcon },
-  { href: "/store/wallet", label: "Vi & chi tra", icon: WalletIcon },
+  { href: "/store/wallet", label: "Ví & chi trả", icon: WalletIcon },
   { href: "/store/inventory", label: "Kho hàng", icon: InventoryIcon },
   { href: "/store/ads", label: "Quảng cáo", icon: AdsIcon },
   { href: "/store/settings", label: "Cài đặt", icon: SettingsIcon },
