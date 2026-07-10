@@ -106,6 +106,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
     listPrice: "",
     salePrice: "",
     stockQuantity: "",
+    expiredAt: "",
   });
 
   const [form, setForm] = useState({
@@ -170,47 +171,72 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
   };
 
   // Validation rules for each field
-  const validateFieldRealtime = (fieldName, value) => {
+  const getFieldError = (fieldName, value) => {
     let error = null;
+    const stringValue = value == null ? "" : String(value);
 
     switch (fieldName) {
       case 'name':
-        if (!value.trim()) error = 'Tên sản phẩm không được để trống';
+        if (!stringValue.trim()) error = 'Tên sản phẩm không được để trống';
         break;
       case 'categoryId':
-        if (!value) error = 'Vui lòng chọn danh mục';
+        if (!stringValue) error = 'Vui lòng chọn danh mục';
         break;
       case 'sellMode':
-        if (!value) error = 'Vui lòng chọn hình thức bán';
+        if (!stringValue) error = 'Vui lòng chọn hình thức bán';
         break;
       case 'shelfLifeDays':
-        if (value && (isNaN(value) || Number(value) < 0)) error = 'Hạn sử dụng phải là số không âm';
+        if (!stringValue) error = 'Vui lòng nhập hạn sử dụng sản phẩm';
+        else if (isNaN(stringValue) || Number(stringValue) < 1) error = 'Hạn sử dụng phải là số dương';
         break;
       case 'dealEndsAt':
-        if (value && new Date(value).toString() === 'Invalid Date') error = 'Thời điểm kết thúc ưu đãi không hợp lệ';
+        if (!stringValue) {
+          error = 'Vui lòng chọn thời hạn đăng bán sản phẩm';
+        } else {
+          const dealEndDate = new Date(stringValue);
+          if (dealEndDate.toString() === 'Invalid Date') error = 'Thời hạn đăng bán không hợp lệ';
+          else if (dealEndDate <= new Date()) error = 'Thời hạn đăng bán phải sau thời điểm hiện tại';
+        }
         break;
       case 'minPreparationMinutes':
-        if (value && (isNaN(value) || Number(value) < 0)) error = 'Thời gian chuẩn bị phải là số không âm';
+        if (stringValue && (isNaN(stringValue) || Number(stringValue) < 0)) error = 'Thời gian chuẩn bị phải là số không âm';
         break;
       // Variant validation
       case 'initVariantName':
-        if (!value.trim()) error = 'Tên biến thể không được để trống';
+        if (!stringValue.trim()) error = 'Tên biến thể không được để trống';
         break;
       case 'initVariantListPrice':
-        if (!value) error = 'Giá niêm yết không được để trống';
-        else if (isNaN(value) || Number(value) <= 0) error = 'Giá phải là số dương';
+        if (!stringValue) error = 'Giá niêm yết không được để trống';
+        else if (isNaN(stringValue) || Number(stringValue) <= 0) error = 'Giá phải là số dương';
         break;
       case 'initVariantSalePrice':
-        if (value && (isNaN(value) || Number(value) < 0)) error = 'Giá bán phải là số không âm';
+        if (stringValue && (isNaN(stringValue) || Number(stringValue) < 0)) error = 'Giá bán phải là số không âm';
+        break;
+      case 'initVariantExpiredAt':
+        if (!stringValue) {
+          error = 'Vui lòng chọn hạn sử dụng sản phẩm';
+        } else {
+          const expiredDate = new Date(stringValue);
+          if (expiredDate.toString() === 'Invalid Date') error = 'Hạn sử dụng sản phẩm không hợp lệ';
+          else if (expiredDate <= new Date()) error = 'Hạn sử dụng sản phẩm phải sau thời điểm hiện tại';
+        }
         break;
       default:
         break;
     }
 
+    return error;
+  };
+
+  const validateFieldRealtime = (fieldName, value) => {
+    const error = getFieldError(fieldName, value);
+
     setFieldErrors((prev) => ({
       ...prev,
       [fieldName]: error
     }));
+
+    return error;
   };
 
   const handleFieldBlur = (fieldName) => (e) => {
@@ -255,6 +281,16 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
       setError("Vui lòng chọn danh mục");
       return;
     }
+    const shelfLifeError = validateFieldRealtime("shelfLifeDays", form.shelfLifeDays);
+    if (shelfLifeError) {
+      setError(shelfLifeError);
+      return;
+    }
+    const dealEndsAtError = validateFieldRealtime("dealEndsAt", form.dealEndsAt);
+    if (dealEndsAtError) {
+      setError(dealEndsAtError);
+      return;
+    }
     if (!isEdit && !initVariant.name.trim()) {
       setError("Tên biến thể đầu tiên không được để trống");
       return;
@@ -262,6 +298,13 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
     if (!isEdit && (!initVariant.listPrice || Number(initVariant.listPrice) <= 0)) {
       setError("Giá niêm yết biến thể đầu tiên không được để trống");
       return;
+    }
+    if (!isEdit) {
+      const initVariantExpiredAtError = validateFieldRealtime("initVariantExpiredAt", initVariant.expiredAt);
+      if (initVariantExpiredAtError) {
+        setError(initVariantExpiredAtError);
+        return;
+      }
     }
 
     setLoading(true);
@@ -293,8 +336,8 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
         productType: form.productType,
         sellMode: form.sellMode,
         storageType: form.storageType,
-        shelfLifeDays: form.shelfLifeDays ? Number(form.shelfLifeDays) : null,
-        dealEndsAt: form.dealEndsAt || null,
+        shelfLifeDays: Number(form.shelfLifeDays),
+        dealEndsAt: form.dealEndsAt,
         minPreparationMinutes: form.minPreparationMinutes ? Number(form.minPreparationMinutes) : null,
         originCountry: form.originCountry || null,
         originProvince: form.originProvince || null,
@@ -359,6 +402,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
                   batchCode: `BATCH-${Date.now().toString(36).toUpperCase()}`,
                   quantityReceived: Number(initVariant.stockQuantity),
                   receivedAt: new Date().toISOString().replace("Z", ""),
+                  expiredAt: initVariant.expiredAt,
                   costPrice: Number(initVariant.listPrice),
                 });
                 if (!batchRes.ok) {
@@ -802,13 +846,14 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
       {/* Hạn sử dụng + Thời gian chuẩn bị */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Hạn sử dụng (ngày)</label>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Hạn sử dụng (ngày) *</label>
           <input
             type="number"
             value={form.shelfLifeDays}
             onChange={set("shelfLifeDays")}
             onBlur={handleFieldBlur("shelfLifeDays")}
-            min={0}
+            min={1}
+            required
             placeholder="VD: 7"
             className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition ${
               fieldErrors.shelfLifeDays
@@ -841,12 +886,13 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
           <p className="text-xs text-gray-400 mt-1">Thời gian tối thiểu cần để chuẩn bị đơn hàng</p>
         </div>
       <div className="sm:col-span-2">
-        <label className="block text-xs font-medium text-gray-600 mb-1">Ưu đãi kết thúc lúc</label>
+        <label className="block text-xs font-medium text-gray-600 mb-1">Thời hạn đăng bán *</label>
         <input
           type="datetime-local"
           value={form.dealEndsAt}
           onChange={set("dealEndsAt")}
           onBlur={handleFieldBlur("dealEndsAt")}
+          required
           className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition ${
             fieldErrors.dealEndsAt
               ? 'border-red-500 focus:ring-red-300 bg-red-50'
@@ -856,7 +902,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
         {fieldErrors.dealEndsAt && (
           <p className="text-xs text-red-500 mt-1 font-medium">✗ {fieldErrors.dealEndsAt}</p>
         )}
-        <p className="text-xs text-gray-400 mt-1">Thời điểm kết thúc chương trình ưu đãi/giá giảm. Khác với hạn sử dụng sản phẩm.</p>
+        <p className="text-xs text-gray-400 mt-1">Thời điểm sản phẩm ngừng được đăng bán/áp dụng giá giảm. Khác với hạn sử dụng sản phẩm.</p>
       </div>
       </div>
 
@@ -946,7 +992,7 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Giá niêm yết (đồng) *</label>
               <input
@@ -1003,6 +1049,28 @@ export default function ProductForm({ initialData, onSuccess, onCancel }) {
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 bg-white"
               />
               <p className="text-xs text-gray-400 mt-1">Tùy chọn</p>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Hạn sử dụng sản phẩm *</label>
+              <input
+                type="datetime-local"
+                value={initVariant.expiredAt}
+                onChange={(e) => {
+                  setInitVariant((p) => ({ ...p, expiredAt: e.target.value }));
+                  validateFieldRealtime("initVariantExpiredAt", e.target.value);
+                }}
+                onBlur={(e) => validateFieldRealtime("initVariantExpiredAt", e.target.value)}
+                required
+                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition bg-white ${
+                  fieldErrors.initVariantExpiredAt
+                    ? 'border-red-500 focus:ring-red-300'
+                    : 'border-gray-200 focus:ring-green-300'
+                }`}
+              />
+              {fieldErrors.initVariantExpiredAt && (
+                <p className="text-xs text-red-500 mt-1 font-medium">✗ {fieldErrors.initVariantExpiredAt}</p>
+              )}
+              <p className="text-xs text-gray-400 mt-1">Dùng làm hạn cho lô tồn kho ban đầu</p>
             </div>
           </div>
         </div>

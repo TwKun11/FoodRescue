@@ -252,12 +252,12 @@ export default function HomePage() {
 
 
   return (
-    <div className="landing-page min-h-screen flex flex-col bg-[#f8fdf9] dark:bg-[#06111f]">
+    <div className="landing-page min-h-screen flex flex-col overflow-x-hidden bg-[#f8fdf9] dark:bg-[#06111f]">
       <Header />
 
-      <main className="flex-1">
-        <section id="home" className="relative min-h-screen overflow-hidden pt-24">
-          <div className="absolute inset-0 pointer-events-none">
+      <main className="min-w-0 flex-1 overflow-x-hidden">
+        <section id="home" className="relative min-h-screen w-full max-w-full overflow-hidden pt-24">
+          <div className="absolute inset-0 w-full max-w-full pointer-events-none">
             <img
               src="/images/landingpage/landingpage.png"
               alt=""

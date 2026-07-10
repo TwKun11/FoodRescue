@@ -1,5 +1,6 @@
 package com.foodrescue.foodrescue_be.dto.request;
 
+import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -24,6 +25,8 @@ public class CreateBatchRequest {
     private LocalDateTime receivedAt;
 
     private LocalDateTime manufacturedAt;
+
+    @Future(message = "Hạn sử dụng sản phẩm phải sau thời điểm hiện tại")
     private LocalDateTime expiredAt;
 
     @NotNull(message = "Giá vốn không được để trống")
