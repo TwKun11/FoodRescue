@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import StatCard from "@/components/store/StatCard";
 import Badge from "@/components/common/Badge";
 import Link from "next/link";
-import { apiSellerGetProducts, apiSellerGetOrders, apiGetSellerStats, apiGetSellerRatingStats, apiGetTopRatedSellerProducts, apiMockTopRatedSellerProducts } from "@/lib/api";
+import { apiSellerGetProducts, apiSellerGetOrders, apiGetSellerStats, apiGetSellerWallet, apiGetSellerRatingStats, apiGetTopRatedSellerProducts, apiMockTopRatedSellerProducts } from "@/lib/api";
 
 // ── Icon SVG hiện đại (outline, 24x24) ─────────────────────────────────────
 const IconClock = () => (
@@ -68,6 +68,10 @@ const STATUS_MAP = {
 
 // ── Main Component ────────────────────────────────────────────────────────
 // Helper: Tính số ngày còn lại
+function formatMoney(value) {
+  return Number(value || 0).toLocaleString("vi-VN") + "₫";
+}
+
 function calculateRemainingDays(createdAt, shelfLifeDays) {
   if (!createdAt || shelfLifeDays === null || shelfLifeDays === undefined) {
     return null;
@@ -96,6 +100,8 @@ export default function StoreDashboardPage() {
   const [todayRevenue, setTodayRevenue] = useState(0);
   const [monthRevenue, setMonthRevenue] = useState(0);
   const [topProducts, setTopProducts] = useState([]);
+  const [wallet, setWallet] = useState(null);
+  const [walletLoading, setWalletLoading] = useState(true);
   
   const [ratingStats, setRatingStats] = useState(null);
   const [topRatedProducts, setTopRatedProducts] = useState([]);
@@ -186,6 +192,17 @@ export default function StoreDashboardPage() {
       .catch((err) => console.error("Stats fetch error:", err))
       .finally(() => setStatsLoading(false));
   }, []);
+  useEffect(() => {
+    apiGetSellerWallet(5)
+      .then((res) => {
+        if (res.ok && res.data?.data) {
+          setWallet(res.data.data);
+        }
+      })
+      .catch((err) => console.error("Wallet fetch error:", err))
+      .finally(() => setWalletLoading(false));
+  }, []);
+
 
   // Fetch rating stats
   useEffect(() => {
@@ -246,7 +263,7 @@ export default function StoreDashboardPage() {
 
       {/* ════ QUICK STATS GRID (5 carts) ════ */}
       <div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
           {/* 1. Đơn hàng chờ xác nhận */}
           <Link href="/store/orders?status=pending" className="block">
             <StatCard
@@ -280,11 +297,21 @@ export default function StoreDashboardPage() {
             />
           </Link>
 
+          <Link href="/store/stats" className="block">
+            <StatCard
+              title="Số dư khả dụng"
+              value={walletLoading ? "-" : formatMoney(wallet?.availableBalance)}
+              subtitle="Đã thu qua hệ thống"
+              icon={<IconCurrency />}
+              color="green"
+            />
+          </Link>
+
           {/* 4. Doanh thu hôm nay */}
           <Link href="/store/stats" className="block">
             <StatCard
               title="Doanh thu hôm nay"
-              value={statsLoading ? "-" : (todayRevenue).toLocaleString("vi-VN") + "₫"}
+              value={statsLoading ? "-" : formatMoney(todayRevenue)}
               subtitle="Chi tiết →"
               icon={<IconCurrency />}
               color="green"
@@ -295,7 +322,7 @@ export default function StoreDashboardPage() {
           <Link href="/store/stats" className="block">
             <StatCard
               title="Doanh thu tháng"
-              value={statsLoading ? "-" : (monthRevenue).toLocaleString("vi-VN") + "₫"}
+              value={statsLoading ? "-" : formatMoney(monthRevenue)}
               subtitle="Chi tiết →"
               icon={<IconTrending />}
               color="green"
@@ -305,6 +332,57 @@ export default function StoreDashboardPage() {
       </div>
 
 
+
+      <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-6">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="font-semibold text-gray-900">Ví seller</h2>
+              <p className="text-sm text-gray-500 mt-1">Số dư được ghi nhận ngay sau khi PayOS xác nhận thanh toán của khách.</p>
+            </div>
+            <Link href="/store/stats" className="text-sm font-medium text-brand-dark hover:text-brand-secondary transition">
+              Chi tiết →
+            </Link>
+          </div>
+          <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="rounded-xl bg-brand-bg px-4 py-3">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Khả dụng</p>
+              <p className="mt-1 text-xl font-bold text-brand-dark">{walletLoading ? "-" : formatMoney(wallet?.availableBalance)}</p>
+            </div>
+            <div className="rounded-xl bg-blue-50 px-4 py-3">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Đang chi</p>
+              <p className="mt-1 text-xl font-bold text-blue-600">{walletLoading ? "-" : formatMoney(wallet?.payoutProcessingBalance)}</p>
+            </div>
+            <div className="rounded-xl bg-gray-50 px-4 py-3">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Đã ghi nhận</p>
+              <p className="mt-1 text-xl font-bold text-gray-800">{walletLoading ? "-" : formatMoney(wallet?.totalCredited)}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h2 className="font-semibold text-gray-900">Giao dịch ví gần đây</h2>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {walletLoading ? (
+              <div className="px-5 py-6 text-sm text-gray-400">Đang tải...</div>
+            ) : wallet?.transactions?.length ? (
+              wallet.transactions.map((tx) => (
+                <div key={tx.id} className="px-5 py-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-800 truncate">{tx.description || tx.referenceCode || "Giao dịch"}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{tx.createdAt ? new Date(tx.createdAt).toLocaleString("vi-VN") : "-"}</p>
+                  </div>
+                  <p className="text-sm font-bold text-brand-dark shrink-0">{formatMoney(tx.amount)}</p>
+                </div>
+              ))
+            ) : (
+              <div className="px-5 py-6 text-sm text-gray-400">Chưa có giao dịch ví</div>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* ════ THREE COLUMNS: Top Sellers | Expiring | Recent Orders ════ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -4,15 +4,19 @@ import com.foodrescue.foodrescue_be.dto.request.UpdateSellerRequest;
 import com.foodrescue.foodrescue_be.dto.response.ResponseData;
 import com.foodrescue.foodrescue_be.dto.response.SellerResponse;
 import com.foodrescue.foodrescue_be.dto.response.SellerStatsResponse;
+import com.foodrescue.foodrescue_be.dto.response.SellerWalletResponse;
 import com.foodrescue.foodrescue_be.model.OrderItem;
 import com.foodrescue.foodrescue_be.model.OrderSellerOrder;
 import com.foodrescue.foodrescue_be.model.Seller;
+import com.foodrescue.foodrescue_be.model.SellerWalletTransaction;
 import com.foodrescue.foodrescue_be.repository.OrderItemRepository;
 import com.foodrescue.foodrescue_be.repository.OrderSellerOrderRepository;
 import com.foodrescue.foodrescue_be.repository.SellerRepository;
+import com.foodrescue.foodrescue_be.repository.SellerWalletTransactionRepository;
 import com.foodrescue.foodrescue_be.service.CloudinaryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -40,9 +44,15 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SellerController {
 
+    private static final List<SellerWalletTransaction.TransactionStatus> PAYOUT_SETTLED_STATUSES = List.of(
+            SellerWalletTransaction.TransactionStatus.payout_processing,
+            SellerWalletTransaction.TransactionStatus.paid_out
+    );
+
     private final SellerRepository sellerRepository;
     private final OrderSellerOrderRepository sellerOrderRepository;
     private final OrderItemRepository orderItemRepository;
+    private final SellerWalletTransactionRepository sellerWalletTransactionRepository;
     private final CloudinaryService cloudinaryService;
 
     @GetMapping("/shop")
@@ -101,6 +111,41 @@ public class SellerController {
                 "Tai anh thanh cong",
                 cloudinaryService.uploadImage(file, "foodrescue/sellers")
         );
+    }
+
+    @GetMapping("/wallet")
+    public ResponseData<SellerWalletResponse> getWallet(
+            Authentication auth,
+            @RequestParam(defaultValue = "10") int limit
+    ) {
+        Seller seller = resolveByEmail((String) auth.getPrincipal());
+        return ResponseData.ok(buildWalletResponse(seller, limit));
+    }
+
+    @PostMapping("/wallet/payouts/simulate")
+    @Transactional
+    public ResponseData<SellerWalletResponse> simulatePayout(Authentication auth) {
+        Seller seller = resolveByEmail((String) auth.getPrincipal());
+        validatePayoutBankInfo(seller);
+
+        BigDecimal availableBalance = calculateAvailableBalance(seller.getId());
+        if (availableBalance.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("So du kha dung khong du de chi tra");
+        }
+
+        sellerWalletTransactionRepository.save(SellerWalletTransaction.builder()
+                .seller(seller)
+                .type(SellerWalletTransaction.TransactionType.payout_debit)
+                .status(SellerWalletTransaction.TransactionStatus.paid_out)
+                .amount(availableBalance.negate())
+                .grossAmount(availableBalance)
+                .commissionAmount(BigDecimal.ZERO)
+                .currency("VND")
+                .description("Demo payout to " + seller.getBankName())
+                .referenceCode("SIM-" + System.currentTimeMillis())
+                .build());
+
+        return ResponseData.ok("Demo payout completed", buildWalletResponse(seller, 30));
     }
 
     @GetMapping("/stats")
@@ -169,6 +214,65 @@ public class SellerController {
                 .dailyRevenue(dailyRevenue)
                 .topProducts(topProducts)
                 .build());
+    }
+
+    private SellerWalletResponse buildWalletResponse(Seller seller, int limit) {
+        Long sellerId = seller.getId();
+        int safeLimit = Math.max(1, Math.min(limit, 50));
+
+        BigDecimal availableBalance = calculateAvailableBalance(sellerId);
+        BigDecimal payoutProcessingBalance = sellerWalletTransactionRepository.sumAmountBySellerTypeAndStatuses(
+                sellerId,
+                SellerWalletTransaction.TransactionType.payout_debit,
+                List.of(SellerWalletTransaction.TransactionStatus.payout_processing)
+        ).abs();
+        BigDecimal totalCredited = sellerWalletTransactionRepository.sumAmountBySellerAndType(
+                sellerId,
+                SellerWalletTransaction.TransactionType.order_payment
+        );
+        BigDecimal totalPaidOut = sellerWalletTransactionRepository.sumAmountBySellerTypeAndStatuses(
+                sellerId,
+                SellerWalletTransaction.TransactionType.payout_debit,
+                List.of(SellerWalletTransaction.TransactionStatus.paid_out)
+        ).abs();
+
+        List<SellerWalletResponse.Transaction> transactions = sellerWalletTransactionRepository
+                .findBySellerIdOrderByCreatedAtDesc(sellerId, PageRequest.of(0, safeLimit))
+                .stream()
+                .map(SellerWalletResponse.Transaction::fromEntity)
+                .toList();
+
+        return SellerWalletResponse.builder()
+                .availableBalance(availableBalance)
+                .payoutProcessingBalance(payoutProcessingBalance != null ? payoutProcessingBalance : BigDecimal.ZERO)
+                .totalCredited(totalCredited != null ? totalCredited : BigDecimal.ZERO)
+                .totalPaidOut(totalPaidOut != null ? totalPaidOut : BigDecimal.ZERO)
+                .transactions(transactions)
+                .build();
+    }
+
+    private BigDecimal calculateAvailableBalance(Long sellerId) {
+        BigDecimal credited = sellerWalletTransactionRepository.sumAmountBySellerTypeAndStatuses(
+                sellerId,
+                SellerWalletTransaction.TransactionType.order_payment,
+                List.of(SellerWalletTransaction.TransactionStatus.available)
+        );
+        BigDecimal settledPayouts = sellerWalletTransactionRepository.sumAmountBySellerTypeAndStatuses(
+                sellerId,
+                SellerWalletTransaction.TransactionType.payout_debit,
+                PAYOUT_SETTLED_STATUSES
+        );
+        BigDecimal balance = (credited != null ? credited : BigDecimal.ZERO)
+                .add(settledPayouts != null ? settledPayouts : BigDecimal.ZERO);
+        return balance.compareTo(BigDecimal.ZERO) > 0 ? balance : BigDecimal.ZERO;
+    }
+
+    private void validatePayoutBankInfo(Seller seller) {
+        if (seller.getBankName() == null || seller.getBankName().isBlank()
+                || seller.getBankAccountName() == null || seller.getBankAccountName().isBlank()
+                || seller.getBankAccountNumber() == null || seller.getBankAccountNumber().isBlank()) {
+            throw new IllegalArgumentException("Vui long cap nhat day du tai khoan nhan tien truoc khi yeu cau chi tra");
+        }
     }
 
     private Seller resolveByEmail(String email) {

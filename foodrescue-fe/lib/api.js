@@ -786,3 +786,11 @@ export async function apiSellerSetPrimaryImage(productId, imageId) {
 export async function apiGetSellerStats() {
   return request("/api/seller/stats");
 }
+
+export async function apiGetSellerWallet(limit = 10) {
+  return request(`/api/seller/wallet?limit=${encodeURIComponent(limit)}`);
+}
+
+export async function apiSimulateSellerPayout() {
+  return request("/api/seller/wallet/payouts/simulate", { method: "POST" });
+}

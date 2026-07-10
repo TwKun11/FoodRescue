@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import vn.payos.model.v2.paymentRequests.PaymentLinkStatus;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -32,6 +33,7 @@ public class OrderServiceImpl implements OrderService {
     private final OrderItemRepository orderItemRepository;
     private final OrderSellerOrderRepository sellerOrderRepository;
     private final OrderPaymentRepository orderPaymentRepository;
+    private final SellerWalletTransactionRepository sellerWalletTransactionRepository;
     private final InventoryReservationRepository inventoryReservationRepository;
     private final UserRepository userRepository;
     private final CustomerAddressRepository addressRepository;
@@ -678,6 +680,57 @@ public class OrderServiceImpl implements OrderService {
                 sellerOrderRepository.save(sellerOrder);
             }
         }
+        creditSellerWallets(payment, sellerOrders);
+    }
+
+    private void creditSellerWallets(OrderPayment payment, List<OrderSellerOrder> sellerOrders) {
+        if (payment == null || sellerOrders == null || sellerOrders.isEmpty()) {
+            return;
+        }
+
+        for (OrderSellerOrder sellerOrder : sellerOrders) {
+            if (sellerWalletTransactionRepository.existsBySellerOrderIdAndType(
+                    sellerOrder.getId(),
+                    SellerWalletTransaction.TransactionType.order_payment
+            )) {
+                continue;
+            }
+
+            BigDecimal grossAmount = nonNullAmount(sellerOrder.getTotalAmount());
+            BigDecimal commissionAmount = calculateCommission(sellerOrder.getSeller(), grossAmount);
+            BigDecimal netAmount = grossAmount.subtract(commissionAmount);
+
+            sellerWalletTransactionRepository.save(SellerWalletTransaction.builder()
+                    .seller(sellerOrder.getSeller())
+                    .order(payment.getOrder())
+                    .sellerOrder(sellerOrder)
+                    .payment(payment)
+                    .type(SellerWalletTransaction.TransactionType.order_payment)
+                    .status(SellerWalletTransaction.TransactionStatus.available)
+                    .amount(netAmount)
+                    .grossAmount(grossAmount)
+                    .commissionAmount(commissionAmount)
+                    .currency(payment.getCurrency() != null ? payment.getCurrency() : "VND")
+                    .description("Order payment " + sellerOrder.getSellerOrderCode())
+                    .referenceCode(payment.getProviderOrderCode() != null ? String.valueOf(payment.getProviderOrderCode()) : null)
+                    .build());
+        }
+    }
+
+    private BigDecimal calculateCommission(Seller seller, BigDecimal grossAmount) {
+        if (seller == null || seller.getCommissionRate() == null || grossAmount == null) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
+        if (seller.getCommissionRate().compareTo(BigDecimal.ZERO) <= 0 || grossAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
+        return grossAmount
+                .multiply(seller.getCommissionRate())
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal nonNullAmount(BigDecimal value) {
+        return value != null ? value : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
     }
 
     private void markPaymentFailed(OrderPayment payment, String reason) {
