@@ -4,17 +4,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
-  { href: "/store", label: "Tổng quan", icon: DashboardIcon },
-  { href: "/store/shop", label: "Cửa hàng", icon: ShopIcon },
-  { href: "/store/products", label: "Sản phẩm", icon: BoxIcon },
-  { href: "/store/orders", label: "Đơn hàng", icon: OrderIcon },
-  { href: "/store/reviews", label: "Đánh giá", icon: ReviewIcon },
-  { href: "/store/stats", label: "Doanh thu", icon: RevenueIcon },
-  { href: "/store/wallet", label: "Ví & chi trả", icon: WalletIcon },
-  { href: "/store/inventory", label: "Kho hàng", icon: InventoryIcon },
-  { href: "/store/ads", label: "Quảng cáo", icon: AdsIcon },
-  { href: "/store/settings", label: "Cài đặt", icon: SettingsIcon },
-  { href: "/store/tutorial", label: "Hướng dẫn", icon: TutorialIcon },
+  { href: "/store", label: "Tổng quan", icon: DashboardIcon, guide: "Màn hình điều phối chính: xem đơn cần xử lý, sản phẩm sắp hết hạn, doanh thu, ví và hoạt động mới." },
+  { href: "/store/shop", label: "Cửa hàng", icon: ShopIcon, guide: "Quản lý hồ sơ seller, thông tin cửa hàng, địa chỉ, giấy tờ xác minh và tài khoản nhận tiền." },
+  { href: "/store/products", label: "Sản phẩm", icon: BoxIcon, guide: "Tạo, sửa, bật/tắt sản phẩm bán trên FoodRescue; cập nhật giá, ảnh, hạn dùng và tồn kho." },
+  { href: "/store/orders", label: "Đơn hàng", icon: OrderIcon, guide: "Theo dõi đơn mới, xác nhận đơn, cập nhật trạng thái và xử lý đơn bị hủy hoặc có vấn đề." },
+  { href: "/store/reviews", label: "Đánh giá", icon: ReviewIcon, guide: "Xem phản hồi của khách theo sản phẩm để cải thiện chất lượng đăng bán và nhận hàng." },
+  { href: "/store/stats", label: "Doanh thu", icon: RevenueIcon, guide: "Xem doanh thu, hoa hồng 5%, khoản thực nhận, biểu đồ 7 ngày và sản phẩm bán chạy." },
+  { href: "/store/wallet", label: "Ví & chi trả", icon: WalletIcon, guide: "Theo dõi số dư khả dụng, lịch sử giao dịch ví và thông tin chi trả về tài khoản ngân hàng." },
+  { href: "/store/inventory", label: "Kho hàng", icon: InventoryIcon, guide: "Quản lý lô hàng, tồn kho và hạn dùng để tránh bán sai số lượng hoặc sản phẩm quá hạn." },
+  { href: "/store/ads", label: "Quảng cáo", icon: AdsIcon, guide: "Tạo banner quảng bá sản phẩm hoặc cửa hàng để tăng khả năng hiển thị với người mua." },
+  { href: "/store/settings", label: "Cài đặt", icon: SettingsIcon, guide: "Điều chỉnh thiết lập vận hành và thông tin tài khoản seller." },
 ];
 
 export default function Sidebar() {
@@ -23,7 +22,7 @@ export default function Sidebar() {
   return (
     <aside className="w-48 shrink-0 bg-white border-r border-gray-200 min-h-screen flex flex-col">
       <div className="px-4 py-4 border-b border-gray-100">
-        <Link href="/store" className="flex items-center gap-2.5">
+        <Link href="/store" className="flex items-center gap-2.5" data-guide-title="Food Rescue Seller" data-guide-text="Logo đưa seller về trang Tổng quan cửa hàng.">
           <div className="w-9 h-9 rounded-xl bg-brand-dark flex items-center justify-center shrink-0">
             <LeafIcon className="w-5 h-5 text-white" />
           </div>
@@ -42,6 +41,8 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              data-guide-title={item.label}
+              data-guide-text={item.guide}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 active ? "bg-brand text-white shadow-sm" : "text-gray-500 hover:bg-gray-100 hover:text-gray-800"
               }`}
@@ -56,6 +57,8 @@ export default function Sidebar() {
       <div className="px-3 pb-3">
         <Link
           href="/"
+          data-guide-title="Kênh người dùng"
+          data-guide-text="Chuyển khỏi kênh seller để xem website dưới vai trò khách hàng/người mua."
           className="flex items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2.5 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100"
         >
           <HomeIcon className="h-5 w-5 text-emerald-600" />
@@ -63,7 +66,7 @@ export default function Sidebar() {
         </Link>
       </div>
 
-      <div className="mx-3 bg-brand-bg border border-brand/50 rounded-xl p-3">
+      <div className="mx-3 bg-brand-bg border border-brand/50 rounded-xl p-3" data-guide-title="Gói cửa hàng" data-guide-text="Khu vực hiển thị gói dịch vụ hoặc hạn dùng của cửa hàng seller.">
         <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">Gói cửa hàng</p>
         <p className="text-xs text-gray-500 mb-2">Hạn dùng: 15/12/2024</p>
         <button className="w-full bg-brand hover:bg-brand-secondary text-white text-xs font-semibold py-1.5 rounded-lg transition">

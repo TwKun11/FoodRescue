@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Sidebar from "@/components/store/Sidebar";
+import SellerTutorialGuide from "@/components/store/SellerTutorialGuide";
 import StoreGuard from "@/components/store/StoreGuard";
 import ThemeToggle from "@/components/common/ThemeToggle";
 import { apiLogout, getAuthUser, subscribeAuth } from "@/lib/api";
@@ -61,7 +62,7 @@ export default function DashboardLayout({ children }) {
           {/* Top Header */}
           <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-4 shrink-0">
             {/* Search */}
-            <div className="flex-1 max-w-sm relative">
+            <div className="flex-1 max-w-sm relative" data-guide-title="Ô tìm kiếm nhanh" data-guide-text="Dùng để tìm nhanh sản phẩm hoặc mã SKU trong kênh người bán khi danh sách nhiều.">
               <svg
                 className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2"
                 fill="none"
@@ -81,12 +82,14 @@ export default function DashboardLayout({ children }) {
                 className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-dark"
               />
             </div>
-            <div className="flex items-center gap-3 ml-auto">
+            <div className="flex items-center gap-3 ml-auto" data-guide-title="Thanh công cụ seller" data-guide-text="Khu vực thao tác nhanh: đổi giao diện sáng/tối, thêm sản phẩm mới, xem thông báo đơn và mở menu tài khoản.">
               <ThemeToggle compact />
 
               {/* Add button */}
               <button
                 type="button"
+                data-guide-title="Thêm sản phẩm mới"
+                data-guide-text="Nút này mở form tạo sản phẩm để seller đăng món mới, thêm giá, ảnh, hạn dùng và tồn kho."
                 onClick={handleAddProduct}
                 className="flex items-center gap-2 bg-brand hover:bg-brand-secondary text-gray-900 text-sm font-semibold px-4 py-2 rounded-lg transition"
                 aria-current={pathname === "/store/products" ? "page" : undefined}
@@ -99,6 +102,8 @@ export default function DashboardLayout({ children }) {
               {/* Bell */}
               <button
                 type="button"
+                data-guide-title="Thông báo đơn hàng"
+                data-guide-text="Đi nhanh tới trang đơn hàng để seller kiểm tra đơn mới, đơn chờ xác nhận hoặc các đơn cần xử lý."
                 onClick={() => router.push("/store/orders")}
                 className="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 transition"
                 aria-label="Xem thông báo đơn hàng"
@@ -115,7 +120,7 @@ export default function DashboardLayout({ children }) {
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
               {/* User avatar + dropdown */}
-              <div className="relative" ref={dropdownRef}>
+              <div className="relative" ref={dropdownRef} data-guide-title="Tài khoản cửa hàng" data-guide-text="Hiển thị người bán và tên cửa hàng hiện tại. Bấm để chuyển sang kênh người dùng hoặc đăng xuất.">
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); setDropdownOpen((v) => !v); }}
@@ -162,6 +167,7 @@ export default function DashboardLayout({ children }) {
             </div>
           </header>
           <main className="flex-1 overflow-y-auto">{children}</main>
+          <SellerTutorialGuide />
         </div>
       </div>
     </StoreGuard>

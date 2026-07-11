@@ -7,7 +7,7 @@
  * @param {string} trend - "+12%" | "-5%" | undefined
  * @param {string} color - "orange" | "green" | "blue" | "red"
  */
-export default function StatCard({ title, value, subtitle, icon, trend, color = "orange" }) {
+export default function StatCard({ title, value, subtitle, icon, trend, color = "orange", guideTitle, guideText }) {
   const colors = {
     orange: {
       bg: "bg-orange-50",
@@ -35,7 +35,11 @@ export default function StatCard({ title, value, subtitle, icon, trend, color = 
   const trendPositive = trend?.startsWith("+");
 
   return (
-    <div className={`${theme.bg} h-full min-w-0 rounded-2xl p-5 flex items-start gap-4`}>
+    <div
+      className={`${theme.bg} h-full min-w-0 rounded-2xl p-5 flex items-start gap-4`}
+      data-guide-title={guideTitle || title}
+      data-guide-text={guideText}
+    >
       {/* Icon */}
       <div className={`${theme.icon} w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0`}>
         {icon}

@@ -172,6 +172,8 @@ export default function StoreStatsPage() {
             <div
               key={kpi.label}
               className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-start gap-4 hover:border-brand/30 transition min-w-0"
+              data-guide-title={kpi.label}
+              data-guide-text={kpi.sub}
             >
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${kpi.bg} ${kpi.iconColor}`}>
                 {kpi.icon}
