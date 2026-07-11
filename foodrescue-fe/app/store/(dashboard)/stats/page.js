@@ -35,6 +35,9 @@ const IconTrophy = () => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
   </svg>
 );
+const COMMISSION_RATE = 0.05;
+const NET_REVENUE_RATE = 1 - COMMISSION_RATE;
+
 const IconDownload = () => (
   <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
     <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -88,6 +91,8 @@ export default function StoreStatsPage() {
     Number(v || 0) >= 1_000_000
       ? `${(Number(v) / 1_000_000).toFixed(1)}M đồng`
       : `${Number(v || 0).toLocaleString("vi-VN")} đồng`;
+  const commissionAmount = Math.round(Number(totalRevenue || 0) * COMMISSION_RATE);
+  const netRevenue = Math.max(0, Math.round(Number(totalRevenue || 0) * NET_REVENUE_RATE));
   const maxProductRevenue = topProducts?.length
     ? Math.max(...topProducts.map((p) => Number(p.totalRevenue) || 0), 1)
     : 1;
@@ -102,6 +107,15 @@ export default function StoreStatsPage() {
       bg: "bg-brand-bg",
       iconColor: "text-brand-dark",
       valueColor: "text-brand-dark",
+    },
+    {
+      label: "Thực nhận ước tính",
+      value: fmtMoney(netRevenue),
+      sub: "Sau hoa hồng 5%",
+      icon: <IconCheck />,
+      bg: "bg-emerald-50",
+      iconColor: "text-emerald-700",
+      valueColor: "text-emerald-700",
     },
     {
       label: "Tổng đơn hàng",
@@ -153,18 +167,18 @@ export default function StoreStatsPage() {
       {/* KPI Cards */}
       <div>
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Chỉ số chính</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
           {kpis.map((kpi) => (
             <div
               key={kpi.label}
-              className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-start gap-4 hover:border-brand/30 transition"
+              className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-start gap-4 hover:border-brand/30 transition min-w-0"
             >
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${kpi.bg} ${kpi.iconColor}`}>
                 {kpi.icon}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{kpi.label}</p>
-                <p className={`text-xl font-bold mt-0.5 ${kpi.valueColor}`}>{kpi.value}</p>
+                <p className={`mt-0.5 break-words text-xl font-bold leading-tight ${kpi.valueColor}`}>{kpi.value}</p>
                 <p className="text-xs text-gray-400 mt-1">{kpi.sub}</p>
               </div>
             </div>
@@ -273,6 +287,8 @@ export default function StoreStatsPage() {
           </div>
           <div className="p-5 space-y-4">
             <InfoRow label="Tổng doanh thu (toàn thời gian)" value={fmtMoney(totalRevenue)} accent="text-brand-dark" />
+            <InfoRow label="Hoa hồng FoodRescue (5%)" value={fmtMoney(commissionAmount)} accent="text-red-600" />
+            <InfoRow label="Thực nhận ước tính" value={fmtMoney(netRevenue)} accent="text-emerald-700" />
             <InfoRow label="Tổng đơn hàng" value={String(totalOrders || 0)} />
             <InfoRow label="Đơn hoàn thành" value={String(completedOrders || 0)} accent="text-brand-dark" />
             <InfoRow
@@ -289,6 +305,8 @@ export default function StoreStatsPage() {
                 const rows = [
                   ["Chỉ số", "Giá trị"],
                   ["Tổng doanh thu", fmtMoney(totalRevenue)],
+                  ["Hoa hồng FoodRescue (5%)", fmtMoney(commissionAmount)],
+                  ["Thực nhận ước tính", fmtMoney(netRevenue)],
                   ["Tổng đơn hàng", totalOrders],
                   ["Đơn hoàn thành", completedOrders],
                   ["Giá trị TB/đơn", fmtMoney(avgOrderValue)],
@@ -316,9 +334,9 @@ export default function StoreStatsPage() {
 
 function InfoRow({ label, value, accent }) {
   return (
-    <div className="flex items-center justify-between text-sm py-1">
-      <span className="text-gray-500">{label}</span>
-      <span className={`font-semibold ${accent || "text-gray-800"}`}>{value}</span>
+    <div className="flex items-center justify-between gap-3 text-sm py-1">
+      <span className="min-w-0 text-gray-500">{label}</span>
+      <span className={`min-w-0 break-words text-right font-semibold ${accent || "text-gray-800"}`}>{value}</span>
     </div>
   );
 }

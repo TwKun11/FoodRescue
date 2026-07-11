@@ -88,9 +88,9 @@ export default function TermsContent({ terms }) {
   };
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[280px_1fr] lg:py-10">
-      <aside className="lg:sticky lg:top-24 lg:self-start">
-        <nav className="rounded-2xl border border-emerald-100 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900/95 dark:shadow-none">
+    <div className="mx-auto grid max-w-6xl gap-6 px-4 py-8 sm:px-6 lg:h-[calc(100vh-4rem)] lg:grid-cols-[280px_minmax(0,1fr)] lg:overflow-hidden lg:py-6">
+      <aside className="lg:h-full lg:self-start lg:overflow-hidden">
+        <nav className="rounded-2xl border border-emerald-100 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900/95 dark:shadow-none lg:max-h-full lg:overflow-y-auto">
           <p className="px-3 py-2 text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-slate-400">
             Danh mục điều khoản
           </p>
@@ -120,7 +120,7 @@ export default function TermsContent({ terms }) {
         </nav>
       </aside>
 
-      <main className="space-y-5">
+      <main className="space-y-5 lg:h-full lg:overflow-y-auto lg:pr-2">
         {terms.map((term, index) => {
           const content = term.content?.trim();
           const active = activeId === term.id;

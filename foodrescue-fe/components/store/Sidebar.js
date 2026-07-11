@@ -8,11 +8,13 @@ const NAV_ITEMS = [
   { href: "/store/shop", label: "Cửa hàng", icon: ShopIcon },
   { href: "/store/products", label: "Sản phẩm", icon: BoxIcon },
   { href: "/store/orders", label: "Đơn hàng", icon: OrderIcon },
-  { href: "/store/reviews", label: "Đánh giá", icon: ReviewIcon },  { href: "/store/stats", label: "Doanh thu", icon: RevenueIcon },
+  { href: "/store/reviews", label: "Đánh giá", icon: ReviewIcon },
+  { href: "/store/stats", label: "Doanh thu", icon: RevenueIcon },
   { href: "/store/wallet", label: "Ví & chi trả", icon: WalletIcon },
   { href: "/store/inventory", label: "Kho hàng", icon: InventoryIcon },
   { href: "/store/ads", label: "Quảng cáo", icon: AdsIcon },
   { href: "/store/settings", label: "Cài đặt", icon: SettingsIcon },
+  { href: "/store/tutorial", label: "Hướng dẫn", icon: TutorialIcon },
 ];
 
 export default function Sidebar() {
@@ -99,4 +101,5 @@ function WalletIcon(props) { return <IconBase {...props}><path d="M20 7H5a2 2 0 
 function InventoryIcon(props) { return <IconBase {...props}><path d="M3 21h18" /><path d="M4 21V9l8-6 8 6v12" /><path d="M9 21v-8h6v8" /></IconBase>; }
 function AdsIcon(props) { return <IconBase {...props}><path d="M4 7h16" /><path d="M4 12h16" /><path d="M4 17h10" /></IconBase>; }
 function SettingsIcon(props) { return <IconBase {...props}><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1A2 2 0 1 1 4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1A2 2 0 1 1 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3h.1A1.7 1.7 0 0 0 10 3.1V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1A2 2 0 1 1 19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1A1.7 1.7 0 0 0 20.9 10h.1a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></IconBase>; }
+function TutorialIcon(props) { return <IconBase {...props}><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H7a3 3 0 0 0-3 3V5.5z" /><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M8 7h8" /><path d="M8 11h6" /></IconBase>; }
 function HomeIcon(props) { return <IconBase {...props}><path d="M3 12 12 3l9 9" /><path d="M5 10v10h14V10" /></IconBase>; }

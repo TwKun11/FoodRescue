@@ -35,7 +35,7 @@ export default function StatCard({ title, value, subtitle, icon, trend, color = 
   const trendPositive = trend?.startsWith("+");
 
   return (
-    <div className={`${theme.bg} rounded-2xl p-5 flex items-start gap-4`}>
+    <div className={`${theme.bg} h-full min-w-0 rounded-2xl p-5 flex items-start gap-4`}>
       {/* Icon */}
       <div className={`${theme.icon} w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0`}>
         {icon}
@@ -44,8 +44,8 @@ export default function StatCard({ title, value, subtitle, icon, trend, color = 
       {/* Text */}
       <div className="flex-1 min-w-0">
         <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{title}</p>
-        <p className={`text-2xl font-bold mt-0.5 ${theme.value}`}>{value}</p>
-        {subtitle && <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>}
+        <p className={`mt-0.5 break-words text-xl font-bold leading-tight sm:text-2xl ${theme.value}`}>{value}</p>
+        {subtitle && <p className="text-xs text-gray-400 mt-0.5 break-words">{subtitle}</p>}
         {trend && (
           <span
             className={`text-xs font-semibold mt-1 inline-block ${trendPositive ? "text-brand-dark" : "text-red-500"}`}

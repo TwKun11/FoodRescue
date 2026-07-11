@@ -72,6 +72,13 @@ function formatMoney(value) {
   return Number(value || 0).toLocaleString("vi-VN") + "₫";
 }
 
+const COMMISSION_RATE = 0.05;
+const NET_REVENUE_RATE = 1 - COMMISSION_RATE;
+
+function calculateNetRevenue(value) {
+  return Math.max(0, Math.round(Number(value || 0) * NET_REVENUE_RATE));
+}
+
 function calculateRemainingDays(createdAt, shelfLifeDays) {
   if (!createdAt || shelfLifeDays === null || shelfLifeDays === undefined) {
     return null;
@@ -263,7 +270,7 @@ export default function StoreDashboardPage() {
 
       {/* ════ QUICK STATS GRID (5 carts) ════ */}
       <div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7 gap-4">
           {/* 1. Đơn hàng chờ xác nhận */}
           <Link href="/store/orders?status=pending" className="block">
             <StatCard
@@ -328,6 +335,16 @@ export default function StoreDashboardPage() {
               color="green"
             />
           </Link>
+
+          <Link href="/store/stats" className="block">
+            <StatCard
+              title="Thực nhận ước tính"
+              value={statsLoading ? "-" : formatMoney(calculateNetRevenue(monthRevenue))}
+              subtitle="Sau hoa hồng 5%"
+              icon={<IconCurrency />}
+              color="blue"
+            />
+          </Link>
         </div>
       </div>
 
@@ -347,15 +364,15 @@ export default function StoreDashboardPage() {
           <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="rounded-xl bg-brand-bg px-4 py-3">
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Khả dụng</p>
-              <p className="mt-1 text-xl font-bold text-brand-dark">{walletLoading ? "-" : formatMoney(wallet?.availableBalance)}</p>
+              <p className="mt-1 break-words text-xl font-bold leading-tight text-brand-dark">{walletLoading ? "-" : formatMoney(wallet?.availableBalance)}</p>
             </div>
             <div className="rounded-xl bg-blue-50 px-4 py-3">
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Đang chi</p>
-              <p className="mt-1 text-xl font-bold text-blue-600">{walletLoading ? "-" : formatMoney(wallet?.payoutProcessingBalance)}</p>
+              <p className="mt-1 break-words text-xl font-bold leading-tight text-blue-600">{walletLoading ? "-" : formatMoney(wallet?.payoutProcessingBalance)}</p>
             </div>
             <div className="rounded-xl bg-gray-50 px-4 py-3">
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Đã ghi nhận</p>
-              <p className="mt-1 text-xl font-bold text-gray-800">{walletLoading ? "-" : formatMoney(wallet?.totalCredited)}</p>
+              <p className="mt-1 break-words text-xl font-bold leading-tight text-gray-800">{walletLoading ? "-" : formatMoney(wallet?.totalCredited)}</p>
             </div>
           </div>
         </div>
