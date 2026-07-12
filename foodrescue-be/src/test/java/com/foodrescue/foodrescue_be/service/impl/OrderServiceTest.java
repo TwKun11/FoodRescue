@@ -39,6 +39,8 @@ class OrderServiceTest {
     @Mock
     private OrderPaymentRepository orderPaymentRepository;
     @Mock
+    private SellerWalletTransactionRepository sellerWalletTransactionRepository;
+    @Mock
     private InventoryReservationRepository inventoryReservationRepository;
     @Mock
     private UserRepository userRepository;
@@ -291,7 +293,7 @@ class OrderServiceTest {
     }
 
     @Test
-    void updateSellerOrderStatus_allowsPendingToCompletedAndConsumesReservations() {
+    void updateSellerOrderStatus_allowsConfirmedToCompletedAndConsumesReservations() {
         User customer = user(1L);
         Seller seller = seller(5L);
         Order order = Order.builder()
@@ -347,7 +349,10 @@ class OrderServiceTest {
         when(inventoryReservationRepository.save(any(InventoryReservation.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(orderPaymentRepository.findByOrderId(100L)).thenReturn(Optional.empty());
+        when(sellerWalletTransactionRepository.findBySellerOrderIdAndType(110L, SellerWalletTransaction.TransactionType.order_payment))
+                .thenReturn(Optional.empty());
 
+        orderService.updateSellerOrderStatus(5L, 110L, "confirmed");
         OrderResponse response = orderService.updateSellerOrderStatus(5L, 110L, "completed");
 
         assertThat(response.getStatus()).isEqualTo(OrderSellerOrder.SellerOrderStatus.completed.name());
