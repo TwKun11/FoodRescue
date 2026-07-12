@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { getAccessToken, apiSellerGetBatches, apiSellerAddBatch, apiSellerGetProducts } from "@/lib/api";
@@ -20,7 +20,7 @@ const EMPTY_BATCH = {
 
 const PAGE_SIZE = 10;
 
-// â”€â”€ SVG Icons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── SVG Icons ─────────────────────────────────────────────────────────────
 const IconFire = () => (
   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
     <path d="M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2zm0 2c-4.418 0-8 3.582-8 8s3.582 8 8 8 8-3.582 8-8-3.582-8-8-8zm0 2a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H8a1 1 0 110-2h3V7a1 1 0 011-1z" />
@@ -57,7 +57,7 @@ const IconTrendingDown = () => (
   </svg>
 );
 
-// â”€â”€ Urgency Calculation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Urgency Calculation ────────────────────────────────────────────────────
 function getUrgencyLevel(batch) {
   const daysLeft = daysUntil(batch.expiredAt);
   const available = Number(batch.quantityAvailable) || 0;
@@ -69,7 +69,7 @@ function getUrgencyLevel(batch) {
   if (daysLeft >= 2 && daysLeft <= 3) return "expiring";
   if (daysLeft >= 4 && daysLeft <= 7) return "soon";
   
-  // Slow-moving: >7 days và consumption <50%
+  // Slow-moving: >7 days v� consumption <50%
   const consumption = received > 0 ? ((received - available) / received) * 100 : 0;
   if (daysLeft > 7 && consumption < 50) return "slow";
   
@@ -90,7 +90,7 @@ function fmt(n) {
 
 function fmtMoney(n) {
   if (n == null) return "-";
-  return Number(n).toLocaleString("vi-VN") + "₫";
+  return Number(n).toLocaleString("vi-VN") + "?";
 }
 
 function fmtDate(iso) {
@@ -200,15 +200,15 @@ export default function InventoryPage() {
     e.preventDefault();
     setFormError("");
     if (!batchForm.variantId) {
-      setFormError("Vui lòng chọn biến thể sản phẩm");
+      setFormError("Vui l�ng ch?n bi?n th? s?n ph?m");
       return;
     }
     if (!batchForm.costPrice || Number(batchForm.costPrice) < 0) {
-      setFormError("Nhập giá vốn hợp lệ");
+      setFormError("Nh?p gi� v?n h?p l?");
       return;
     }
     if (!batchForm.quantityReceived || Number(batchForm.quantityReceived) <= 0) {
-      setFormError("Số lượng nhập phải > 0");
+      setFormError("S? lu?ng nh?p ph?i > 0");
       return;
     }
 
@@ -233,11 +233,11 @@ export default function InventoryPage() {
       setShowModal(false);
       load();
     } else {
-      setFormError(res.data?.message || "Nhập lô thất bại, vui lòng thử lại");
+      setFormError(res.data?.message || "Nh?p l� th?t b?i, vui l�ng th? l?i");
     }
   };
 
-  // â”€â”€ Tab Filtering â”€â”€
+  // ── Tab Filtering ──
   const filtered = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLowerCase();
     return batches.filter((batch) => {
@@ -289,7 +289,7 @@ export default function InventoryPage() {
     }, []);
   }, [safeCurrentPage, totalPages]);
 
-  // â”€â”€ Stats â”€â”€
+  // ── Stats ──
   const stats = {
     total: batches.length,
     urgent: batches.filter((b) => {
@@ -303,12 +303,12 @@ export default function InventoryPage() {
     depleted: batches.filter((b) => Number(b.quantityAvailable) <= 0).length,
   };
 
-  // â”€â”€ Tab Config â”€â”€
+  // ── Tab Config ──
   const tabs = [
-    { id: "all", label: "Tất cả", count: stats.total },
-    { id: "urgent", label: "Cần xử lý ngay", count: stats.urgent, highlight: true },
-    { id: "normal", label: "Ổn định", count: stats.normal },
-    { id: "depleted", label: "Hết hàng", count: stats.depleted },
+    { id: "all", label: "T?t c?", count: stats.total },
+    { id: "urgent", label: "C?n x? l� ngay", count: stats.urgent, highlight: true },
+    { id: "normal", label: "?n d?nh", count: stats.normal },
+    { id: "depleted", label: "H?t h�ng", count: stats.depleted },
   ];
 
   const setTabAndResetPage = (tab) => {
@@ -316,7 +316,7 @@ export default function InventoryPage() {
     setCurrentPage(1);
   };
 
-  // â”€â”€ Urgency UI â”€â”€
+  // ── Urgency UI ──
   const getUrgencyUI = (batch) => {
     const urgency = getUrgencyLevel(batch);
     const daysLeft = daysUntil(batch.expiredAt);
@@ -324,37 +324,37 @@ export default function InventoryPage() {
     const config = {
       expired: {
         color: "bg-red-50 text-red-700",
-        label: "Hết hạn",
+        label: "H?t h?n",
         icon: <IconAlertTriangle />,
         rowBg: "bg-red-50/50"
       },
       urgent: {
         color: "bg-orange-50 text-orange-700",
-        label: `${daysLeft}d cảnh báo`,
+        label: `${daysLeft}d c?nh b�o`,
         icon: <IconFire />,
         rowBg: "bg-orange-50/50"
       },
       expiring: {
         color: "bg-yellow-50 text-yellow-700",
-        label: `${daysLeft}d sắp hết`,
+        label: `${daysLeft}d s?p h?t`,
         icon: <IconClock />,
         rowBg: "bg-yellow-50/50"
       },
       soon: {
         color: "bg-blue-50 text-blue-700",
-        label: `${daysLeft}d giám sát`,
+        label: `${daysLeft}d gi�m s�t`,
         icon: <IconClock />,
         rowBg: "bg-gray-50/30"
       },
       slow: {
         color: "bg-indigo-50 text-indigo-700",
-        label: "Tiêu thụ chậm",
+        label: "Ti�u th? ch?m",
         icon: <IconTrendingDown />,
         rowBg: "bg-gray-50/30"
       },
       normal: {
         color: "bg-brand-bg text-brand-dark",
-        label: "Bình thường",
+        label: "B�nh thu?ng",
         icon: <IconCheckCircle />,
         rowBg: "bg-white"
       }
@@ -365,26 +365,26 @@ export default function InventoryPage() {
 
   return (
     <div className="p-6 sm:p-8 space-y-6">
-      {/* â•â•â•â• HEADER â•â•â•â• */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      {/* ════ HEADER ════ */}
+      <div className="flex flex-wrap items-center justify-between gap-4" data-guide-title="Inventory page" data-guide-text="Manage batches, expiration dates, remaining quantity, and products that need urgent handling.">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Kho hàng</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Kho h�ng</h1>
         </div>
         <button
-          onClick={openModal}
+          data-guide-title="Add inventory batch"           data-guide-text="Open the batch form to add stock for a product variant, including cost, quantity, supplier, received date, and expiration date."           onClick={openModal}
           className="bg-brand hover:bg-brand-secondary text-gray-900 font-semibold px-4 py-2.5 rounded-xl transition flex items-center gap-2"
         >
-          <span className="text-lg leading-none">+</span> Nhập lô hàng
+          <span className="text-lg leading-none">+</span> Nh?p l� h�ng
         </button>
       </div>
 
-      {/* â•â•â•â• STATS CARDS â•â•â•â• */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      {/* ════ STATS CARDS ════ */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3" data-guide-title="Inventory summary" data-guide-text="Cards summarize total batches, urgent batches, stable batches, and depleted batches.">
         {[
-          { label: "Tổng lô", value: stats.total, icon: "📦", color: "bg-blue-50 text-blue-700" },
-          { label: "Cấp độ cảnh báo", value: stats.urgent, icon: "🔴", color: "bg-red-50 text-red-700", highlight: true },
-          { label: "Bình thường", value: stats.normal, icon: "✅", color: "bg-brand-bg text-brand-dark" },
-          { label: "Hết hàng", value: stats.depleted, icon: "❌", color: "bg-gray-100 text-gray-700" },
+          { label: "T?ng l�", value: stats.total, icon: "??", color: "bg-blue-50 text-blue-700" },
+          { label: "C?p d? c?nh b�o", value: stats.urgent, icon: "??", color: "bg-red-50 text-red-700", highlight: true },
+          { label: "B�nh thu?ng", value: stats.normal, icon: "?", color: "bg-brand-bg text-brand-dark" },
+          { label: "H?t h�ng", value: stats.depleted, icon: "?", color: "bg-gray-100 text-gray-700" },
         ].map((s) => (
           <div
             key={s.label}
@@ -396,8 +396,8 @@ export default function InventoryPage() {
         ))}
       </div>
 
-      {/* â•â•â•â• TABS â•â•â•â• */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-1 inline-flex gap-1">
+      {/* ════ TABS ════ */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-1 inline-flex gap-1" data-guide-title="Batch priority filter" data-guide-text="Filter batches that need urgent handling, are stable, or have no stock left.">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -418,8 +418,8 @@ export default function InventoryPage() {
         ))}
       </div>
 
-      {/* â•â•â•â• FILTERS â•â•â•â• */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex flex-wrap gap-3 items-center">
+      {/* ════ FILTERS ════ */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex flex-wrap gap-3 items-center" data-guide-title="Batch search" data-guide-text="Search by batch code, product name, variant name, or supplier, then refresh data if needed.">
         <div className="flex-1 min-w-56">
           <input
             type="text"
@@ -428,7 +428,7 @@ export default function InventoryPage() {
               setKeyword(e.target.value);
               setCurrentPage(1);
             }}
-            placeholder="Tìm mã lô, sản phẩm, nhà cung cấp..."
+            placeholder="T�m m� l�, s?n ph?m, nh� cung c?p..."
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
           />
         </div>
@@ -436,37 +436,37 @@ export default function InventoryPage() {
           onClick={load}
           className="bg-brand hover:bg-brand-secondary text-gray-900 font-medium px-4 py-2 rounded-lg transition text-sm"
         >
-          Làm mới
+          L�m m?i
         </button>
       </div>
 
-      {/* â•â•â•â• TABLE â•â•â•â• */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+      {/* ════ TABLE ════ */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden" data-guide-title="Batch table" data-guide-text="Review batch code, product, supplier, received/available quantity, consumption, cost, expiration, and alert status.">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Mã lô</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Sản phẩm</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">M� l�</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">S?n ph?m</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">NCC</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Nhập/Còn</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Tiêu thụ %</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Giá vốn</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Hạn sử dụng</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Trạng thái</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Nh?p/C�n</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Ti�u th? %</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Gi� v?n</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">H?n s? d?ng</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">Tr?ng th�i</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {loading ? (
                 <tr>
                   <td colSpan={8} className="text-center py-10 text-gray-400">
-                    Đang tải...
+                    �ang t?i...
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="text-center py-10 text-gray-400">
-                    Không có lô hàng nào
+                    Kh�ng c� l� h�ng n�o
                   </td>
                 </tr>
               ) : (
@@ -507,21 +507,21 @@ export default function InventoryPage() {
                       <td className="px-4 py-3 text-sm">
                         <div className="space-y-0.5">
                           <div className="text-gray-600">
-                            <span className="text-gray-400">Nhập:</span> {fmtDate(b.receivedAt)}
+                            <span className="text-gray-400">Nh?p:</span> {fmtDate(b.receivedAt)}
                           </div>
                           {b.expiredAt ? (
                             <div className={`font-semibold ${daysLeft && daysLeft < 0 ? "text-red-600" : "text-gray-600"}`}>
-                              <span className="text-gray-400">Hết:</span> {fmtDate(b.expiredAt)}
+                              <span className="text-gray-400">H?t:</span> {fmtDate(b.expiredAt)}
                               {daysLeft !== null && (
                                 <span className={`ml-2 text-xs font-bold px-2 py-0.5 rounded-full ${
                                   daysLeft < 0 ? "bg-red-100 text-red-700" : daysLeft <= 1 ? "bg-orange-100 text-orange-700" : "bg-yellow-100 text-yellow-700"
                                 }`}>
-                                  {daysLeft < 0 ? "hết" : `${daysLeft}d`}
+                                  {daysLeft < 0 ? "h?t" : `${daysLeft}d`}
                                 </span>
                               )}
                             </div>
                           ) : (
-                            <div className="text-gray-400 text-sm">Chưa có hạn</div>
+                            <div className="text-gray-400 text-sm">Chua c� h?n</div>
                           )}
                         </div>
                       </td>
@@ -539,15 +539,15 @@ export default function InventoryPage() {
           </table>
         </div>
 
-        {/* â•â•â•â• PAGINATION â•â•â•â• */}
+        {/* ════ PAGINATION ════ */}
         {totalPages > 1 && (
           <div className="px-5 py-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-gray-600">
-              Hiển thị <span className="font-semibold">{pageStart + 1}</span>
+              Hi?n th? <span className="font-semibold">{pageStart + 1}</span>
               {" - "}
               <span className="font-semibold">{Math.min(pageStart + paginatedBatches.length, totalFiltered)}</span>
               {" / "}
-              <span className="font-semibold">{totalFiltered}</span> lô
+              <span className="font-semibold">{totalFiltered}</span> l�
               <span className="text-gray-400 ml-2">Trang {safeCurrentPage}/{totalPages}</span>
             </p>
             <div className="flex items-center gap-2">
@@ -556,7 +556,7 @@ export default function InventoryPage() {
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-brand-bg transition disabled:opacity-40 disabled:pointer-events-none"
               >
-                ‹
+                �
               </button>
               {paginationItems.map((item, index) =>
                 item === "ellipsis" ? (
@@ -582,32 +582,32 @@ export default function InventoryPage() {
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-brand-bg transition disabled:opacity-40 disabled:pointer-events-none"
               >
-                ›
+                �
               </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* â•â•â•â• ADD BATCH MODAL â•â•â•â• */}
+      {/* ════ ADD BATCH MODAL ════ */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" data-guide-title="Batch form" data-guide-text="Choose variant, batch code, cost, quantity, received date, and expiration date to create new stock.">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white">
-              <h2 className="font-bold text-gray-900 text-lg">Nhập lô hàng mới</h2>
+              <h2 className="font-bold text-gray-900 text-lg">Nh?p l� h�ng m?i</h2>
               <button
                 onClick={() => setShowModal(false)}
                 className="text-gray-400 hover:text-gray-600 text-2xl leading-none w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded-lg transition"
               >
-                ×
+                �
               </button>
             </div>
             <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
               {/* Variant */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Biến thể sản phẩm *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Bi?n th? s?n ph?m *</label>
                 {variantsLoading ? (
-                  <p className="text-sm text-gray-400">Đang tải danh sách...</p>
+                  <p className="text-sm text-gray-400">�ang t?i danh s�ch...</p>
                 ) : (
                   <select
                     value={batchForm.variantId}
@@ -615,7 +615,7 @@ export default function InventoryPage() {
                     required
                     className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark bg-white"
                   >
-                    <option value="">-- Chọn biến thể --</option>
+                    <option value="">-- Ch?n bi?n th? --</option>
                     {variants.map((v) => (
                       <option key={v.id} value={v.id}>
                         {v.label}
@@ -627,7 +627,7 @@ export default function InventoryPage() {
 
               {/* Batch Code */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Mã lô hàng *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">M� l� h�ng *</label>
                 <input
                   type="text"
                   value={batchForm.batchCode}
@@ -640,7 +640,7 @@ export default function InventoryPage() {
               <div className="grid grid-cols-2 gap-3">
                 {/* Cost Price */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Giá vốn (đồng) *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Gi� v?n (d?ng) *</label>
                   <input
                     type="number"
                     min={0}
@@ -653,7 +653,7 @@ export default function InventoryPage() {
                 </div>
                 {/* Quantity */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Số lượng nhập *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">S? lu?ng nh?p *</label>
                   <input
                     type="number"
                     min={1}
@@ -668,12 +668,12 @@ export default function InventoryPage() {
 
               {/* Supplier */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Nhà cung cấp</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Nh� cung c?p</label>
                 <input
                   type="text"
                   value={batchForm.supplierName}
                   onChange={(e) => setBatchForm((p) => ({ ...p, supplierName: e.target.value }))}
-                  placeholder="Tên nhà cung cấp..."
+                  placeholder="T�n nh� cung c?p..."
                   className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
                 />
               </div>
@@ -681,7 +681,7 @@ export default function InventoryPage() {
               <div className="grid grid-cols-2 gap-3">
                 {/* Received At */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Ngày nhập kho *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Ng�y nh?p kho *</label>
                   <input
                     type="datetime-local"
                     value={batchForm.receivedAt}
@@ -692,7 +692,7 @@ export default function InventoryPage() {
                 </div>
                 {/* Manufactured At */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Ngày sản xuất</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Ng�y s?n xu?t</label>
                   <input
                     type="datetime-local"
                     value={batchForm.manufacturedAt}
@@ -704,24 +704,24 @@ export default function InventoryPage() {
 
               {/* Expired At */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Hạn sử dụng</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">H?n s? d?ng</label>
                 <input
                   type="datetime-local"
                   value={batchForm.expiredAt}
                   onChange={(e) => setBatchForm((p) => ({ ...p, expiredAt: e.target.value }))}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
                 />
-                <p className="text-xs text-gray-500 mt-1.5">VD: nhập 24/03/2026, hạn hết 26/03/2026</p>
+                <p className="text-xs text-gray-500 mt-1.5">VD: nh?p 24/03/2026, h?n h?t 26/03/2026</p>
               </div>
 
               {/* Note */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Ghi chú</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Ghi ch�</label>
                 <textarea
                   rows={2}
                   value={batchForm.note}
                   onChange={(e) => setBatchForm((p) => ({ ...p, note: e.target.value }))}
-                  placeholder="Ghi chú thêm về lô hàng..."
+                  placeholder="Ghi ch� th�m v? l� h�ng..."
                   className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark resize-none"
                 />
               </div>
@@ -738,14 +738,14 @@ export default function InventoryPage() {
                   onClick={() => setShowModal(false)}
                   className="px-4 py-2.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
                 >
-                  Hủy
+                  H?y
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
                   className="px-5 py-2.5 text-sm font-semibold bg-brand hover:bg-brand-secondary text-gray-900 rounded-lg transition disabled:opacity-60"
                 >
-                  {submitting ? "Đang lưu..." : "Nhập kho"}
+                  {submitting ? "�ang luu..." : "Nh?p kho"}
                 </button>
               </div>
             </form>

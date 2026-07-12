@@ -92,7 +92,7 @@ export default function ProductReviewDetailPage() {
           ← Quay lại danh sách sản phẩm
         </Link>
 
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <div className="bg-white rounded-lg shadow p-6 mb-6" data-guide-title="Product review detail" data-guide-text="View total reviews for the selected product and inspect customer feedback.">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Đánh giá sản phẩm</h1>
           <p className="text-gray-600">
             Tổng số đánh giá: <span className="font-semibold">{totalElements}</span>
@@ -111,7 +111,7 @@ export default function ProductReviewDetailPage() {
         ) : (
           <>
             {/* Reviews List */}
-            <div className="space-y-4">
+            <div className="space-y-4" data-guide-title="Feedback list" data-guide-text="Each card contains reviewer, date, rating, comment, and any images submitted by the customer.">
               {reviews.map((review) => (
                 <div
                   key={review.id}
@@ -173,7 +173,7 @@ export default function ProductReviewDetailPage() {
                   )}
 
                   {/* Actions */}
-                  <div className="mt-4 pt-4 border-t border-gray-200 flex gap-2">
+                  <div className="mt-4 pt-4 border-t border-gray-200 flex gap-2" data-guide-title="Review actions" data-guide-text="Respond to customers or report problematic reviews for admin review.">
                     <button className="text-blue-600 hover:text-blue-800 font-medium text-sm">
                       📝 Phản hồi
                     </button>

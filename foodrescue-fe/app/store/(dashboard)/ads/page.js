@@ -10,12 +10,14 @@ const STATUS_LABEL = {
   PENDING: "Chờ duyệt",
   APPROVED: "Đã duyệt",
   REJECTED: "Đã từ chối",
+  TAKEN_DOWN: "Đã gỡ xuống",
 };
 
 const STATUS_CLASS = {
   PENDING: "bg-amber-50 text-amber-700 border border-amber-200",
   APPROVED: "bg-green-50 text-green-700 border border-green-200",
   REJECTED: "bg-red-50 text-red-700 border border-red-200",
+  TAKEN_DOWN: "bg-gray-50 text-gray-700 border border-gray-200",
 };
 
 function normalizeLocalDateTime(value) {
@@ -184,9 +186,9 @@ export default function StoreAdsPage() {
 
   return (
     <div className="p-6 sm:p-8 space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Quảng cáo banner</h1>
+      <h1 className="text-2xl font-bold text-gray-900" data-guide-title="Banner ads" data-guide-text="Create promotional banners and track their approval status.">Quảng cáo banner</h1>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" data-guide-title="Create banner" data-guide-text="Fill title, banner image, destination link, and running time. The banner waits for admin approval before display.">
         <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50">
           <h2 className="text-sm font-bold text-gray-700">Tạo banner mới</h2>
           <p className="text-xs text-gray-500 mt-0.5">Sau khi tạo, banner sẽ chờ admin duyệt.</p>
@@ -276,11 +278,11 @@ export default function StoreAdsPage() {
         </form>
       </div>
 
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3" data-guide-title="My ad list" data-guide-text="Show or hide banners created by this seller to review status, schedule, and rejection notes.">
         <h2 className="text-sm font-bold text-gray-700">Danh sách quảng cáo của tôi</h2>
         <button
           type="button"
-          onClick={() => setShowList((current) => !current)}
+          data-guide-title="Show banner list"           data-guide-text="Load and display seller banners, newest first."           onClick={() => setShowList((current) => !current)}
           className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium text-gray-700 hover:bg-gray-50"
         >
           {showList ? "Ẩn danh sách" : "Xem danh sách"}
@@ -288,7 +290,7 @@ export default function StoreAdsPage() {
       </div>
 
       {showList && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" data-guide-title="Banner table" data-guide-text="Track banner image, title, approval status, running schedule, and rejection reason.">
           <div className="px-5 py-3 border-b border-gray-100 bg-gray-50/60 flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs text-gray-500">Banner mới nhất được hiển thị trước.</p>
             {!loading && ads.length > 0 && (

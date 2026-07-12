@@ -21,7 +21,8 @@ public class BannerAd {
     public enum Status {
         PENDING,   // Chờ admin duyệt
         APPROVED,  // Đã duyệt, có thể hiển thị
-        REJECTED   // Bị từ chối
+        REJECTED,  // Bị từ chối khi chờ duyệt
+        TAKEN_DOWN // Đã được duyệt nhưng bị admin gỡ khỏi hiển thị
     }
 
     @Id

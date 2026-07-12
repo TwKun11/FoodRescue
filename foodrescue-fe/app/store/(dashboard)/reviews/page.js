@@ -214,13 +214,13 @@ export default function SellerReviewsPage() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-8" data-guide-title="Reviews dashboard" data-guide-text="Overview of product ratings, comment counts, and products that need quality attention.">
           <h1 className="text-3xl font-bold text-gray-900 mb-1">Quản lý Đánh giá</h1>
           <p className="text-gray-600 text-sm">Theo dõi và phân tích đánh giá từ khách hàng</p>
         </div>
 
         {/* Top Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8" data-guide-title="Review metrics" data-guide-text="Shows total products, products with reviews, products without reviews, and total comments.">
           <StatCounter 
             label="Tất cả sản phẩm" 
             value={stats.totalProducts}
@@ -245,7 +245,7 @@ export default function SellerReviewsPage() {
 
         {/* Featured High Rated Products */}
         {highRatedProducts.length > 0 && (
-          <div className="mb-12">
+          <div className="mb-12" data-guide-title="High rated products" data-guide-text="Products customers like most. Use them as references for better assortment and promotion.">
             <div className="flex items-center gap-3 mb-6">
               <div className="flex-1">
                 <h2 className="text-2xl font-bold text-gray-900">
@@ -267,7 +267,7 @@ export default function SellerReviewsPage() {
 
         {/* Low Rated Products Section */}
         {lowRatedProducts.length > 0 && (
-          <div className="mb-12">
+          <div className="mb-12" data-guide-title="Products needing improvement" data-guide-text="Low-rated products that may need better quality, packaging, description, or pickup experience.">
             <div className="flex items-center gap-3 mb-6">
               <div className="flex-1">
                 <h2 className="text-2xl font-bold text-gray-900">
@@ -288,7 +288,7 @@ export default function SellerReviewsPage() {
         )}
 
         {/* Search and Filters */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8" data-guide-title="Search and filter reviews" data-guide-text="Search products by name or filter by star rating to find the group you need to inspect.">
           <div className="space-y-4">
             {/* Search Bar */}
             <div>
@@ -377,7 +377,7 @@ export default function SellerReviewsPage() {
           ) : (
             <>
               {/* Products Table */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden" data-guide-title="Reviewed products table" data-guide-text="Each row shows average rating, comment count, and a link to the detailed review list.">
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-gray-50 border-b border-gray-100">

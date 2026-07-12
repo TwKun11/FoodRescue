@@ -226,9 +226,13 @@ public class SellerController {
                 SellerWalletTransaction.TransactionType.payout_debit,
                 List.of(SellerWalletTransaction.TransactionStatus.payout_processing)
         ).abs();
-        BigDecimal totalCredited = sellerWalletTransactionRepository.sumAmountBySellerAndType(
+        BigDecimal totalCredited = sellerWalletTransactionRepository.sumAmountBySellerTypeAndStatuses(
                 sellerId,
-                SellerWalletTransaction.TransactionType.order_payment
+                SellerWalletTransaction.TransactionType.order_payment,
+                List.of(
+                        SellerWalletTransaction.TransactionStatus.pending,
+                        SellerWalletTransaction.TransactionStatus.available
+                )
         );
         BigDecimal totalPaidOut = sellerWalletTransactionRepository.sumAmountBySellerTypeAndStatuses(
                 sellerId,

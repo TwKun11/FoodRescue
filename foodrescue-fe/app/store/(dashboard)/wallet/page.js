@@ -286,6 +286,7 @@ function Field({ label, ...props }) {
 
 function StatusBadge({ status }) {
   const labelMap = {
+    pending: "Chờ hoàn tất",
     available: "Khả dụng",
     payout_processing: "Đang chi",
     paid_out: "Đã chi",
@@ -293,6 +294,7 @@ function StatusBadge({ status }) {
     cancelled: "Đã hủy",
   };
   const classMap = {
+    pending: "bg-amber-50 text-amber-700",
     available: "bg-emerald-50 text-emerald-700",
     payout_processing: "bg-blue-50 text-blue-700",
     paid_out: "bg-gray-100 text-gray-700",

@@ -370,7 +370,7 @@ export default function ShopPage() {
   return (
     <div className="space-y-6 p-4 sm:p-6">
       {/* ════ HEADER CARD ════ */}
-      <section className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm" data-guide-title="Shop profile" data-guide-text="Overview of seller profile: banner, logo, shop name, shop code, approval status, and verification state.">
         <div className="relative h-40 bg-gradient-to-r from-emerald-500 via-green-500 to-lime-400">
           {shop.coverUrl && (
             <img
@@ -445,7 +445,7 @@ export default function ShopPage() {
       </section>
 
       {/* ════ TAB NAVIGATION ════ */}
-      <div className="flex gap-2 border-b border-gray-200">
+      <div className="flex gap-2 border-b border-gray-200" data-guide-title="Profile tabs" data-guide-text="Switch between basic information, legal profile, bank account, and verification images.">
         {TABS.map((tab) => (
           <button
             key={tab.id}
@@ -464,7 +464,7 @@ export default function ShopPage() {
 
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-6">
-          <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+          <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm" data-guide-title="Profile form" data-guide-text="Edit the current tab information. Required fields help admin verify the seller and keep orders operational.">
             {activeTab === "basic" && (
               <>
                 <h2 className="text-lg font-semibold text-gray-900">
@@ -506,7 +506,7 @@ export default function ShopPage() {
                   />
                 </div>
                 <div className="mt-4 space-y-3">
-                  <div className="flex flex-col gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-col gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4 sm:flex-row sm:items-center sm:justify-between" data-guide-title="Store location" data-guide-text="Save pickup address and coordinates so customers can find the selling point and distance is calculated more accurately.">
                     <div>
                       <p className="text-sm font-semibold text-emerald-800">
                         Vị trí cửa hàng
@@ -701,7 +701,7 @@ export default function ShopPage() {
 
         {/* ════ STICKY SAVE BUTTON ════ */}
       </div>
-      <div className="sticky bottom-0 z-10 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-lg backdrop-blur">
+      <div className="sticky bottom-0 z-10 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-lg backdrop-blur" data-guide-title="Save seller profile" data-guide-text="After editing any tab, save the profile so the latest information is sent to the system for review if needed.">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-medium text-gray-900">Lưu thay đổi</p>
@@ -813,7 +813,7 @@ function TextArea({ label, error, hint, ...props }) {
 
 function UploadCard({ label, hint, value, uploading, onFileChange, required }) {
   return (
-    <div className="rounded-2xl border border-gray-200 p-4 hover:bg-gray-50 transition">
+    <div className="rounded-2xl border border-gray-200 p-4 hover:bg-gray-50 transition" data-guide-title="Verification image" data-guide-text="Upload or replace logo, banner, storefront image, business license, and identity card images.">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm font-semibold text-gray-800">

@@ -27,7 +27,7 @@ import java.time.LocalDateTime;
 public class SellerWalletTransaction {
 
     public enum TransactionType { order_payment, payout_debit, adjustment }
-    public enum TransactionStatus { available, payout_processing, paid_out, failed, cancelled }
+    public enum TransactionStatus { pending, available, payout_processing, paid_out, failed, cancelled }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

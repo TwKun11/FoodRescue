@@ -193,7 +193,7 @@ function AdminSidebar() {
               <div key={item.label}>
                 <button
                   onClick={() => setExpandedMenu(isMenuOpen ? null : item.label)}
-                  className={`flex min-w-max items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all md:w-full ${
+                  className={`flex min-w-max items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all md:w-full md:min-w-0 ${
                     isMenuOpen
                       ? "bg-brand text-gray-900 shadow-sm"
                       : active
@@ -202,7 +202,7 @@ function AdminSidebar() {
                   }`}
                 >
                   <span className={isMenuOpen || active ? "text-gray-900" : "text-gray-400"}>{item.icon}</span>
-                  <span className="flex-1 text-left">{item.label}</span>
+                  <span className="min-w-0 flex-1 whitespace-normal break-words text-left leading-snug">{item.label}</span>
                   <svg
                     className={`w-4 h-4 transition ${isMenuOpen ? "rotate-180" : ""}`}
                     fill="none"
@@ -242,7 +242,7 @@ function AdminSidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex min-w-max items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all md:w-full ${
+              className={`flex min-w-max items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all md:w-full md:min-w-0 ${
                 active
                   ? "bg-brand text-gray-900 shadow-sm"
                   : "text-gray-500 hover:bg-gray-100 hover:text-gray-800"
@@ -300,14 +300,14 @@ function AdminHeader() {
       <div className="flex-1" />
       <Link
         href="/"
-        aria-label="Giao diện người mua" className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 transition hover:bg-emerald-100 sm:h-auto sm:w-auto sm:gap-2 sm:px-3 sm:py-2 sm:text-sm sm:font-semibold"
+        aria-label="Về trang mua hàng"
+        className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100 sm:text-sm"
       >
-        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l9-9 9 9M5 10v10h14V10" />
         </svg>
-        <span className="hidden sm:inline">Giao diện người mua</span>
-      </Link>
-      <ThemeToggle compact />
+        <span className="whitespace-nowrap">Trang mua hàng</span>
+      </Link><ThemeToggle compact />
       <span className="text-xs font-semibold bg-brand-bg text-brand-dark px-2.5 py-1 rounded-full border border-brand/30">
         ADMIN
       </span>

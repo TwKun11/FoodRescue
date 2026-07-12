@@ -6,6 +6,7 @@ import {
   apiAdminGetBannerAdsByStatus,
   apiAdminApproveBannerAd,
   apiAdminRejectBannerAd,
+  apiAdminTakeDownBannerAd,
 } from "@/lib/api";
 
 const PAGE_SIZE = 10;
@@ -15,12 +16,14 @@ const TABS = [
   { id: "pending", label: "Chờ duyệt" },
   { id: "approved", label: "Đã duyệt" },
   { id: "rejected", label: "Đã từ chối" },
+  { id: "taken_down", label: "Đã gỡ xuống" },
 ];
 
 const STATUS_LABEL = {
   PENDING: "Chờ duyệt",
   APPROVED: "Đã duyệt",
   REJECTED: "Từ chối",
+  TAKEN_DOWN: "Đã gỡ xuống",
 };
 
 function formatDate(value) {
@@ -42,8 +45,9 @@ function sortAdsNewestFirst(items) {
   return [...items].sort((left, right) => getAdSortTime(right) - getAdSortTime(left));
 }
 
-function AdCard({ ad, onApprove, onReject, acting }) {
+function AdCard({ ad, onApprove, onReject, onTakeDown, acting }) {
   const canAct = ad.status === "PENDING";
+  const canTakeDown = ad.status === "APPROVED";
 
   return (
     <div className="p-5 flex flex-wrap gap-4 items-start border-b border-gray-100 last:border-b-0">
@@ -70,6 +74,18 @@ function AdCard({ ad, onApprove, onReject, acting }) {
           {formatDate(ad.startDate)} -&gt; {formatDate(ad.endDate)}
         </p>
         {ad.rejectReason && <p className="text-xs text-red-600 mt-1">Lý do từ chối: {ad.rejectReason}</p>}
+        {canTakeDown && (
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={() => onTakeDown(ad)}
+              disabled={acting === ad.id}
+              className="px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-sm font-medium hover:bg-amber-100 border border-amber-200 disabled:opacity-50"
+            >
+              {acting === ad.id ? "..." : "Gỡ xuống"}
+            </button>
+          </div>
+        )}
         {canAct && (
           <div className="mt-3 flex gap-2">
             <button
@@ -111,9 +127,9 @@ export default function AdminAdsPage() {
       apiAdminGetBannerAdsByStatus(value).then((res) => (res.ok && Array.isArray(res.data?.data) ? res.data.data : []));
 
     if (status === "all") {
-      Promise.all([fetchOne("pending"), fetchOne("approved"), fetchOne("rejected")])
-        .then(([pending, approved, rejected]) => {
-          setAds(sortAdsNewestFirst([...pending, ...approved, ...rejected]));
+      Promise.all([fetchOne("pending"), fetchOne("approved"), fetchOne("rejected"), fetchOne("taken_down")])
+        .then(([pending, approved, rejected, takenDown]) => {
+          setAds(sortAdsNewestFirst([...pending, ...approved, ...rejected, ...takenDown]));
         })
         .finally(() => setLoading(false));
       return;
@@ -147,6 +163,24 @@ export default function AdminAdsPage() {
           loadByStatus(statusTab);
         } else {
           toast.error(res.data?.message || "Duyệt thất bại.");
+        }
+      })
+      .finally(() => setActing(null));
+  };
+
+
+  const handleTakeDown = (ad) => {
+    const reason = window.prompt(`Lý do gỡ banner "${ad.title}" khỏi trang mua hàng:`, "Admin gỡ banner khỏi hiển thị");
+    if (reason === null) return;
+
+    setActing(ad.id);
+    apiAdminTakeDownBannerAd(ad.id, reason.trim())
+      .then((res) => {
+        if (res.ok) {
+          toast.success("Đã gỡ banner khỏi trang mua hàng");
+          loadByStatus(statusTab);
+        } else {
+          toast.error(res.data?.message || "Gỡ banner thất bại.");
         }
       })
       .finally(() => setActing(null));
@@ -237,6 +271,7 @@ export default function AdminAdsPage() {
                   ad={ad}
                   onApprove={handleApprove}
                   onReject={handleRejectClick}
+                  onTakeDown={handleTakeDown}
                   acting={acting}
                 />
               ))}

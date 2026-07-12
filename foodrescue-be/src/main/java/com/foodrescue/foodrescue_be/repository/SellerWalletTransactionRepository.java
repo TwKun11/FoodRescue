@@ -10,10 +10,16 @@ import org.springframework.stereotype.Repository;
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface SellerWalletTransactionRepository extends JpaRepository<SellerWalletTransaction, Long> {
     boolean existsBySellerOrderIdAndType(Long sellerOrderId, SellerWalletTransaction.TransactionType type);
+
+    Optional<SellerWalletTransaction> findBySellerOrderIdAndType(
+            Long sellerOrderId,
+            SellerWalletTransaction.TransactionType type
+    );
 
     List<SellerWalletTransaction> findBySellerIdOrderByCreatedAtDesc(Long sellerId, Pageable pageable);
 

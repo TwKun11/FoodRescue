@@ -149,7 +149,7 @@ export default function StoreStatsPage() {
   return (
     <div className="p-6 sm:p-8 space-y-8">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4" data-guide-title="Revenue report" data-guide-text="Track completed-order revenue, FoodRescue commission, estimated net revenue, and sales performance.">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Doanh thu</h1>
           <p className="text-sm text-gray-500 mt-1">
@@ -189,7 +189,7 @@ export default function StoreStatsPage() {
       </div>
 
       {/* Doanh thu 7 ngày */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" data-guide-title="7-day revenue chart" data-guide-text="Review revenue and order count by day to spot recent sales trends.">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
           <div className="w-9 h-9 rounded-lg bg-brand-bg flex items-center justify-center text-brand-dark">
             <IconChart />
@@ -237,7 +237,7 @@ export default function StoreStatsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Sản phẩm bán chạy */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" data-guide-title="Top selling products" data-guide-text="Rank products by revenue and quantity sold in the last 30 days for restock or promotion decisions.">
           <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
             <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">
               <IconTrophy />
@@ -283,7 +283,7 @@ export default function StoreStatsPage() {
         </div>
 
         {/* Tóm tắt hiệu suất + Xuất CSV */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" data-guide-title="Performance summary" data-guide-text="Summarizes revenue, 5 percent commission, estimated net revenue, order count, average order value, and CSV export.">
           <div className="px-5 py-4 border-b border-gray-100">
             <h2 className="font-semibold text-gray-900">Tóm tắt hiệu suất</h2>
           </div>

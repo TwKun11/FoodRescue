@@ -36,6 +36,15 @@ public class BannerAdAdminController {
         return ResponseData.ok("Đã duyệt banner", bannerAdService.approveAd(id));
     }
 
+
+    @PutMapping("/{id}/take-down")
+    public ResponseData<BannerAdResponse> takeDown(
+            @PathVariable Long id,
+            @RequestBody(required = false) Map<String, String> body
+    ) {
+        String reason = body != null ? body.get("reason") : null;
+        return ResponseData.ok("Đã gỡ banner", bannerAdService.takeDownAd(id, reason));
+    }
     @PutMapping("/{id}/reject")
     public ResponseData<BannerAdResponse> reject(
             @PathVariable Long id,

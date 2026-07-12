@@ -439,6 +439,13 @@ export async function apiAdminRejectBannerAd(id, rejectReason) {
 // ============================================================
 // PUBLIC – BANNER ADS (active banners for /products page)
 // ============================================================
+
+export async function apiAdminTakeDownBannerAd(id, reason) {
+  return request(`/api/admin/ads/${id}/take-down`, {
+    method: "PUT",
+    body: JSON.stringify({ reason }),
+  });
+}
 export async function apiGetActiveBannerAds() {
   return request("/api/public/ads/active-banners");
 }

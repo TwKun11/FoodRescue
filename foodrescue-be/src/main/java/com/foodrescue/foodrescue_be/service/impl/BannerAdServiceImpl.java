@@ -82,6 +82,19 @@ public class BannerAdServiceImpl implements BannerAdService {
         ad = bannerAdRepository.save(ad);
         return BannerAdResponse.fromEntity(ad);
     }
+    @Override
+    @Transactional
+    public BannerAdResponse takeDownAd(Long adId, String reason) {
+        BannerAd ad = bannerAdRepository.findById(adId)
+                .orElseThrow(() -> new IllegalArgumentException("Banner không tồn tại"));
+        if (ad.getStatus() != BannerAd.Status.APPROVED) {
+            throw new IllegalArgumentException("Chỉ có thể gỡ banner đã duyệt");
+        }
+        ad.setStatus(BannerAd.Status.TAKEN_DOWN);
+        ad.setRejectReason(reason != null && !reason.trim().isEmpty() ? reason.trim() : "Admin gỡ banner khỏi hiển thị");
+        ad = bannerAdRepository.save(ad);
+        return BannerAdResponse.fromEntity(ad);
+    }
 
     @Override
     public List<BannerAdResponse> getPendingAds() {

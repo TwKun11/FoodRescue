@@ -12,10 +12,16 @@ const TYPE_LABEL = {
 
 const STATUS_LABEL = {
   PENDING: "Chờ xử lý",
-  IN_REVIEW: "Đang kiểm tra",
-  RESOLVED: "Đã xử lý",
+  IN_REVIEW: "Đang xử lý",
+  RESOLVED: "Đã hoàn thành",
   REJECTED: "Từ chối",
 };
+const STATUS_OPTIONS = [
+  { value: "PENDING", label: STATUS_LABEL.PENDING },
+  { value: "IN_REVIEW", label: STATUS_LABEL.IN_REVIEW },
+  { value: "RESOLVED", label: STATUS_LABEL.RESOLVED },
+  { value: "REJECTED", label: STATUS_LABEL.REJECTED },
+];
 
 function fmtDate(value) {
   if (!value) return "-";
@@ -60,8 +66,11 @@ export default function AdminReportsPage() {
   const reload = () => setRefreshKey((k) => k + 1);
 
   const updateStatus = async (row, nextStatus) => {
+    if (!nextStatus || nextStatus === row.status) return;
+
     const note = prompt(`Ghi chú xử lý cho báo cáo #${row.id}:`, row.adminNote || "");
     if (note === null) return;
+
     setActingId(row.id);
     try {
       const res = await apiAdminUpdateViolationReportStatus(row.id, {
@@ -72,6 +81,19 @@ export default function AdminReportsPage() {
         alert(res.data?.message || "Cập nhật thất bại");
         return;
       }
+
+      const updated = res.data?.data || {
+        ...row,
+        status: nextStatus,
+        adminNote: note,
+        resolvedAt: ["RESOLVED", "REJECTED"].includes(nextStatus) ? new Date().toISOString() : null,
+      };
+
+      setList((prev) =>
+        prev
+          .map((item) => (item.id === row.id ? { ...item, ...updated } : item))
+          .filter((item) => !status || item.status === status),
+      );
       reload();
     } finally {
       setActingId(null);
@@ -159,8 +181,8 @@ export default function AdminReportsPage() {
         >
           <option value="">Trạng thái</option>
           <option value="PENDING">Chờ xử lý</option>
-          <option value="IN_REVIEW">Đang kiểm tra</option>
-          <option value="RESOLVED">Đã xử lý</option>
+          <option value="IN_REVIEW">Đang xử lý</option>
+          <option value="RESOLVED">Đã hoàn thành</option>
           <option value="REJECTED">Từ chối</option>
         </select>
       </div>
@@ -211,28 +233,19 @@ export default function AdminReportsPage() {
                       {row.adminNote && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{row.adminNote}</p>}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex justify-end gap-2">
-                        <button
+                      <div className="flex justify-end">
+                        <select
+                          value={row.status || "PENDING"}
                           disabled={busy}
-                          onClick={() => updateStatus(row, "IN_REVIEW")}
-                          className="px-3 py-1.5 rounded-lg border border-amber-200 text-amber-700 text-xs disabled:opacity-40"
+                          onChange={(event) => updateStatus(row, event.target.value)}
+                          className="min-w-[150px] rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 disabled:opacity-40"
                         >
-                          Đang kiểm tra
-                        </button>
-                        <button
-                          disabled={busy}
-                          onClick={() => updateStatus(row, "RESOLVED")}
-                          className="px-3 py-1.5 rounded-lg border border-green-200 text-green-700 text-xs disabled:opacity-40"
-                        >
-                          Đã xử lý
-                        </button>
-                        <button
-                          disabled={busy}
-                          onClick={() => updateStatus(row, "REJECTED")}
-                          className="px-3 py-1.5 rounded-lg border border-red-200 text-red-700 text-xs disabled:opacity-40"
-                        >
-                          Từ chối
-                        </button>
+                          {STATUS_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </td>
                   </tr>

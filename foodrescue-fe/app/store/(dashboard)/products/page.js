@@ -458,7 +458,7 @@ export default function StoreProductsPage() {
         {/* ── Variant Modal ── */}
         {showVariants && variantProduct && (
           <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 overflow-y-auto py-10">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 p-6">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 p-6" data-guide-title="Variant form" data-guide-text="Create or review product variants/SKUs, including unit, list price, sale price, starting stock, barcode, and order quantity rules.">
               <div className="flex items-center justify-between mb-5">
                 <div>
                   <h2 className="text-lg font-bold text-gray-800">Biến thể sản phẩm</h2>
@@ -738,7 +738,7 @@ export default function StoreProductsPage() {
         {/* ── Modal Form ── */}
         {showForm && (
           <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 overflow-y-auto py-10">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 p-6">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 p-6" data-guide-title="Product form" data-guide-text="Create or edit product details such as name, images, category, price, description, inventory, and deal timing.">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-bold text-gray-800">
                   {editingProduct ? "Chỉnh sửa sản phẩm" : "Thêm sản phẩm mới"}
@@ -755,10 +755,10 @@ export default function StoreProductsPage() {
         )}
 
         {/* ── Header ── */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between" data-guide-title="Products page" data-guide-text="Create products, search the catalog, filter by status, and handle each listed item.">
           <h1 className="text-xl font-bold text-gray-800">Quản lý sản phẩm</h1>
           <button
-            onClick={openCreate}
+            data-guide-title="Create product"             data-guide-text="Open the product form to publish a new item with images, price, shelf life, description, and stock."             onClick={openCreate}
             className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg transition bg-green-500 hover:bg-green-600 text-white"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -769,9 +769,9 @@ export default function StoreProductsPage() {
         </div>
 
         {/* ── Main Card ── */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" data-guide-title="Product list" data-guide-text="Manage all store products in one table: price, inventory, status, expiration, and quick actions.">
           {/* Tabs */}
-          <div className="flex border-b border-gray-100 overflow-x-auto">
+          <div className="flex border-b border-gray-100 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" data-guide-title="Product status tabs" data-guide-text="Switch between all, active, expiring, expired, and out-of-stock products.">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
@@ -796,7 +796,7 @@ export default function StoreProductsPage() {
           </div>
 
           {/* Tìm kiếm & Bộ lọc */}
-          <div className="px-5 py-4 flex flex-wrap items-center gap-4 border-b border-gray-100 bg-gray-50/50">
+          <div className="px-5 py-4 flex flex-wrap items-center gap-4 border-b border-gray-100 bg-gray-50/50" data-guide-title="Product search" data-guide-text="Search by product name or code, then refresh the list with the search button.">
             <div className="flex items-center gap-2 flex-1 min-w-[200px]">
               <span className="text-gray-500 text-sm shrink-0">Tìm kiếm</span>
               <input
@@ -831,7 +831,7 @@ export default function StoreProductsPage() {
           </div>
 
           {/* Table */}
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" data-guide-title="Product table" data-guide-text="Each row is one product. Check price, stock, status, then use action buttons to edit, manage variants, or activate/deactivate.">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wide">
@@ -924,7 +924,7 @@ export default function StoreProductsPage() {
                         </span>
                       </td>
                       <td className="px-4 py-4">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end gap-2" data-guide-title="Product actions" data-guide-text="Use these buttons to edit the product, manage variants/SKUs, and deactivate or reactivate the item.">
                           {/* Edit */}
                           <button
                             className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-green-600 transition"

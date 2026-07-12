@@ -351,10 +351,12 @@ public class OrderServiceImpl implements OrderService {
         if (newStatus == OrderSellerOrder.SellerOrderStatus.completed) {
             sellerOrder.setCompletedAt(LocalDateTime.now());
             consumeReservationsForSellerOrder(sellerOrder.getId());
+            makeSellerWalletAvailable(sellerOrder);
         }
         if (newStatus == OrderSellerOrder.SellerOrderStatus.cancelled) {
             sellerOrder.setCancelledAt(LocalDateTime.now());
             releaseReservationsForSellerOrder(sellerOrder.getId());
+            cancelSellerWalletCredit(sellerOrder);
         }
         sellerOrderRepository.save(sellerOrder);
 
@@ -706,7 +708,9 @@ public class OrderServiceImpl implements OrderService {
                     .sellerOrder(sellerOrder)
                     .payment(payment)
                     .type(SellerWalletTransaction.TransactionType.order_payment)
-                    .status(SellerWalletTransaction.TransactionStatus.available)
+                    .status(sellerOrder.getOrderStatus() == OrderSellerOrder.SellerOrderStatus.completed
+                            ? SellerWalletTransaction.TransactionStatus.available
+                            : SellerWalletTransaction.TransactionStatus.pending)
                     .amount(netAmount)
                     .grossAmount(grossAmount)
                     .commissionAmount(commissionAmount)
@@ -727,6 +731,32 @@ public class OrderServiceImpl implements OrderService {
         return grossAmount
                 .multiply(seller.getCommissionRate())
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+    }
+
+    private void makeSellerWalletAvailable(OrderSellerOrder sellerOrder) {
+        sellerWalletTransactionRepository.findBySellerOrderIdAndType(
+                sellerOrder.getId(),
+                SellerWalletTransaction.TransactionType.order_payment
+        ).ifPresent(transaction -> {
+            if (transaction.getStatus() == SellerWalletTransaction.TransactionStatus.pending) {
+                transaction.setStatus(SellerWalletTransaction.TransactionStatus.available);
+                transaction.setDescription("Order completed " + sellerOrder.getSellerOrderCode());
+                sellerWalletTransactionRepository.save(transaction);
+            }
+        });
+    }
+
+    private void cancelSellerWalletCredit(OrderSellerOrder sellerOrder) {
+        sellerWalletTransactionRepository.findBySellerOrderIdAndType(
+                sellerOrder.getId(),
+                SellerWalletTransaction.TransactionType.order_payment
+        ).ifPresent(transaction -> {
+            if (transaction.getStatus() == SellerWalletTransaction.TransactionStatus.pending) {
+                transaction.setStatus(SellerWalletTransaction.TransactionStatus.cancelled);
+                transaction.setDescription("Order cancelled " + sellerOrder.getSellerOrderCode());
+                sellerWalletTransactionRepository.save(transaction);
+            }
+        });
     }
 
     private BigDecimal nonNullAmount(BigDecimal value) {
@@ -795,17 +825,10 @@ public class OrderServiceImpl implements OrderService {
         if (newStatus == OrderSellerOrder.SellerOrderStatus.cancelled) {
             return;
         }
-        // Cho phép pending -> completed (một bước xác nhận = hoàn thành)
-        if (currentStatus == OrderSellerOrder.SellerOrderStatus.pending
-                && newStatus == OrderSellerOrder.SellerOrderStatus.completed) {
-            return;
-        }
 
         Map<OrderSellerOrder.SellerOrderStatus, OrderSellerOrder.SellerOrderStatus> next = Map.of(
                 OrderSellerOrder.SellerOrderStatus.pending, OrderSellerOrder.SellerOrderStatus.confirmed,
-                OrderSellerOrder.SellerOrderStatus.confirmed, OrderSellerOrder.SellerOrderStatus.packing,
-                OrderSellerOrder.SellerOrderStatus.packing, OrderSellerOrder.SellerOrderStatus.shipping,
-                OrderSellerOrder.SellerOrderStatus.shipping, OrderSellerOrder.SellerOrderStatus.completed
+                OrderSellerOrder.SellerOrderStatus.confirmed, OrderSellerOrder.SellerOrderStatus.completed
         );
 
         OrderSellerOrder.SellerOrderStatus allowed = next.get(currentStatus);

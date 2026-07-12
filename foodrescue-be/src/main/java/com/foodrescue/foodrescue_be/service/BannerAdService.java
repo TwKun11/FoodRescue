@@ -15,9 +15,11 @@ public interface BannerAdService {
 
     BannerAdResponse rejectAd(Long adId, String rejectReason);
 
+    BannerAdResponse takeDownAd(Long adId, String reason);
+
     List<BannerAdResponse> getPendingAds();
 
-    /** Admin: lấy danh sách banner theo trạng thái (PENDING, APPROVED, REJECTED). */
+    /** Admin: lấy danh sách banner theo trạng thái (PENDING, APPROVED, REJECTED, TAKEN_DOWN). */
     List<BannerAdResponse> getAdsByStatus(String status);
 
     List<BannerAdResponse> getActiveAds();
