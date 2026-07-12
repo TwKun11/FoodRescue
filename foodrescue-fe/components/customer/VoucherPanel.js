@@ -13,18 +13,18 @@ export default function VoucherPanel({
   formatCurrency,
 }) {
   return (
-    <div className="mt-4 rounded-2xl border border-gray-100 bg-white p-4">
+    <div className="mt-4 min-w-0 rounded-2xl border border-gray-100 bg-white p-4">
       <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-brand-dark">
         Voucher áp dụng
       </label>
 
-      <div className="flex gap-2">
+      <div className="flex min-w-0 gap-2">
         <input
           type="text"
           value={voucherCode}
           onChange={(event) => setVoucherCode(event.target.value.toUpperCase())}
           placeholder="Nhập mã voucher"
-          className={`flex-1 rounded-xl border px-3 py-2 text-sm uppercase transition focus:outline-none focus:ring-2 ${
+          className={`min-w-0 flex-1 rounded-xl border px-3 py-2 text-sm uppercase transition focus:outline-none focus:ring-2 ${
             voucherPreview.error
               ? "border-red-300 bg-red-50 text-red-700 focus:border-red-400 focus:ring-red-200"
               : voucherDiscount > 0
@@ -90,7 +90,7 @@ export default function VoucherPanel({
                 onClick={() =>
                   setVoucherCode(String(voucher.code || "").toUpperCase())
                 }
-                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                className={`max-w-full break-words rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                   active
                     ? "border-emerald-300 bg-emerald-100 text-emerald-800"
                     : "border-gray-200 bg-white text-gray-700 hover:border-emerald-200 hover:bg-emerald-50"

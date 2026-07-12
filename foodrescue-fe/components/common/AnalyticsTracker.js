@@ -3,7 +3,7 @@
 import { useEffect, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import Script from "next/script";
-import { pageview, GA_MEASUREMENT_ID } from "@/lib/analytics";
+import { pageview, GA_MEASUREMENT_ID, GA_ENABLED } from "@/lib/analytics";
 
 function AnalyticsTrackerComponent() {
   const pathname = usePathname();
@@ -19,6 +19,8 @@ function AnalyticsTrackerComponent() {
 }
 
 export default function AnalyticsTracker() {
+  if (!GA_ENABLED) return null;
+
   return (
     <>
       <Script

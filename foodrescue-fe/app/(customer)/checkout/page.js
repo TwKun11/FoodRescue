@@ -464,7 +464,7 @@ export default function CheckoutPage() {
             </span>{" "}
             đã được tạo.
           </p>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 break-words text-sm text-gray-500">
             Bạn có thể theo dõi trạng thái trong mục đơn hàng của tôi.
           </p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
@@ -535,13 +535,13 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-brand-bg">
-      <div className="mx-auto max-w-6xl px-4 py-8">
-        <div className="mb-6 flex flex-col gap-3 rounded-3xl border border-white/70 bg-white p-6 shadow-sm sm:flex-row sm:items-end sm:justify-between">
-          <div className="flex items-start gap-4">
+    <div className="min-h-screen overflow-x-hidden bg-brand-bg pt-24">
+      <div className="mx-auto w-full max-w-6xl px-3 py-6 sm:px-4 sm:py-8">
+        <div className="mb-6 flex min-w-0 flex-col gap-4 rounded-3xl border border-white/70 bg-white p-4 shadow-sm sm:flex-row sm:items-end sm:justify-between sm:p-6">
+          <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start">
             <Link
               href="/"
-              className="flex h-11 shrink-0 items-center gap-2.5 text-emerald-900"
+              className="flex h-11 min-w-0 items-center gap-2.5 text-emerald-900 sm:shrink-0"
               aria-label="Food Rescue trang chu"
             >
               <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-emerald-100">
@@ -554,18 +554,18 @@ export default function CheckoutPage() {
                   priority
                 />
               </span>
-              <span className="whitespace-nowrap text-xl font-extrabold leading-none tracking-tight">
+              <span className="min-w-0 truncate text-xl font-extrabold leading-none tracking-tight">
                 Food Rescue
               </span>
             </Link>
-            <div>
+            <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-dark">
                 Checkout
               </p>
-              <h1 className="mt-2 text-3xl font-bold text-gray-900">
+              <h1 className="mt-2 text-3xl font-bold leading-tight text-gray-900 sm:text-4xl">
                 Thanh toán
               </h1>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 break-words text-sm text-gray-500">
                 Chọn cách thanh toán phù hợp và xác nhận đơn hàng.
               </p>
             </div>
@@ -578,10 +578,10 @@ export default function CheckoutPage() {
           </Badge>
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
-          <div className="space-y-5">
-            <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-              <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="min-w-0 space-y-5">
+            <div className="min-w-0 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-5">
+              <div className="mb-3 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-dark">
                     Bước 1
@@ -592,7 +592,7 @@ export default function CheckoutPage() {
                 </div>
                 <Link
                   href="/profile/addresses"
-                  className="text-xs font-medium text-brand-dark hover:underline"
+                  className="w-fit text-xs font-medium text-brand-dark hover:underline"
                 >
                   Quản lý địa chỉ
                 </Link>
@@ -601,7 +601,7 @@ export default function CheckoutPage() {
               {addressesLoading ? (
                 <p className="text-sm text-gray-400">Đang tải địa chỉ...</p>
               ) : addresses.length === 0 ? (
-                <div className="rounded-xl border border-brand/20 bg-brand-bg p-4 text-sm">
+                <div className="min-w-0 rounded-xl border border-brand/20 bg-brand-bg p-4 text-sm">
                   <p className="font-semibold text-gray-800">
                     Chưa có địa chỉ nào được lưu
                   </p>
@@ -669,14 +669,14 @@ export default function CheckoutPage() {
               )}
             </div>
 
-            <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+            <div className="min-w-0 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-5">
               <div className="mb-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-dark">
                   Bước 2
                 </p>
                 <h2 className="font-semibold text-gray-800">Nhận hàng</h2>
               </div>
-              <div className="rounded-xl border border-brand/20 bg-brand-bg p-4 text-sm">
+              <div className="min-w-0 rounded-xl border border-brand/20 bg-brand-bg p-4 text-sm">
                 <p className="font-semibold text-gray-800">
                   FoodRescue - Click and Collect
                 </p>
@@ -686,16 +686,16 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-              <div className="flex flex-col gap-3 border-b border-gray-100 pb-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="min-w-0 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-5">
+              <div className="flex min-w-0 flex-col gap-3 border-b border-gray-100 pb-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-dark">
                     Bước 3
                   </p>
-                  <h2 className="text-base font-semibold text-gray-800">
+                  <h2 className="break-words text-base font-semibold text-gray-800">
                     Phương thức thanh toán
                   </h2>
-                  <p className="mt-1 text-sm text-gray-500">
+                  <p className="mt-1 break-words text-sm text-gray-500">
                     Bạn có thể trả tiền khi nhận hàng hoặc thanh toán online
                     bằng mã QR/chuyển khoản.
                   </p>
@@ -712,7 +712,7 @@ export default function CheckoutPage() {
                 {PAYMENT_METHODS.map((method) => (
                   <label
                     key={method.id}
-                    className={`relative flex items-center gap-4 rounded-2xl border p-4 transition ${
+                    className={`relative flex min-w-0 flex-col gap-3 rounded-2xl border p-4 transition sm:flex-row sm:items-center sm:gap-4 ${
                       method.enabled
                         ? "cursor-pointer"
                         : "cursor-not-allowed opacity-75"
@@ -743,15 +743,15 @@ export default function CheckoutPage() {
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      <p className="text-base font-semibold text-gray-800">
+                      <p className="break-words text-base font-semibold text-gray-800">
                         {method.label}
                       </p>
-                      <p className="mt-1 text-sm text-gray-500">
+                      <p className="mt-1 break-words text-sm text-gray-500">
                         {method.subtitle}
                       </p>
                     </div>
 
-                    <div className="flex shrink-0 items-center">
+                    <div className="flex w-full items-center sm:w-auto sm:shrink-0">
                       {paymentMethod === method.id ? (
                         <Badge variant="discount" className="shrink-0">
                           Đang được chọn
@@ -778,7 +778,7 @@ export default function CheckoutPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+            <div className="min-w-0 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-5">
               <div className="mb-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-dark">
                   Bước 4
@@ -797,7 +797,7 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          <aside className="h-fit rounded-2xl border border-gray-100 bg-white p-6 shadow-sm xl:sticky xl:top-24">
+          <aside className="min-w-0 h-fit rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6 xl:sticky xl:top-24">
             <h2 className="border-b border-gray-100 pb-3 text-lg font-bold text-gray-800">
               Tóm tắt đơn hàng
             </h2>
@@ -989,7 +989,7 @@ export default function CheckoutPage() {
               </div>
               {voucherCodeTrimmed ? (
                 <>
-                  <div className="mt-2 flex justify-between text-emerald-700">
+                  <div className="mt-2 flex min-w-0 justify-between gap-3 text-emerald-700">
                     <span>Voucher</span>
                     <span>
                       {voucherPreview.loading
@@ -998,7 +998,7 @@ export default function CheckoutPage() {
                     </span>
                   </div>
                   {voucherDiscount > 0 ? (
-                    <div className="mt-2 flex justify-between text-emerald-700">
+                    <div className="mt-2 flex min-w-0 justify-between gap-3 text-emerald-700">
                       <span>Giảm voucher</span>
                       <span>-{formatCurrency(voucherDiscount)}</span>
                     </div>
@@ -1010,7 +1010,7 @@ export default function CheckoutPage() {
                   ) : null}
                 </>
               ) : null}
-              <div className="mt-3 flex justify-between border-t border-gray-100 pt-3 text-base font-bold text-gray-900">
+              <div className="mt-3 flex min-w-0 justify-between gap-3 border-t border-gray-100 pt-3 text-base font-bold text-gray-900">
                 <span>Tổng cộng</span>
                 <span>
                   {formatCurrency(
