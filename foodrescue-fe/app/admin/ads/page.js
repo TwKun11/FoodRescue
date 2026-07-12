@@ -120,6 +120,9 @@ export default function AdminAdsPage() {
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectAd, setRejectAd] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [takeDownModalOpen, setTakeDownModalOpen] = useState(false);
+  const [takeDownAd, setTakeDownAd] = useState(null);
+  const [takeDownReason, setTakeDownReason] = useState("Admin gỡ banner khỏi hiển thị");
 
   const loadByStatus = useCallback((status) => {
     setLoading(true);
@@ -170,20 +173,39 @@ export default function AdminAdsPage() {
 
 
   const handleTakeDown = (ad) => {
-    const reason = window.prompt(`Lý do gỡ banner "${ad.title}" khỏi trang mua hàng:`, "Admin gỡ banner khỏi hiển thị");
-    if (reason === null) return;
+    setTakeDownAd(ad);
+    setTakeDownReason("Admin gỡ banner khỏi hiển thị");
+    setTakeDownModalOpen(true);
+  };
 
-    setActing(ad.id);
-    apiAdminTakeDownBannerAd(ad.id, reason.trim())
+  const handleTakeDownSubmit = () => {
+    if (!takeDownAd?.id) return;
+    const reason = takeDownReason.trim();
+    if (!reason) {
+      toast.error("Vui lòng nhập lý do gỡ banner.");
+      return;
+    }
+
+    setActing(takeDownAd.id);
+    apiAdminTakeDownBannerAd(takeDownAd.id, reason)
       .then((res) => {
         if (res.ok) {
           toast.success("Đã gỡ banner khỏi trang mua hàng");
+          setTakeDownModalOpen(false);
+          setTakeDownAd(null);
+          setTakeDownReason("Admin gỡ banner khỏi hiển thị");
           loadByStatus(statusTab);
         } else {
           toast.error(res.data?.message || "Gỡ banner thất bại.");
         }
       })
       .finally(() => setActing(null));
+  };
+
+  const handleTakeDownCancel = () => {
+    setTakeDownModalOpen(false);
+    setTakeDownAd(null);
+    setTakeDownReason("Admin gỡ banner khỏi hiển thị");
   };
 
   const handleRejectClick = (ad) => {
@@ -311,6 +333,60 @@ export default function AdminAdsPage() {
         )}
       </div>
 
+      {takeDownModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Nhập lý do gỡ banner"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) handleTakeDownCancel();
+          }}
+        >
+          <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xl">
+            <div className="border-b border-gray-100 bg-amber-50/70 px-5 py-4">
+              <h3 className="text-sm font-bold text-gray-900">Gỡ banner khỏi trang mua hàng</h3>
+              <p className="mt-0.5 text-xs text-gray-600">
+                Banner đã duyệt sẽ ngừng hiển thị với người mua sau khi gỡ xuống.
+              </p>
+            </div>
+            <div className="space-y-4 p-5">
+              <div className="rounded-xl border border-amber-100 bg-amber-50/60 px-4 py-3 text-sm text-gray-700">
+                <p className="font-semibold text-gray-900">{takeDownAd?.title || "-"}</p>
+                <p className="mt-1 text-xs text-gray-500">Seller ID: {takeDownAd?.sellerId || "-"}</p>
+              </div>
+              <label className="block text-sm font-semibold text-gray-700" htmlFor="take-down-reason">
+                Lý do gỡ xuống
+              </label>
+              <textarea
+                id="take-down-reason"
+                value={takeDownReason}
+                onChange={(event) => setTakeDownReason(event.target.value)}
+                placeholder="Ví dụ: Banner hết hiệu lực, nội dung không còn phù hợp, cần tạm ẩn khỏi trang mua hàng..."
+                className="min-h-[120px] w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                autoFocus
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={handleTakeDownCancel}
+                  className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  onClick={handleTakeDownSubmit}
+                  disabled={acting === takeDownAd?.id}
+                  className="rounded-xl bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-50"
+                >
+                  {acting === takeDownAd?.id ? "Đang gỡ..." : "Gỡ banner"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {rejectModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"

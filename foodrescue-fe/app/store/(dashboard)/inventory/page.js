@@ -366,7 +366,7 @@ export default function InventoryPage() {
   return (
     <div className="p-6 sm:p-8 space-y-6">
       {/* ════ HEADER ════ */}
-      <div className="flex flex-wrap items-center justify-between gap-4" data-guide-title="Inventory page" data-guide-text="Manage batches, expiration dates, remaining quantity, and products that need urgent handling.">
+      <div className="flex flex-wrap items-center justify-between gap-4" data-guide-title="Trang kho hàng" data-guide-text="Quản lý lô hàng, hạn dùng, số lượng còn lại và các sản phẩm cần xử lý gấp.">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Kho h�ng</h1>
         </div>
@@ -441,7 +441,7 @@ export default function InventoryPage() {
       </div>
 
       {/* ════ TABLE ════ */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden" data-guide-title="Batch table" data-guide-text="Review batch code, product, supplier, received/available quantity, consumption, cost, expiration, and alert status.">
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden" data-guide-title="Bảng lô hàng" data-guide-text="Xem mã lô, sản phẩm, nhà cung cấp, số lượng nhập/còn lại, mức tiêu thụ, chi phí, hạn dùng và trạng thái cảnh báo.">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -592,7 +592,7 @@ export default function InventoryPage() {
       {/* ════ ADD BATCH MODAL ════ */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" data-guide-title="Batch form" data-guide-text="Choose variant, batch code, cost, quantity, received date, and expiration date to create new stock.">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" data-guide-title="Biểu mẫu lô hàng" data-guide-text="Chọn biến thể, mã lô, chi phí, số lượng, ngày nhập và hạn dùng để tạo tồn kho mới.">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white">
               <h2 className="font-bold text-gray-900 text-lg">Nh?p l� h�ng m?i</h2>
               <button

@@ -305,6 +305,7 @@ export default function Header() {
                     </DropdownLink>
                   )}
                   {user?.role === "SELLER" && <DropdownLink href="/store" onClick={() => setDropdownOpen(false)}>Chuyển đến kênh người bán</DropdownLink>}
+                  {user?.role === "ADMIN" && <DropdownLink href="/admin" onClick={() => setDropdownOpen(false)}>Quay lại dashboard quản trị</DropdownLink>}
                   <DropdownLink href="/change-password" onClick={() => setDropdownOpen(false)}>Đổi mật khẩu</DropdownLink>
                   <button type="button" onClick={handleLogout} className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-950/30">
                     Đăng xuất
@@ -376,6 +377,7 @@ export default function Header() {
                 </Link>
               )}
               {user?.role === "SELLER" && <Link href="/store" onClick={() => setMenuOpen(false)}>Chuyển đến kênh người bán</Link>}
+              {user?.role === "ADMIN" && <Link href="/admin" onClick={() => setMenuOpen(false)}>Quay lại dashboard quản trị</Link>}
               <Link href="/change-password" onClick={() => setMenuOpen(false)}>Đổi mật khẩu</Link>
               <button type="button" onClick={handleLogout} className="text-left text-red-600 dark:text-red-300">Đăng xuất</button>
             </>

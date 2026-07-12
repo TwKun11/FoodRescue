@@ -41,7 +41,7 @@ const STATUS_META = {
   closed: {
     label: "Đã đóng",
     className: "bg-gray-100 text-gray-700 border-gray-200",
-    description: "Hồ sơ seller đang ở trạng thái đã đóng.",
+    description: "Hồ sơ người bán đang ở trạng thái đã đóng.",
   },
 };
 
@@ -69,7 +69,7 @@ const IMAGE_FIELDS = [
   {
     key: "identityCardImageUrl",
     label: "Ảnh CCCD/CMND đại diện",
-    hint: "Giấy tờ của người đại diện đăng ký seller.",
+    hint: "Giấy tờ của người đại diện đăng ký người bán.",
   },
 ];
 
@@ -370,7 +370,7 @@ export default function ShopPage() {
   return (
     <div className="space-y-6 p-4 sm:p-6">
       {/* ════ HEADER CARD ════ */}
-      <section className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm" data-guide-title="Shop profile" data-guide-text="Overview of seller profile: banner, logo, shop name, shop code, approval status, and verification state.">
+      <section className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm" data-guide-title="Hồ sơ cửa hàng" data-guide-text="Tổng quan hồ sơ cửa hàng: banner, logo, tên cửa hàng, mã cửa hàng, trạng thái duyệt và trạng thái xác minh.">
         <div className="relative h-40 bg-gradient-to-r from-emerald-500 via-green-500 to-lime-400">
           {shop.coverUrl && (
             <img
@@ -445,7 +445,7 @@ export default function ShopPage() {
       </section>
 
       {/* ════ TAB NAVIGATION ════ */}
-      <div className="flex gap-2 border-b border-gray-200" data-guide-title="Profile tabs" data-guide-text="Switch between basic information, legal profile, bank account, and verification images.">
+      <div className="flex gap-2 border-b border-gray-200" data-guide-title="Các tab hồ sơ" data-guide-text="Chuyển giữa thông tin cơ bản, hồ sơ pháp lý, tài khoản ngân hàng và ảnh xác minh.">
         {TABS.map((tab) => (
           <button
             key={tab.id}
@@ -464,7 +464,7 @@ export default function ShopPage() {
 
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-6">
-          <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm" data-guide-title="Profile form" data-guide-text="Edit the current tab information. Required fields help admin verify the seller and keep orders operational.">
+          <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm" data-guide-title="Biểu mẫu hồ sơ" data-guide-text="Chỉnh sửa thông tin trong tab hiện tại. Các trường bắt buộc giúp quản trị viên xác minh cửa hàng và duy trì vận hành đơn hàng.">
             {activeTab === "basic" && (
               <>
                 <h2 className="text-lg font-semibold text-gray-900">
@@ -506,7 +506,7 @@ export default function ShopPage() {
                   />
                 </div>
                 <div className="mt-4 space-y-3">
-                  <div className="flex flex-col gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4 sm:flex-row sm:items-center sm:justify-between" data-guide-title="Store location" data-guide-text="Save pickup address and coordinates so customers can find the selling point and distance is calculated more accurately.">
+                  <div className="flex flex-col gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4 sm:flex-row sm:items-center sm:justify-between" data-guide-title="Vị trí cửa hàng" data-guide-text="Lưu địa chỉ nhận hàng và tọa độ để khách tìm đúng điểm bán, đồng thời hệ thống tính khoảng cách chính xác hơn.">
                     <div>
                       <p className="text-sm font-semibold text-emerald-800">
                         Vị trí cửa hàng
@@ -662,7 +662,7 @@ export default function ShopPage() {
                 <div className="mt-4 rounded-2xl bg-blue-50 border border-blue-200 p-4">
                   <p className="text-xs text-blue-800">
                     <strong>Ghi chú:</strong> Tài khoản ngân hàng phải trùng với
-                    người đại diện hoặc pháp nhân đã đăng ký seller. Hãy kiểm
+                    người đại diện hoặc pháp nhân đã đăng ký người bán. Hãy kiểm
                     tra kỹ lưỡng trước khi lưu.
                   </p>
                 </div>
@@ -701,7 +701,7 @@ export default function ShopPage() {
 
         {/* ════ STICKY SAVE BUTTON ════ */}
       </div>
-      <div className="sticky bottom-0 z-10 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-lg backdrop-blur" data-guide-title="Save seller profile" data-guide-text="After editing any tab, save the profile so the latest information is sent to the system for review if needed.">
+      <div className="sticky bottom-0 z-10 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-lg backdrop-blur" data-guide-title="Lưu hồ sơ cửa hàng" data-guide-text="Sau khi chỉnh sửa bất kỳ tab nào, hãy lưu hồ sơ để thông tin mới nhất được gửi lên hệ thống xét duyệt khi cần.">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-medium text-gray-900">Lưu thay đổi</p>
@@ -813,7 +813,7 @@ function TextArea({ label, error, hint, ...props }) {
 
 function UploadCard({ label, hint, value, uploading, onFileChange, required }) {
   return (
-    <div className="rounded-2xl border border-gray-200 p-4 hover:bg-gray-50 transition" data-guide-title="Verification image" data-guide-text="Upload or replace logo, banner, storefront image, business license, and identity card images.">
+    <div className="rounded-2xl border border-gray-200 p-4 hover:bg-gray-50 transition" data-guide-title="Ảnh xác minh" data-guide-text="Tải lên hoặc thay thế logo, banner, ảnh mặt tiền, giấy phép kinh doanh và ảnh giấy tờ tùy thân.">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm font-semibold text-gray-800">

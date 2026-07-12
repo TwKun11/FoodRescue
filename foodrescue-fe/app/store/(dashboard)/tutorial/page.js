@@ -13,7 +13,7 @@ const GUIDE_SECTIONS = [
     steps: [
       "Kiểm tra các thẻ chỉ số đầu trang để biết việc cần ưu tiên.",
       "Bấm vào từng thẻ để đi nhanh đến đơn hàng, sản phẩm hoặc doanh thu.",
-      "Theo dõi mục Ví seller để biết số dư khả dụng và giao dịch mới.",
+      "Theo dõi mục Ví người bán để biết số dư khả dụng và giao dịch mới.",
       "Xem danh sách sản phẩm bán chạy và sản phẩm sắp hết hạn để điều chỉnh bán hàng.",
     ],
     tips: [
@@ -111,16 +111,16 @@ const GUIDE_SECTIONS = [
     title: "Ví & chi trả",
     href: "/store/wallet",
     badge: "Thanh toán",
-    summary: "Quản lý số dư, lịch sử giao dịch ví và thông tin tài khoản nhận tiền của seller.",
+    summary: "Quản lý số dư, lịch sử giao dịch ví và thông tin tài khoản nhận tiền của người bán.",
     steps: [
       "Kiểm tra Số dư khả dụng, Đang chi trả và Đã ghi nhận.",
       "Cập nhật ngân hàng, chủ tài khoản và số tài khoản nhận tiền.",
-      "Theo dõi lịch sử ví để biết gross, phí hoa hồng và số tiền thực nhận.",
-      "Dùng yêu cầu chi trả demo để mô phỏng flow rút tiền khi trình bày sản phẩm.",
+      "Theo dõi lịch sử ví để biết tổng tiền trước phí, phí hoa hồng và số tiền thực nhận.",
+      "Dùng yêu cầu chi trả demo để mô phỏng luồng rút tiền khi trình bày sản phẩm.",
     ],
     tips: [
-      "Payout demo không chuyển tiền thật, chỉ tạo giao dịch mô phỏng trong ledger.",
-      "Cần đủ thông tin ngân hàng trước khi seller có thể yêu cầu chi trả.",
+      "Chi trả demo không chuyển tiền thật, chỉ tạo giao dịch mô phỏng trong sổ giao dịch.",
+      "Cần đủ thông tin ngân hàng trước khi người bán có thể yêu cầu chi trả.",
     ],
   },
   {
@@ -136,7 +136,7 @@ const GUIDE_SECTIONS = [
       "Điều chỉnh tồn kho khi có sai lệch thực tế tại cửa hàng.",
     ],
     tips: [
-      "Kho chính xác giúp dashboard cảnh báo sản phẩm sắp hết hạn tốt hơn.",
+      "Kho chính xác giúp bảng điều khiển cảnh báo sản phẩm sắp hết hạn tốt hơn.",
       "Nên cập nhật kho ngay sau mỗi ca bán hoặc sau khi hủy đơn.",
     ],
   },
@@ -162,7 +162,7 @@ const GUIDE_SECTIONS = [
     title: "Cài đặt",
     href: "/store/settings",
     badge: "Tài khoản",
-    summary: "Điều chỉnh các thiết lập vận hành và thông tin liên quan đến tài khoản seller.",
+    summary: "Điều chỉnh các thiết lập vận hành và thông tin liên quan đến tài khoản người bán.",
     steps: [
       "Rà soát các thiết lập đang bật cho cửa hàng.",
       "Cập nhật thông tin liên hệ hoặc tùy chọn vận hành nếu có thay đổi.",
@@ -181,7 +181,7 @@ const QUICK_START = [
   "Đăng sản phẩm đầu tiên với ảnh, giá, hạn dùng và tồn kho rõ ràng.",
   "Theo dõi đơn chờ xác nhận trong Tổng quan hoặc Đơn hàng.",
   "Kiểm tra doanh thu, hoa hồng 5% và khoản thực nhận.",
-  "Đối soát ví seller và lịch sử giao dịch sau khi có đơn thanh toán.",
+  "Đối soát ví người bán và lịch sử giao dịch sau khi có đơn thanh toán.",
 ];
 
 export default function SellerTutorialPage() {
@@ -216,10 +216,10 @@ export default function SellerTutorialPage() {
     <div className="p-6 sm:p-8 space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-wide text-brand-dark">Seller guide</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-brand-dark">Hướng dẫn người bán</p>
           <h1 className="mt-1 text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Hướng dẫn sử dụng kênh người bán</h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-500">
-            Tài liệu thao tác nhanh cho seller: từ thiết lập cửa hàng, đăng sản phẩm, xử lý đơn, xem doanh thu đến đối soát ví.
+            Tài liệu thao tác nhanh cho người bán: từ thiết lập cửa hàng, đăng sản phẩm, xử lý đơn, xem doanh thu đến đối soát ví.
           </p>
         </div>
         <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-right shadow-sm">
@@ -332,8 +332,8 @@ export default function SellerTutorialPage() {
           <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-bold text-gray-900">Checklist onboarding seller</h2>
-                <p className="mt-1 text-sm text-gray-500">Dùng khi tạo cửa hàng mới hoặc demo flow seller từ đầu đến cuối.</p>
+                <h2 className="text-lg font-bold text-gray-900">Checklist khởi tạo cửa hàng</h2>
+                <p className="mt-1 text-sm text-gray-500">Dùng khi tạo cửa hàng mới hoặc demo luồng người bán từ đầu đến cuối.</p>
               </div>
             </div>
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">

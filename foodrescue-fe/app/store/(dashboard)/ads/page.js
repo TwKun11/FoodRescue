@@ -186,9 +186,9 @@ export default function StoreAdsPage() {
 
   return (
     <div className="p-6 sm:p-8 space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900" data-guide-title="Banner ads" data-guide-text="Create promotional banners and track their approval status.">Quảng cáo banner</h1>
+      <h1 className="text-2xl font-bold text-gray-900" data-guide-title="Quảng cáo banner" data-guide-text="Tạo banner quảng bá và theo dõi trạng thái xét duyệt.">Quảng cáo banner</h1>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" data-guide-title="Create banner" data-guide-text="Fill title, banner image, destination link, and running time. The banner waits for admin approval before display.">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" data-guide-title="Tạo banner" data-guide-text="Nhập tiêu đề, ảnh banner, liên kết đích và thời gian chạy. Banner sẽ chờ quản trị viên duyệt trước khi hiển thị.">
         <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50">
           <h2 className="text-sm font-bold text-gray-700">Tạo banner mới</h2>
           <p className="text-xs text-gray-500 mt-0.5">Sau khi tạo, banner sẽ chờ admin duyệt.</p>
@@ -278,11 +278,11 @@ export default function StoreAdsPage() {
         </form>
       </div>
 
-      <div className="flex items-center justify-between gap-3" data-guide-title="My ad list" data-guide-text="Show or hide banners created by this seller to review status, schedule, and rejection notes.">
+      <div className="flex items-center justify-between gap-3" data-guide-title="Danh sách quảng cáo của tôi" data-guide-text="Hiện hoặc ẩn các banner do cửa hàng tạo để xem trạng thái, lịch chạy và ghi chú từ chối.">
         <h2 className="text-sm font-bold text-gray-700">Danh sách quảng cáo của tôi</h2>
         <button
           type="button"
-          data-guide-title="Show banner list"           data-guide-text="Load and display seller banners, newest first."           onClick={() => setShowList((current) => !current)}
+          data-guide-title="Hiển thị danh sách banner"           data-guide-text="Tải và hiển thị banner của cửa hàng, sắp xếp mới nhất trước."           onClick={() => setShowList((current) => !current)}
           className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium text-gray-700 hover:bg-gray-50"
         >
           {showList ? "Ẩn danh sách" : "Xem danh sách"}
@@ -290,7 +290,7 @@ export default function StoreAdsPage() {
       </div>
 
       {showList && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" data-guide-title="Banner table" data-guide-text="Track banner image, title, approval status, running schedule, and rejection reason.">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" data-guide-title="Bảng banner" data-guide-text="Theo dõi ảnh banner, tiêu đề, trạng thái duyệt, lịch chạy và lý do từ chối.">
           <div className="px-5 py-3 border-b border-gray-100 bg-gray-50/60 flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs text-gray-500">Banner mới nhất được hiển thị trước.</p>
             {!loading && ads.length > 0 && (

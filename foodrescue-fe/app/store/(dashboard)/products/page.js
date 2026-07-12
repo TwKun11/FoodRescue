@@ -755,7 +755,7 @@ export default function StoreProductsPage() {
         )}
 
         {/* ── Header ── */}
-        <div className="flex items-center justify-between" data-guide-title="Products page" data-guide-text="Create products, search the catalog, filter by status, and handle each listed item.">
+        <div className="flex items-center justify-between" data-guide-title="Trang sản phẩm" data-guide-text="Tạo sản phẩm, tìm kiếm danh mục, lọc theo trạng thái và xử lý từng sản phẩm trong danh sách.">
           <h1 className="text-xl font-bold text-gray-800">Quản lý sản phẩm</h1>
           <button
             data-guide-title="Create product"             data-guide-text="Open the product form to publish a new item with images, price, shelf life, description, and stock."             onClick={openCreate}
@@ -769,9 +769,9 @@ export default function StoreProductsPage() {
         </div>
 
         {/* ── Main Card ── */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" data-guide-title="Product list" data-guide-text="Manage all store products in one table: price, inventory, status, expiration, and quick actions.">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" data-guide-title="Danh sách sản phẩm" data-guide-text="Quản lý toàn bộ sản phẩm của cửa hàng trong một bảng: giá, tồn kho, trạng thái, hạn dùng và thao tác nhanh.">
           {/* Tabs */}
-          <div className="flex border-b border-gray-100 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" data-guide-title="Product status tabs" data-guide-text="Switch between all, active, expiring, expired, and out-of-stock products.">
+          <div className="flex border-b border-gray-100 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" data-guide-title="Tab trạng thái sản phẩm" data-guide-text="Chuyển giữa tất cả sản phẩm, đang hoạt động, sắp hết hạn, hết hạn và hết hàng.">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
@@ -831,7 +831,7 @@ export default function StoreProductsPage() {
           </div>
 
           {/* Table */}
-          <div className="overflow-x-auto" data-guide-title="Product table" data-guide-text="Each row is one product. Check price, stock, status, then use action buttons to edit, manage variants, or activate/deactivate.">
+          <div className="overflow-x-auto" data-guide-title="Bảng sản phẩm" data-guide-text="Mỗi dòng là một sản phẩm. Kiểm tra giá, tồn kho, trạng thái rồi dùng nút thao tác để sửa, quản lý biến thể hoặc bật/tắt bán.">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wide">

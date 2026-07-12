@@ -82,14 +82,14 @@ export default function DashboardLayout({ children }) {
                 className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-dark"
               />
             </div>
-            <div className="flex items-center gap-3 ml-auto" data-guide-title="Thanh công cụ seller" data-guide-text="Khu vực thao tác nhanh: đổi giao diện sáng/tối, thêm sản phẩm mới, xem thông báo đơn và mở menu tài khoản.">
+            <div className="flex items-center gap-3 ml-auto" data-guide-title="Thanh công cụ người bán" data-guide-text="Khu vực thao tác nhanh: đổi giao diện sáng/tối, thêm sản phẩm mới, xem thông báo đơn và mở menu tài khoản.">
               <ThemeToggle compact />
 
               {/* Add button */}
               <button
                 type="button"
                 data-guide-title="Thêm sản phẩm mới"
-                data-guide-text="Nút này mở form tạo sản phẩm để seller đăng món mới, thêm giá, ảnh, hạn dùng và tồn kho."
+                data-guide-text="Nút này mở form tạo sản phẩm để người bán đăng món mới, thêm giá, ảnh, hạn dùng và tồn kho."
                 onClick={handleAddProduct}
                 className="flex items-center gap-2 bg-brand hover:bg-brand-secondary text-gray-900 text-sm font-semibold px-4 py-2 rounded-lg transition"
                 aria-current={pathname === "/store/products" ? "page" : undefined}
@@ -103,7 +103,7 @@ export default function DashboardLayout({ children }) {
               <button
                 type="button"
                 data-guide-title="Thông báo đơn hàng"
-                data-guide-text="Đi nhanh tới trang đơn hàng để seller kiểm tra đơn mới, đơn chờ xác nhận hoặc các đơn cần xử lý."
+                data-guide-text="Đi nhanh tới trang đơn hàng để người bán kiểm tra đơn mới, đơn chờ xác nhận hoặc các đơn cần xử lý."
                 onClick={() => router.push("/store/orders")}
                 className="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 transition"
                 aria-label="Xem thông báo đơn hàng"

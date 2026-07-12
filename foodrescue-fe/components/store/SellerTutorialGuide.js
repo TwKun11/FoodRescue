@@ -43,7 +43,7 @@ export default function SellerTutorialGuide() {
 
       setTooltip({
         title: target.dataset.guideTitle,
-        body: target.dataset.guideText || "Khu vực này là một phần thao tác của seller trong dashboard.",
+        body: target.dataset.guideText || "Khu vực này là một phần thao tác của người bán trong bảng điều khiển.",
         x: clamp(x, 12, window.innerWidth - width - 12),
         y,
       });
@@ -77,7 +77,7 @@ export default function SellerTutorialGuide() {
             : "bg-white text-gray-800 ring-1 ring-gray-200 hover:bg-gray-50"
         }`}
         data-guide-title="Chế độ hướng dẫn"
-        data-guide-text="Bật chế độ này rồi hover vào các nút, thẻ số liệu và khu vực chính để xem giải thích nhanh cho seller."
+        data-guide-text="Bật chế độ này rồi hover vào các nút, thẻ số liệu và khu vực chính để xem giải thích nhanh cho người bán."
       >
         <GuideIcon className="h-4 w-4" />
         {enabled ? "Tắt hướng dẫn" : "Bật hướng dẫn"}
@@ -96,7 +96,7 @@ export default function SellerTutorialGuide() {
           className="pointer-events-none fixed z-[90] w-80 rounded-2xl border border-emerald-200 bg-white p-4 text-left shadow-2xl shadow-emerald-950/20"
           style={{ left: tooltip.x, top: tooltip.y }}
         >
-          <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Seller tutorial</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Hướng dẫn người bán</p>
           <h3 className="mt-1 text-sm font-bold text-gray-950">{tooltip.title}</h3>
           <p className="mt-2 text-sm leading-6 text-gray-600">{tooltip.body}</p>
         </div>

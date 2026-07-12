@@ -238,7 +238,7 @@ export default function StoreWalletPage() {
                     </div>
                     <p className="mt-1 text-xs text-gray-400">{formatDate(tx.createdAt)}</p>
                     <p className="mt-1 text-xs text-gray-500">
-                      Gross {formatMoney(tx.grossAmount)} · Phí {formatMoney(tx.commissionAmount)}
+                      Tổng trước phí {formatMoney(tx.grossAmount)} · Phí {formatMoney(tx.commissionAmount)}
                     </p>
                   </div>
                   <p className="shrink-0 text-sm font-bold text-brand-dark">{formatMoney(tx.amount)}</p>

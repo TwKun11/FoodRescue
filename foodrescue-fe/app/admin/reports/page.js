@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import toast from "react-hot-toast";
 import { apiAdminGetModerationStats, apiAdminGetViolationReports, apiAdminUpdateViolationReportStatus } from "@/lib/api";
 
 const PAGE_SIZE = 12;
@@ -22,6 +23,13 @@ const STATUS_OPTIONS = [
   { value: "RESOLVED", label: STATUS_LABEL.RESOLVED },
   { value: "REJECTED", label: STATUS_LABEL.REJECTED },
 ];
+const STATUS_STYLE = {
+  PENDING: "bg-amber-50 text-amber-700 border-amber-200",
+  IN_REVIEW: "bg-blue-50 text-blue-700 border-blue-200",
+  RESOLVED: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  REJECTED: "bg-red-50 text-red-700 border-red-200",
+};
+
 
 function fmtDate(value) {
   if (!value) return "-";
@@ -39,6 +47,10 @@ export default function AdminReportsPage() {
   const [status, setStatus] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const [actingId, setActingId] = useState(null);
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [nextStatus, setNextStatus] = useState("PENDING");
+  const [adminNote, setAdminNote] = useState("");
 
   useEffect(() => {
     startTransition(async () => {
@@ -65,25 +77,43 @@ export default function AdminReportsPage() {
 
   const reload = () => setRefreshKey((k) => k + 1);
 
-  const updateStatus = async (row, nextStatus) => {
-    if (!nextStatus || nextStatus === row.status) return;
+  const openStatusModal = (row) => {
+    setSelectedReport(row);
+    setNextStatus(row.status || "PENDING");
+    setAdminNote(row.adminNote || "");
+    setStatusModalOpen(true);
+  };
 
-    const note = prompt(`Ghi chú xử lý cho báo cáo #${row.id}:`, row.adminNote || "");
-    if (note === null) return;
+  const closeStatusModal = () => {
+    if (actingId) return;
+    setStatusModalOpen(false);
+    setSelectedReport(null);
+    setNextStatus("PENDING");
+    setAdminNote("");
+  };
 
-    setActingId(row.id);
+  const submitStatusUpdate = async () => {
+    if (!selectedReport?.id || !nextStatus) return;
+
+    const note = adminNote.trim();
+    if (["RESOLVED", "REJECTED"].includes(nextStatus) && !note) {
+      toast.error("Vui lòng nhập ghi chú xử lý cho trạng thái cuối.");
+      return;
+    }
+
+    setActingId(selectedReport.id);
     try {
-      const res = await apiAdminUpdateViolationReportStatus(row.id, {
+      const res = await apiAdminUpdateViolationReportStatus(selectedReport.id, {
         status: nextStatus,
         adminNote: note,
       });
       if (!res.ok) {
-        alert(res.data?.message || "Cập nhật thất bại");
+        toast.error(res.data?.message || "Cập nhật thất bại");
         return;
       }
 
       const updated = res.data?.data || {
-        ...row,
+        ...selectedReport,
         status: nextStatus,
         adminNote: note,
         resolvedAt: ["RESOLVED", "REJECTED"].includes(nextStatus) ? new Date().toISOString() : null,
@@ -91,9 +121,11 @@ export default function AdminReportsPage() {
 
       setList((prev) =>
         prev
-          .map((item) => (item.id === row.id ? { ...item, ...updated } : item))
+          .map((item) => (item.id === selectedReport.id ? { ...item, ...updated } : item))
           .filter((item) => !status || item.status === status),
       );
+      toast.success("Đã cập nhật trạng thái báo cáo");
+      closeStatusModal();
       reload();
     } finally {
       setActingId(null);
@@ -227,25 +259,22 @@ export default function AdminReportsPage() {
                       <p className="text-xs text-gray-400">Product #{row.productId || "-"}</p>
                     </td>
                     <td className="px-4 py-3">
-                      <p className="inline-flex px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700">
-                        {STATUS_LABEL[row.status] || row.status}
-                      </p>
+                      <p className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${STATUS_STYLE[row.status] || "border-gray-200 bg-gray-100 text-gray-700"}`}>{STATUS_LABEL[row.status] || row.status}</p>
                       {row.adminNote && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{row.adminNote}</p>}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end">
-                        <select
-                          value={row.status || "PENDING"}
+                        <button
+                          type="button"
                           disabled={busy}
-                          onChange={(event) => updateStatus(row, event.target.value)}
-                          className="min-w-[150px] rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 disabled:opacity-40"
+                          onClick={() => openStatusModal(row)}
+                          className="inline-flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100 disabled:opacity-50"
                         >
-                          {STATUS_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
+                          {busy ? "Đang cập nhật..." : "Cập nhật"}
+                          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -275,6 +304,98 @@ export default function AdminReportsPage() {
           </div>
         </div>
       </div>
+      {statusModalOpen && selectedReport && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Cập nhật trạng thái báo cáo vi phạm"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeStatusModal();
+          }}
+        >
+          <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xl">
+            <div className="border-b border-gray-100 bg-emerald-50/70 px-5 py-4">
+              <h3 className="text-base font-bold text-gray-900">Cập nhật báo cáo #{selectedReport.id}</h3>
+              <p className="mt-1 text-sm text-gray-600">
+                Chọn trạng thái xử lý và ghi chú để lưu lại lịch sử moderation cho báo cáo này.
+              </p>
+            </div>
+
+            <div className="space-y-5 p-5">
+              <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${STATUS_STYLE[selectedReport.status] || "border-gray-200 bg-gray-100 text-gray-700"}`}>
+                    Hiện tại: {STATUS_LABEL[selectedReport.status] || selectedReport.status}
+                  </span>
+                  <span className="inline-flex rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-gray-600 ring-1 ring-gray-200">
+                    {TYPE_LABEL[selectedReport.type] || selectedReport.type}
+                  </span>
+                </div>
+                <p className="mt-3 text-sm font-semibold text-gray-900">{selectedReport.productName || "Sản phẩm không xác định"}</p>
+                <p className="mt-1 line-clamp-2 text-sm text-gray-600">{selectedReport.description || "Không có mô tả."}</p>
+              </div>
+
+              <div>
+                <p className="mb-2 text-sm font-semibold text-gray-800">Trạng thái mới</p>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {STATUS_OPTIONS.map((option) => {
+                    const active = nextStatus === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setNextStatus(option.value)}
+                        className={`rounded-xl border px-4 py-3 text-left text-sm font-semibold transition ${
+                          active
+                            ? STATUS_STYLE[option.value] || "border-emerald-200 bg-emerald-50 text-emerald-700"
+                            : "border-gray-200 bg-white text-gray-600 hover:border-emerald-200 hover:bg-emerald-50/40"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-gray-800" htmlFor="report-admin-note">
+                  Ghi chú xử lý
+                </label>
+                <textarea
+                  id="report-admin-note"
+                  value={adminNote}
+                  onChange={(event) => setAdminNote(event.target.value)}
+                  placeholder="Ví dụ: Đã kiểm tra bằng chứng, sản phẩm bị ẩn/từ chối báo cáo do không đủ căn cứ..."
+                  className="min-h-[130px] w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark"
+                  autoFocus
+                />
+                <p className="mt-1 text-xs text-gray-500">Bắt buộc khi chuyển sang Đã hoàn thành hoặc Từ chối.</p>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={closeStatusModal}
+                  disabled={actingId === selectedReport.id}
+                  className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  onClick={submitStatusUpdate}
+                  disabled={actingId === selectedReport.id}
+                  className="rounded-xl bg-brand-dark px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50"
+                >
+                  {actingId === selectedReport.id ? "Đang lưu..." : "Lưu trạng thái"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -50,15 +50,15 @@ function ImageGallery({ images, name, discountPercent }) {
       <button
         type="button"
         onClick={() => setViewerOpen(true)}
-        className="relative block aspect-square w-full overflow-hidden rounded-2xl border border-slate-200/60 bg-slate-100 text-left focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+        className="relative block aspect-[4/3] w-full overflow-hidden rounded-none border-0 bg-white text-left focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 sm:aspect-square sm:rounded-2xl sm:border sm:border-slate-200/60 sm:bg-slate-100"
         aria-label="Phóng to sản phẩm"
       >
-        <img src={src} alt={name} className="h-full w-full object-contain transition duration-300 hover:scale-[1.02]" />
-        <span className="absolute bottom-3 right-3 rounded-full bg-slate-900/75 px-3 py-1.5 text-xs font-semibold text-white shadow-lg backdrop-blur-sm">
+        <img src={src} alt={name} className="h-full w-full object-contain p-2 transition duration-300 hover:scale-[1.02] sm:p-0" />
+        <span className="absolute bottom-3 right-3 hidden rounded-full bg-slate-900/75 px-3 py-1.5 text-xs font-semibold text-white shadow-lg backdrop-blur-sm sm:inline-flex">
           Phóng to
         </span>
         {showBadge && (
-          <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 rounded-xl bg-red-500 px-4 py-2.5 shadow-lg shadow-red-600/40 ring-2 ring-white/80">
+          <div className="absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-lg bg-red-500 px-3 py-2 shadow-lg shadow-red-600/30 ring-2 ring-white/80 sm:rounded-xl sm:px-4 sm:py-2.5">
             <svg className="h-5 w-5 shrink-0 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
@@ -67,7 +67,7 @@ function ImageGallery({ images, name, discountPercent }) {
                 d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7a2 2 0 010-2.828l7-7A2 2 0 0112 3h5"
               />
             </svg>
-            <span className="text-lg font-black leading-none text-white">Giảm giá {discountPercent}%</span>
+            <span className="text-sm font-black leading-none text-white sm:text-lg">Giảm giá {discountPercent}%</span>
           </div>
         )}
         {list.length > 1 && (
@@ -515,8 +515,8 @@ export default function ProductDetailPage() {
 
   return (
     <div className="product-detail-page min-h-screen bg-slate-50 font-sans antialiased dark:bg-slate-950">
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
-        <nav aria-label="Breadcrumb" className="mb-10">
+      <main className="mx-auto max-w-6xl px-0 pb-28 pt-0 sm:px-6 sm:py-10">
+        <nav aria-label="Breadcrumb" className="mb-8 hidden sm:block">
           <ol className="flex items-center gap-2 text-sm text-slate-500">
             <li>
               <Link href="/" className="hover:text-green-600 transition-colors font-medium">
@@ -534,17 +534,17 @@ export default function ProductDetailPage() {
           </ol>
         </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-14">
           <section className="lg:col-span-5">
             <ImageGallery images={product.images} name={product.name} discountPercent={discPct} />
           </section>
 
-          <section className="lg:col-span-7 flex flex-col gap-8">
+          <section className="flex flex-col gap-4 px-4 lg:col-span-7 lg:gap-8 lg:px-0">
             <header>
-              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 leading-tight tracking-tight">
+              <h1 className="text-xl font-bold leading-snug tracking-tight text-slate-900 sm:text-3xl">
                 {product.name}
               </h1>
-              <div className="flex items-center gap-4 mt-4 text-sm text-slate-500">
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500 sm:mt-4 sm:gap-4 sm:text-sm">
                 {product.sellerRatingAvg > 0 && (
                   <span className="flex items-center gap-1">
                     <span className="text-amber-400 flex">
@@ -565,10 +565,10 @@ export default function ProductDetailPage() {
               </div>
             </header>
 
-            <div className="rounded-2xl border-2 border-red-100 bg-gradient-to-br from-white to-red-50/30 p-6 shadow-lg">
+            <div className="rounded-2xl border border-red-100 bg-gradient-to-br from-white to-red-50/40 p-4 shadow-sm sm:border-2 sm:p-6 sm:shadow-lg">
               <p className="text-xs font-semibold uppercase tracking-wider text-red-600/90 mb-1.5">Giá ưu đãi</p>
               <div className="flex flex-wrap items-baseline gap-2">
-                <span className="text-4xl font-black text-red-600 tracking-tight tabular-nums">
+                <span className="text-3xl font-black tracking-tight text-red-600 tabular-nums sm:text-4xl">
                   {discP.toLocaleString("vi-VN")}
                 </span>
                 <span className="text-base text-gray-500 font-medium">đồng</span>
@@ -586,7 +586,7 @@ export default function ProductDetailPage() {
             </div>
 
             <div
-              className={`rounded-2xl py-4 px-5 shadow-lg flex flex-row items-center justify-between gap-4 overflow-x-auto overflow-y-hidden flex-nowrap ${
+              className={`rounded-2xl px-4 py-3 shadow-sm sm:px-5 sm:py-4 sm:shadow-lg flex flex-row items-center justify-between gap-3 overflow-x-auto overflow-y-hidden flex-nowrap ${
                 dealEndsISO && !dealExpired
                   ? "text-white"
                   : "border border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-400/30 dark:bg-amber-950/35 dark:text-amber-50"
@@ -599,7 +599,7 @@ export default function ProductDetailPage() {
             >
               <div className="flex items-center gap-3 shrink-0 min-w-0">
                 <div
-                  className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-md ${dealEndsISO && !dealExpired ? "bg-white" : "bg-amber-100 dark:bg-amber-400/15"}`}
+                  className={`hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl shadow-md sm:flex ${dealEndsISO && !dealExpired ? "bg-white" : "bg-amber-100 dark:bg-amber-400/15"}`}
                 >
                   <svg
                     className={`w-6 h-6 ${dealEndsISO && !dealExpired ? "text-red-500" : "text-amber-600 dark:text-amber-300"}`}
@@ -633,8 +633,27 @@ export default function ProductDetailPage() {
               ) : null}
             </div>
 
-            <div className="flex items-start gap-4 p-5 rounded-2xl bg-white border border-gray-200 shadow-sm">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-green-100 text-green-700 dark:bg-emerald-900 dark:text-emerald-200 dark:ring-1 dark:ring-emerald-700/70">
+
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
+              <div className="rounded-2xl border border-emerald-100 bg-white p-3 shadow-sm">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Tồn kho</p>
+                <p className={`mt-1 text-sm font-bold ${canPurchase ? "text-emerald-700" : "text-rose-600"}`}>
+                  {canPurchase ? `Còn ${remaining}` : dealExpired ? "Hết ưu đãi" : "Hết hàng"}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-emerald-100 bg-white p-3 shadow-sm">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Đơn vị</p>
+                <p className="mt-1 truncate text-sm font-bold text-slate-800">{displaySku.unit || "Sản phẩm"}</p>
+              </div>
+              <div className="col-span-2 rounded-2xl border border-emerald-100 bg-white p-3 shadow-sm sm:col-span-1">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Hạn dùng</p>
+                <p className="mt-1 text-sm font-bold text-slate-800">
+                  {product.shelfLifeDays > 0 ? `${product.shelfLifeDays} ngày` : "Đang cập nhật"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:gap-4 sm:p-5">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-green-100 text-green-700 dark:bg-emerald-900 dark:text-emerald-200 dark:ring-1 dark:ring-emerald-700/70 sm:h-12 sm:w-12">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
@@ -683,7 +702,7 @@ export default function ProductDetailPage() {
               </div>
             )}
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="hidden flex-wrap items-center gap-3 sm:flex">
               <div className="flex items-center rounded-xl border border-slate-200 bg-white overflow-hidden h-12">
                 <button
                   onClick={() => setQty((q) => Math.max(1, q - 1))}
@@ -748,7 +767,7 @@ export default function ProductDetailPage() {
               </button>
             </div>
 
-            <div className="p-4 rounded-xl border border-red-100 bg-red-50/40 flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-100 bg-red-50/40 p-4">
               <div>
                 <p className="text-sm font-semibold text-red-800">Gặp vấn đề với sản phẩm?</p>
                 <p className="text-xs text-red-700 mt-0.5">
@@ -760,8 +779,8 @@ export default function ProductDetailPage() {
           </section>
         </div>
 
-        <section className="mt-14 pt-12 border-t border-slate-200" ref={reviewsSectionRef}>
-          <div className="flex gap-10 border-b border-slate-200 mb-8">
+        <section className="mt-8 border-t border-slate-200 px-4 pt-8 sm:mt-14 sm:px-0 sm:pt-12" ref={reviewsSectionRef}>
+          <div className="mb-6 flex gap-3 overflow-x-auto border-b border-slate-200 sm:mb-8 sm:gap-10">
             {[
               { id: "description", label: "Mô tả sản phẩm" },
               { id: "storage", label: "Cách bảo quản" },
@@ -780,7 +799,7 @@ export default function ProductDetailPage() {
               </button>
             ))}
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-10">
             <div className="lg:col-span-2 text-slate-600 leading-relaxed text-[15px]">
               {detailTab === "description" && (
                 <div className="whitespace-pre-line">{product.description || "Chưa có mô tả."}</div>
@@ -842,7 +861,7 @@ export default function ProductDetailPage() {
         </section>
 
         {relatedProducts.length > 0 && (
-          <section className="mt-16 pt-12 border-t border-slate-200">
+          <section className="mt-10 border-t border-slate-200 px-4 pt-8 sm:mt-16 sm:px-0 sm:pt-12">
             <div
               className="flex flex-row items-center justify-between gap-4 rounded-2xl px-6 py-4 mb-8 w-full shadow-lg"
               style={{ background: "linear-gradient(135deg, #f97316 0%, #fb923c 50%, #fbbf24 100%)" }}
@@ -870,7 +889,7 @@ export default function ProductDetailPage() {
                 Xem tất cả →
               </Link>
             </div>
-            <div className="grid grid-cols-2 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 gap-3 sm:gap-6 xl:grid-cols-4">
               {relatedProducts.map((p) => (
                 <ProductCardListing key={p.id} product={p} />
               ))}
@@ -878,6 +897,58 @@ export default function ProductDetailPage() {
           </section>
         )}
       </main>
+      <div className="fixed inset-x-0 bottom-0 z-[60] border-t border-emerald-100 bg-white/95 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 shadow-2xl backdrop-blur sm:hidden">
+        <div className="mx-auto flex max-w-6xl items-center gap-2">
+          <div className="flex h-12 shrink-0 items-center overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <button
+              type="button"
+              onClick={() => setQty((q) => Math.max(1, q - 1))}
+              disabled={qty <= 1}
+              className="flex h-full w-10 items-center justify-center text-lg font-semibold text-slate-600 disabled:opacity-40"
+              aria-label="Giảm số lượng"
+            >
+              -
+            </button>
+            <span className="w-8 text-center text-sm font-bold text-slate-900">{qty}</span>
+            <button
+              type="button"
+              onClick={() => setQty((q) => Math.min(remaining || 99, q + 1))}
+              disabled={qty >= (remaining || 99)}
+              className="flex h-full w-10 items-center justify-center text-lg font-semibold text-slate-600 disabled:opacity-40"
+              aria-label="Tăng số lượng"
+            >
+              +
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            disabled={!canPurchase || buyingNow}
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border text-slate-800 transition ${
+              !canPurchase
+                ? "border-slate-200 bg-slate-100 text-slate-400"
+                : addedToCart
+                  ? "border-emerald-600 bg-emerald-50 text-emerald-700"
+                  : "border-slate-200 bg-white"
+            }`}
+            aria-label="Thêm vào giỏ hàng"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={handleBuyNow}
+            disabled={!canPurchase}
+            className={`flex h-12 min-w-0 flex-1 items-center justify-center rounded-xl px-3 text-sm font-bold text-white transition ${
+              !canPurchase ? "bg-slate-300 text-slate-500" : "bg-emerald-600 shadow-lg shadow-emerald-900/20"
+            }`}
+          >
+            {buyingNow ? "Đang chuyển..." : !canPurchase ? (dealExpired ? "Hết ưu đãi" : "Hết hàng") : "Mua ngay"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

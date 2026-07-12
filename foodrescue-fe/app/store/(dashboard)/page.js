@@ -279,7 +279,7 @@ export default function StoreDashboardPage() {
               subtitle="Click để xử lý"
               icon={<IconAlert />}
               color="red"
-              guideText="Số đơn đang chờ seller xác nhận. Bấm vào thẻ để lọc các đơn cần xử lý trước."
+              guideText="Số đơn đang chờ người bán xác nhận. Bấm vào thẻ để lọc các đơn cần xử lý trước."
             />
           </Link>
 
@@ -291,7 +291,7 @@ export default function StoreDashboardPage() {
               subtitle="0-3 ngày còn lại"
               icon={<IconClock />}
               color="orange"
-              guideText="Số sản phẩm còn 0-3 ngày hạn dùng. Đây là nhóm seller nên ưu tiên giảm giá hoặc xử lý nhanh."
+              guideText="Số sản phẩm còn 0-3 ngày hạn dùng. Đây là nhóm người bán nên ưu tiên giảm giá hoặc xử lý nhanh."
             />
           </Link>
 
@@ -303,7 +303,7 @@ export default function StoreDashboardPage() {
               subtitle="Tất cả sản phẩm"
               icon={<IconPackage />}
               color="blue"
-              guideText="Tổng số sản phẩm hiện có trong cửa hàng seller. Bấm để mở trang quản lý sản phẩm."
+              guideText="Tổng số sản phẩm hiện có trong cửa hàng. Bấm để mở trang quản lý sản phẩm."
             />
           </Link>
 
@@ -314,7 +314,7 @@ export default function StoreDashboardPage() {
               subtitle="Đã thu qua hệ thống"
               icon={<IconCurrency />}
               color="green"
-              guideText="Số dư seller có thể đối soát hoặc yêu cầu chi trả. Số này lấy từ ví seller sau khi hệ thống ghi nhận thanh toán."
+              guideText="Số dư người bán có thể đối soát hoặc yêu cầu chi trả. Số này lấy từ ví người bán sau khi hệ thống ghi nhận thanh toán."
             />
           </Link>
 
@@ -349,7 +349,7 @@ export default function StoreDashboardPage() {
               subtitle="Sau hoa hồng 5%"
               icon={<IconCurrency />}
               color="blue"
-              guideText="Khoản seller dự kiến thực nhận sau khi trừ hoa hồng FoodRescue 5% trên tổng doanh thu."
+              guideText="Khoản người bán dự kiến thực nhận sau khi trừ hoa hồng FoodRescue 5% trên tổng doanh thu."
             />
           </Link>
         </div>
@@ -358,10 +358,10 @@ export default function StoreDashboardPage() {
 
 
       <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-6">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5" data-guide-title="Ví seller" data-guide-text="Khu vực này cho seller xem nhanh số dư khả dụng, tiền đang chi và tổng tiền đã được ghi nhận vào ví.">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5" data-guide-title="Ví người bán" data-guide-text="Khu vực này cho người bán xem nhanh số dư khả dụng, tiền đang chi và tổng tiền đã được ghi nhận vào ví.">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h2 className="font-semibold text-gray-900">Ví seller</h2>
+              <h2 className="font-semibold text-gray-900">Ví người bán</h2>
               <p className="text-sm text-gray-500 mt-1">Số dư được ghi nhận ngay sau khi PayOS xác nhận thanh toán của khách.</p>
             </div>
             <Link href="/store/stats" className="text-sm font-medium text-brand-dark hover:text-brand-secondary transition">
@@ -411,7 +411,7 @@ export default function StoreDashboardPage() {
       {/* ════ THREE COLUMNS: Top Sellers | Expiring | Recent Orders ════ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* ── 1. Sản phẩm bán chạy nhất ── */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full" data-guide-title="Sản phẩm bán chạy nhất" data-guide-text="Các sản phẩm có số lượng bán tốt nhất. Seller dùng khu vực này để quyết định nhập thêm, đẩy quảng cáo hoặc tạo deal tương tự.">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full" data-guide-title="Sản phẩm bán chạy nhất" data-guide-text="Các sản phẩm có số lượng bán tốt nhất. Người bán dùng khu vực này để quyết định nhập thêm, đẩy quảng cáo hoặc tạo ưu đãi tương tự.">
           <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-9 h-9 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600">
@@ -470,7 +470,7 @@ export default function StoreDashboardPage() {
         </div>
 
         {/* ── 2. Sản phẩm sắp hết hạn ── */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full" data-guide-title="Sản phẩm sắp hết hạn" data-guide-text="Danh sách sản phẩm gần hết hạn dùng. Seller nên xử lý sớm để giảm lãng phí và tránh khiếu nại.">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full" data-guide-title="Sản phẩm sắp hết hạn" data-guide-text="Danh sách sản phẩm gần hết hạn dùng. Người bán nên xử lý sớm để giảm lãng phí và tránh khiếu nại.">
           <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-9 h-9 rounded-lg bg-red-50 flex items-center justify-center text-red-600">
@@ -536,7 +536,7 @@ export default function StoreDashboardPage() {
         </div>
 
         {/* ── 3. Đơn hàng gần nhất ── */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full" data-guide-title="Đơn gần nhất" data-guide-text="Các đơn mới hoặc vừa cập nhật. Seller có thể bấm vào từng đơn để xem chi tiết và xử lý trạng thái.">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full" data-guide-title="Đơn gần nhất" data-guide-text="Các đơn mới hoặc vừa cập nhật. Người bán có thể bấm vào từng đơn để xem chi tiết và xử lý trạng thái.">
           <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-9 h-9 rounded-lg bg-brand-bg flex items-center justify-center text-brand-dark">

@@ -173,7 +173,7 @@ export default function ProductReviewDetailPage() {
                   )}
 
                   {/* Actions */}
-                  <div className="mt-4 pt-4 border-t border-gray-200 flex gap-2" data-guide-title="Review actions" data-guide-text="Respond to customers or report problematic reviews for admin review.">
+                  <div className="mt-4 pt-4 border-t border-gray-200 flex gap-2" data-guide-title="Thao tác với đánh giá" data-guide-text="Phản hồi khách hàng hoặc báo cáo đánh giá có vấn đề để quản trị viên kiểm tra.">
                     <button className="text-blue-600 hover:text-blue-800 font-medium text-sm">
                       📝 Phản hồi
                     </button>
