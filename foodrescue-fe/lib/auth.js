@@ -1,27 +1,22 @@
-let memoryAccessToken = null;
+import {
+  clearAuthSession as clearApiAuthSession,
+  getAccessToken as getApiAccessToken,
+  getAuthUser,
+  setAuthSession as setApiAuthSession,
+} from "@/lib/api";
 
 export function getAccessToken() {
-  return memoryAccessToken;
+  return getApiAccessToken();
 }
 
 export function setAccessToken(token) {
-  memoryAccessToken = token || null;
+  setApiAuthSession({ accessToken: token, user: getAuthUser() });
 }
 
-export function setAuthSession({ accessToken, user }) {
-  memoryAccessToken = accessToken || null;
-
-  if (typeof window !== "undefined" && user) {
-    localStorage.setItem("user", JSON.stringify(user));
-    window.dispatchEvent(new Event("storage"));
-  }
+export function setAuthSession(payload = {}) {
+  setApiAuthSession(payload);
 }
 
 export function clearAuthSession() {
-  memoryAccessToken = null;
-
-  if (typeof window !== "undefined") {
-    localStorage.removeItem("user");
-    window.dispatchEvent(new Event("storage"));
-  }
+  clearApiAuthSession();
 }

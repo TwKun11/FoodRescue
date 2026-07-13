@@ -236,6 +236,40 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
+    public OrderResponse completeCustomerOrder(Long customerId, Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Don hang khong ton tai"));
+        if (order.getUser() == null || !order.getUser().getId().equals(customerId)) {
+            throw new IllegalArgumentException("Ban khong co quyen cap nhat don hang nay");
+        }
+        if (order.getOrderStatus() == Order.OrderStatus.completed) {
+            return toCustomerResponse(order, orderItemRepository.findByOrderId(orderId), findPayment(orderId).orElse(null));
+        }
+        if (order.getOrderStatus() == Order.OrderStatus.cancelled || order.getOrderStatus() == Order.OrderStatus.refunded) {
+            throw new IllegalArgumentException("Don hang da o trang thai cuoi");
+        }
+
+        List<OrderSellerOrder> sellerOrders = sellerOrderRepository.findByOrderIdOrderByIdAsc(orderId);
+        if (sellerOrders.isEmpty()) {
+            throw new IllegalArgumentException("Don hang khong co don cua cua hang");
+        }
+        boolean allConfirmed = sellerOrders.stream()
+                .allMatch(sellerOrder -> sellerOrder.getOrderStatus() == OrderSellerOrder.SellerOrderStatus.confirmed
+                        || sellerOrder.getOrderStatus() == OrderSellerOrder.SellerOrderStatus.completed);
+        if (!allConfirmed) {
+            throw new IllegalArgumentException("Chi co the hoan thanh khi tat ca cua hang da xac nhan don");
+        }
+
+        LocalDateTime completedAt = LocalDateTime.now();
+        for (OrderSellerOrder sellerOrder : sellerOrders) {
+            completeSellerOrder(sellerOrder, completedAt);
+        }
+        syncMasterOrderStatus(order);
+
+        return toCustomerResponse(order, orderItemRepository.findByOrderId(orderId), findPayment(orderId).orElse(null));
+    }
+    @Override
+    @Transactional
     public void handlePayOSWebhook(String payload) {
         PayOSGatewayService.VerifiedWebhook webhook = payOSGatewayService.verifyWebhook(payload);
         var webhookData = webhook.getData();
@@ -348,11 +382,7 @@ public class OrderServiceImpl implements OrderService {
         if (newStatus == OrderSellerOrder.SellerOrderStatus.confirmed) {
             sellerOrder.setConfirmedAt(LocalDateTime.now());
         }
-        if (newStatus == OrderSellerOrder.SellerOrderStatus.completed) {
-            sellerOrder.setCompletedAt(LocalDateTime.now());
-            consumeReservationsForSellerOrder(sellerOrder.getId());
-            makeSellerWalletAvailable(sellerOrder);
-        }
+
         if (newStatus == OrderSellerOrder.SellerOrderStatus.cancelled) {
             sellerOrder.setCancelledAt(LocalDateTime.now());
             releaseReservationsForSellerOrder(sellerOrder.getId());
@@ -827,8 +857,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         Map<OrderSellerOrder.SellerOrderStatus, OrderSellerOrder.SellerOrderStatus> next = Map.of(
-                OrderSellerOrder.SellerOrderStatus.pending, OrderSellerOrder.SellerOrderStatus.confirmed,
-                OrderSellerOrder.SellerOrderStatus.confirmed, OrderSellerOrder.SellerOrderStatus.completed
+                OrderSellerOrder.SellerOrderStatus.pending, OrderSellerOrder.SellerOrderStatus.confirmed
         );
 
         OrderSellerOrder.SellerOrderStatus allowed = next.get(currentStatus);
@@ -837,6 +866,16 @@ public class OrderServiceImpl implements OrderService {
         }
     }
 
+    private void completeSellerOrder(OrderSellerOrder sellerOrder, LocalDateTime completedAt) {
+        if (sellerOrder.getOrderStatus() == OrderSellerOrder.SellerOrderStatus.completed) {
+            return;
+        }
+        sellerOrder.setOrderStatus(OrderSellerOrder.SellerOrderStatus.completed);
+        sellerOrder.setCompletedAt(completedAt);
+        sellerOrderRepository.save(sellerOrder);
+        consumeReservationsForSellerOrder(sellerOrder.getId());
+        makeSellerWalletAvailable(sellerOrder);
+    }
     private void syncMasterOrderStatus(Order order) {
         List<OrderSellerOrder> sellerOrders = sellerOrderRepository.findByOrderIdOrderByIdAsc(order.getId());
         if (sellerOrders.isEmpty()) {

@@ -293,7 +293,7 @@ class OrderServiceTest {
     }
 
     @Test
-    void updateSellerOrderStatus_allowsConfirmedToCompletedAndConsumesReservations() {
+    void completeCustomerOrder_marksConfirmedOrderCompletedAndConsumesReservations() {
         User customer = user(1L);
         Seller seller = seller(5L);
         Order order = Order.builder()
@@ -340,10 +340,12 @@ class OrderServiceTest {
                 .lineTotal(new BigDecimal("40000"))
                 .build();
 
+        when(orderRepository.findById(100L)).thenReturn(Optional.of(order));
         when(sellerOrderRepository.findById(110L)).thenReturn(Optional.of(sellerOrder));
         when(sellerOrderRepository.save(any(OrderSellerOrder.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(sellerOrderRepository.findByOrderIdOrderByIdAsc(100L)).thenReturn(List.of(sellerOrder));
         when(orderItemRepository.findBySellerOrderId(110L)).thenReturn(List.of(item));
+        when(orderItemRepository.findByOrderId(100L)).thenReturn(List.of(item));
         when(inventoryReservationRepository.findBySellerOrderIdAndStatus(110L, InventoryReservation.ReservationStatus.reserved))
                 .thenReturn(List.of(reservation));
         when(inventoryReservationRepository.save(any(InventoryReservation.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -352,10 +354,15 @@ class OrderServiceTest {
         when(sellerWalletTransactionRepository.findBySellerOrderIdAndType(110L, SellerWalletTransaction.TransactionType.order_payment))
                 .thenReturn(Optional.empty());
 
-        orderService.updateSellerOrderStatus(5L, 110L, "confirmed");
-        OrderResponse response = orderService.updateSellerOrderStatus(5L, 110L, "completed");
+        OrderResponse confirmed = orderService.updateSellerOrderStatus(5L, 110L, "confirmed");
+        assertThat(confirmed.getStatus()).isEqualTo(OrderSellerOrder.SellerOrderStatus.confirmed.name());
+        assertThrows(IllegalArgumentException.class,
+                () -> orderService.updateSellerOrderStatus(5L, 110L, "completed"));
 
-        assertThat(response.getStatus()).isEqualTo(OrderSellerOrder.SellerOrderStatus.completed.name());
+        OrderResponse response = orderService.completeCustomerOrder(1L, 100L);
+
+        assertThat(response.getStatus()).isEqualTo(Order.OrderStatus.completed.name());
+        assertThat(sellerOrder.getOrderStatus()).isEqualTo(OrderSellerOrder.SellerOrderStatus.completed);
         assertThat(order.getOrderStatus()).isEqualTo(Order.OrderStatus.completed);
         assertThat(reservation.getStatus()).isEqualTo(InventoryReservation.ReservationStatus.consumed);
         verify(inventoryReservationRepository).save(reservation);

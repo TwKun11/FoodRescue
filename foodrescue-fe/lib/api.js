@@ -89,6 +89,23 @@ export function clearAuthSession() {
   notifyAuth();
 }
 
+function isAuthPath(path) {
+  return path.startsWith("/api/auth/");
+}
+
+function isPublicPath(path) {
+  return (
+    path.startsWith("/api/products") ||
+    path.startsWith("/api/categories") ||
+    path.startsWith("/api/brands") ||
+    path.startsWith("/api/public/")
+  );
+}
+
+function shouldAttachAuth(path) {
+  return !isAuthPath(path) && !isPublicPath(path);
+}
+
 function isRefreshPath(path) {
   return path === "/api/auth/refresh";
 }
@@ -120,10 +137,30 @@ export async function restoreAuthSession() {
   return refreshAuthSession();
 }
 
+export async function ensureAuthSession() {
+  if (accessToken) {
+    return { ok: true, status: 200, data: { accessToken, user: currentUser } };
+  }
+
+  return refreshAuthSession();
+}
+
+export async function getValidAccessToken() {
+  if (accessToken) return accessToken;
+
+  const refreshed = await ensureAuthSession();
+  return refreshed.ok ? accessToken : null;
+}
+
 async function request(path, options = {}, retryOnUnauthorized = true) {
   const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
   const headers = { ...(options.headers || {}) };
   if (!isFormData && !headers["Content-Type"]) headers["Content-Type"] = "application/json";
+
+  if (!accessToken && shouldAttachAuth(path)) {
+    await ensureAuthSession();
+  }
+
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
   const res = await fetch(`${BASE()}${path}`, {
@@ -258,6 +295,9 @@ export async function apiSyncOrderPayment(orderId) {
   return request(`/api/orders/${orderId}/payment/sync`, { method: "POST" });
 }
 
+export async function apiCompleteOrder(orderId) {
+  return request(`/api/orders/${orderId}/complete`, { method: "PUT" });
+}
 // ============================================================
 // VOUCHERS (customer)
 // ============================================================
@@ -294,7 +334,7 @@ export async function apiSubmitSellerApplication(body) {
 }
 
 export async function apiUploadSellerApplicationImage(file) {
-  const token = getAccessToken();
+  const token = await getValidAccessToken();
   const formData = new FormData();
   formData.append("file", file);
   const res = await fetch(`${BASE()}/api/seller-applications/upload`, {
@@ -318,7 +358,7 @@ export async function apiUpdateMyShop(body) {
 }
 
 export async function apiSellerUploadShopImage(file) {
-  const token = getAccessToken();
+  const token = await getValidAccessToken();
   const formData = new FormData();
   formData.append("file", file);
   const res = await fetch(`${BASE()}/api/seller/shop/upload`, {
@@ -356,7 +396,7 @@ export async function apiSellerUpdateProduct(productId, body) {
 }
 
 export async function apiSellerUploadImage(file) {
-  const token = getAccessToken();
+  const token = await getValidAccessToken();
   const formData = new FormData();
   formData.append("file", file);
   const res = await fetch(`${BASE()}/api/seller/upload`, {
@@ -620,7 +660,7 @@ export async function apiSellerGetProductImages(productId) {
 }
 
 export async function apiSellerAddProductImage(productId, file) {
-  const token = getAccessToken();
+  const token = await getValidAccessToken();
   const formData = new FormData();
   formData.append("file", file);
   const res = await fetch(`${BASE()}/api/seller/products/${productId}/images`, {
@@ -678,7 +718,7 @@ export async function apiCheckCanReviewProduct(productId) {
 
 // Upload review images (similar to product images)
 export async function apiUploadReviewImage(file) {
-  const token = getAccessToken();
+  const token = await getValidAccessToken();
   const formData = new FormData();
   formData.append("file", file);
   const res = await fetch(`${BASE()}/api/reviews/upload-image`, {

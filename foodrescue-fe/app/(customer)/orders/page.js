@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getAccessToken, apiGetMyOrders } from "@/lib/api";
+import { ensureAuthSession, apiGetMyOrders, apiCompleteOrder } from "@/lib/api";
 const PAGE_SIZE = 5;
 
 const STATUS_TABS = [
@@ -91,6 +91,7 @@ export default function OrdersPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
+  const [completingId, setCompletingId] = useState(null);
 
   const load = useCallback(
     (nextPage) => {
@@ -112,18 +113,41 @@ export default function OrdersPage() {
   );
 
   useEffect(() => {
-    const token = typeof window !== "undefined" ? getAccessToken() : null;
-    if (!token) {
-      router.replace("/login");
-      return;
-    }
-    queueMicrotask(() => load(0));
+    let cancelled = false;
+
+    ensureAuthSession().then((session) => {
+      if (cancelled) return;
+      if (!session.ok) {
+        router.replace("/login");
+        return;
+      }
+      load(0);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [load, router]);
 
   const filteredOrders = useMemo(
     () => (activeTab === "all" ? orders : orders.filter((order) => order.status?.toLowerCase() === activeTab)),
     [activeTab, orders],
   );
+
+  const handleCompleteOrder = async (orderId) => {
+    if (!orderId || completingId) return;
+    setCompletingId(orderId);
+    try {
+      const res = await apiCompleteOrder(orderId);
+      if (res.ok && res.data?.data) {
+        setOrders((prev) => prev.map((order) => (order.id === orderId ? res.data.data : order)));
+      } else {
+        alert(res.data?.message || res.data?.error || "Khong the cap nhat don hang.");
+      }
+    } finally {
+      setCompletingId(null);
+    }
+  };
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
@@ -229,9 +253,21 @@ export default function OrdersPage() {
                     <span className="text-gray-500">Tổng cộng: </span>
                     <span className="font-bold text-[15px] text-gray-900">{formatMoney(order.totalAmount)}</span>
                   </div>
-                  <Link href={`/orders/${order.id}`} className="text-sm text-green-600 font-medium hover:underline">
-                    Xem chi tiết →
-                  </Link>
+                  <div className="flex items-center gap-3 flex-wrap justify-end">
+                    {order.status?.toLowerCase() === "confirmed" && (
+                      <button
+                        type="button"
+                        disabled={completingId === order.id}
+                        onClick={() => handleCompleteOrder(order.id)}
+                        className="text-sm bg-green-600 text-white font-medium px-3 py-1.5 rounded-lg hover:bg-green-700 transition disabled:opacity-60"
+                      >
+                        {completingId === order.id ? "?ang c?p nh?t..." : "?? nh?n h?ng"}
+                      </button>
+                    )}
+                    <Link href={`/orders/${order.id}`} className="text-sm text-green-600 font-medium hover:underline">
+                      Xem chi ti?t ?
+                    </Link>
+                  </div>
                 </div>
               </div>
             );

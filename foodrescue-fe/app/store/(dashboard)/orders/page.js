@@ -54,7 +54,6 @@ const PAYMENT_METHOD_LABELS = {
 
 const NEXT_STATUS = {
   pending: "confirmed",
-  confirmed: "completed",
 };
 
 function normalizeOrders(content) {
@@ -378,7 +377,6 @@ export default function StoreOrdersPage() {
                 const customerPhone = order.customerPhone || order.phone || "—";
                 const totalDisplay = order.totalAmount ?? order.subtotal ?? 0;
                 const canConfirm = order.status === "pending";
-                const canComplete = order.status === "confirmed";
                 const canCancel = order.status === "pending" || order.status === "confirmed";
 
                 return (
@@ -441,7 +439,7 @@ export default function StoreOrdersPage() {
                       </button>
                     </td>
                     <td className="px-4 py-3">
-                      {canConfirm || canComplete || canCancel ? (
+                      {canConfirm || canCancel ? (
                         <div className="flex items-center gap-1.5 flex-wrap">
                           {canConfirm && (
                             <button
@@ -450,15 +448,6 @@ export default function StoreOrdersPage() {
                               className="text-xs bg-brand hover:bg-brand-secondary text-gray-900 font-medium px-2.5 py-1.5 rounded-lg transition disabled:opacity-50 whitespace-nowrap"
                             >
                               {updating === order.id ? "..." : "Xác nhận đơn"}
-                            </button>
-                          )}
-                          {canComplete && (
-                            <button
-                              disabled={updating === order.id}
-                              onClick={() => handleUpdateStatus(order.id, NEXT_STATUS.confirmed)}
-                              className="text-xs bg-brand hover:bg-brand-secondary text-gray-900 font-medium px-2.5 py-1.5 rounded-lg transition disabled:opacity-50 whitespace-nowrap"
-                            >
-                              {updating === order.id ? "..." : "Hoàn tất đơn"}
                             </button>
                           )}
                           {canCancel && (

@@ -63,6 +63,15 @@ public class OrderController {
         return ResponseData.ok(orderService.syncOrderPaymentStatus(customerId, orderId));
     }
 
+    @PutMapping("/orders/{orderId}/complete")
+    public ResponseData<OrderResponse> completeOrder(
+            Authentication auth,
+            @PathVariable Long orderId
+    ) {
+        Long customerId = resolveCustomerId(auth);
+        return ResponseData.ok("Da xac nhan da nhan hang",
+                orderService.completeCustomerOrder(customerId, orderId));
+    }
     // ---- Seller orders ----
 
     @GetMapping("/seller/orders")

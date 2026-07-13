@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import {
+  ensureAuthSession,
   apiGetAddresses,
   apiCreateAddress,
   apiUpdateAddress,
@@ -76,12 +77,20 @@ export default function AddressesPage() {
   }, [router]);
 
   useEffect(() => {
-    const token = typeof window !== "undefined" ? getAccessToken() : null;
-    if (!token) {
-      router.replace("/login");
-      return;
-    }
-    queueMicrotask(load);
+    let cancelled = false;
+
+    ensureAuthSession().then((session) => {
+      if (cancelled) return;
+      if (!session.ok) {
+        router.replace("/login");
+        return;
+      }
+      load();
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [load, router]);
 
   const openCreate = () => {

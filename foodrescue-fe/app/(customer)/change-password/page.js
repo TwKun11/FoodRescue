@@ -3,10 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getApiBaseUrl } from "@/lib/runtime-config";
-
-import { getAccessToken } from "@/lib/api";
-const API_URL = getApiBaseUrl();
+import { ensureAuthSession, apiChangePassword } from "@/lib/api";
 
 function validatePassword(value) {
   if (!value) return "Mật khẩu không được để trống.";
@@ -30,8 +27,15 @@ export default function ChangePasswordPage() {
   });
 
   useEffect(() => {
-    const token = typeof window !== "undefined" ? getAccessToken() : null;
-    if (!token) router.replace("/login");
+    let cancelled = false;
+
+    ensureAuthSession().then((session) => {
+      if (!cancelled && !session.ok) router.replace("/login");
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   const setField = (field) => (e) => {
@@ -76,31 +80,24 @@ export default function ChangePasswordPage() {
     });
     if (currentErr || newErr || confirmErr) return;
 
-    const token = typeof window !== "undefined" ? getAccessToken() : null;
-    if (!token) {
+    const session = await ensureAuthSession();
+    if (!session.ok) {
       router.replace("/login");
       return;
     }
 
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/auth/change-password`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          currentPassword: form.currentPassword,
-          newPassword: form.newPassword,
-        }),
+      const res = await apiChangePassword({
+        currentPassword: form.currentPassword,
+        newPassword: form.newPassword,
       });
-      const data = await res.json();
+      const data = res.data;
       if (!res.ok) {
-        setMessage({ type: "error", text: data?.message || "Đổi mật khẩu thất bại." });
+        setMessage({ type: "error", text: data?.message || "Doi mat khau that bai." });
         return;
       }
-      setMessage({ type: "success", text: (data?.message || data?.data) ?? "Đổi mật khẩu thành công." });
+      setMessage({ type: "success", text: (data?.message || data?.data) ?? "Doi mat khau thanh cong." });
       setForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
       setErrors({ currentPassword: "", newPassword: "", confirmPassword: "" });
     } catch (err) {
