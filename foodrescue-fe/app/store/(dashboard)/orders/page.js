@@ -217,8 +217,8 @@ export default function StoreOrdersPage() {
   const [detailOrder, setDetailOrder] = useState(null);
 
   const loadOrders = useCallback(
-    (nextPage) => {
-      setLoading(true);
+    (nextPage, { silent = false } = {}) => {
+      if (!silent) setLoading(true);
       const params = { page: nextPage ?? 0, size: PAGE_SIZE };
       if (activeTab !== "all") params.status = activeTab;
 
@@ -234,7 +234,9 @@ export default function StoreOrdersPage() {
             setPage(nextPage ?? 0);
           }
         })
-        .finally(() => setLoading(false));
+        .finally(() => {
+          if (!silent) setLoading(false);
+        });
     },
     [activeTab],
   );
@@ -242,6 +244,14 @@ export default function StoreOrdersPage() {
   useEffect(() => {
     queueMicrotask(() => loadOrders(0));
   }, [loadOrders]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      loadOrders(page, { silent: true });
+    }, 15000);
+
+    return () => window.clearInterval(intervalId);
+  }, [loadOrders, page]);
 
   const handleUpdateStatus = (sellerOrderId, newStatus) => {
     setUpdating(sellerOrderId);
@@ -279,7 +289,11 @@ export default function StoreOrdersPage() {
 
   return (
     <div className="p-6 sm:p-8 space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div
+        className="flex flex-wrap items-center justify-between gap-3"
+        data-guide-title="Trang đơn hàng"
+        data-guide-text="Theo dõi các đơn của cửa hàng. Danh sách tự cập nhật định kỳ để seller thấy khi buyer xác nhận đã nhận hàng mà không cần refresh thủ công."
+      >
         <h1 className="text-2xl font-bold text-gray-900">Đơn hàng</h1>
         <p className="text-sm text-gray-500">
           {totalElements} đơn hàng
@@ -292,7 +306,11 @@ export default function StoreOrdersPage() {
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="px-5 py-4 flex flex-wrap items-center gap-4 border-b border-gray-100 bg-gray-50/50">
+        <div
+          className="px-5 py-4 flex flex-wrap items-center gap-4 border-b border-gray-100 bg-gray-50/50"
+          data-guide-title="Tìm kiếm đơn hàng"
+          data-guide-text="Nhập mã đơn, tên khách, email hoặc số điện thoại để lọc nhanh các đơn đang hiển thị trên trang."
+        >
           <div className="flex items-center gap-2 flex-1 min-w-[180px]">
             <span className="text-gray-500 text-sm shrink-0">Tìm kiếm</span>
             <input
@@ -318,7 +336,11 @@ export default function StoreOrdersPage() {
           <span className="text-gray-500 text-sm">Lọc theo trạng thái</span>
         </div>
 
-        <div className="flex overflow-x-auto border-b border-gray-100">
+        <div
+          className="flex overflow-x-auto border-b border-gray-100"
+          data-guide-title="Bộ lọc trạng thái"
+          data-guide-text="Chuyển nhanh giữa đơn chờ thanh toán, chờ xác nhận, đã xác nhận, hoàn thành hoặc đã hủy."
+        >
           {TABS.map((tab) => (
             <button
               key={tab.id}
@@ -335,7 +357,11 @@ export default function StoreOrdersPage() {
           ))}
         </div>
 
-        <div className="overflow-x-auto">
+        <div
+          className="overflow-x-auto"
+          data-guide-title="Bảng đơn hàng"
+          data-guide-text="Xem khách hàng, trạng thái thanh toán, tổng tiền, ngày tạo và thao tác xử lý từng đơn. Khi buyer xác nhận đã nhận hàng, trạng thái sẽ chuyển sang hoàn thành ở lần tự cập nhật kế tiếp."
+        >
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/80 text-gray-500 text-xs uppercase tracking-wide">
@@ -414,7 +440,7 @@ export default function StoreOrdersPage() {
                           })
                         : "—"}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3" data-guide-title="Chi tiết đơn" data-guide-text="Mở danh sách sản phẩm trong đơn, số lượng, giá ưu đãi và tổng tiền để đối soát trước khi xử lý.">
                       <button
                         type="button"
                         onClick={() => setDetailOrder(order)}
@@ -438,7 +464,7 @@ export default function StoreOrdersPage() {
                         <span>Chi tiết đơn</span>
                       </button>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3" data-guide-title="Thao tác đơn" data-guide-text="Xác nhận đơn khi cửa hàng có thể chuẩn bị hàng, hoặc hủy nếu không thể phục vụ đơn này.">
                       {canConfirm || canCancel ? (
                         <div className="flex items-center gap-1.5 flex-wrap">
                           {canConfirm && (
@@ -476,7 +502,11 @@ export default function StoreOrdersPage() {
         {detailOrder && <OrderDetailModal order={detailOrder} onClose={() => setDetailOrder(null)} />}
 
         {totalPages > 1 && (
-          <div className="px-5 py-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
+          <div
+            className="px-5 py-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3"
+            data-guide-title="Phân trang đơn hàng"
+            data-guide-text="Di chuyển giữa các trang đơn. Hệ thống tự cập nhật nền trên trang hiện tại."
+          >
             <p className="text-sm text-gray-500">
               Hiển thị {orders.length} / {totalElements} đơn hàng
             </p>

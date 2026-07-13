@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -553,7 +553,7 @@ html[data-theme="dark"] .terms-page {
   color: var(--terms-heading-color, #064e3b) !important;
 }
 
-/* â”€â”€â”€ LANDING PAGE ANIMATIONS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ─── LANDING PAGE ANIMATIONS ─────────────────────────────────────── */
 
 /* Ticker / Marquee */
 @keyframes ticker {
@@ -606,7 +606,7 @@ html[data-theme="dark"] .terms-page {
   animation: scrollDot 1.6s ease-in-out infinite;
 }
 
-/* Fade in up â€” attach with data-animate or direct class */
+/* Fade in up — attach with data-animate or direct class */
 @keyframes fadeInUp {
   from {
     opacity: 0;

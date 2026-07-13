@@ -142,7 +142,7 @@ export default function OrdersPage() {
       if (res.ok && res.data?.data) {
         setOrders((prev) => prev.map((order) => (order.id === orderId ? res.data.data : order)));
       } else {
-        alert(res.data?.message || res.data?.error || "Khong the cap nhat don hang.");
+        alert(res.data?.message || res.data?.error || "Không thể cập nhật đơn hàng.");
       }
     } finally {
       setCompletingId(null);
@@ -181,7 +181,12 @@ export default function OrdersPage() {
         <div className="text-center py-16 text-gray-400">Đang tải...</div>
       ) : filteredOrders.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
-          <p className="text-4xl mb-3">🛍️</p>
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-400">
+            <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12l1 13H5L6 7Z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 7a3 3 0 0 1 6 0" />
+            </svg>
+          </div>
           <p className="font-semibold text-gray-600">Chưa có đơn hàng nào</p>
           <Link href="/products" className="mt-4 inline-block text-sm text-green-600 hover:underline">
             Khám phá sản phẩm →
@@ -261,11 +266,11 @@ export default function OrdersPage() {
                         onClick={() => handleCompleteOrder(order.id)}
                         className="text-sm bg-green-600 text-white font-medium px-3 py-1.5 rounded-lg hover:bg-green-700 transition disabled:opacity-60"
                       >
-                        {completingId === order.id ? "?ang c?p nh?t..." : "?? nh?n h?ng"}
+                        {completingId === order.id ? "Đang cập nhật..." : "Xác nhận đã nhận hàng"}
                       </button>
                     )}
                     <Link href={`/orders/${order.id}`} className="text-sm text-green-600 font-medium hover:underline">
-                      Xem chi ti?t ?
+                      Xem chi tiết
                     </Link>
                   </div>
                 </div>

@@ -895,7 +895,7 @@ export default function CheckoutPage() {
                     voucherCodeTrimmed.toUpperCase(),
                 ) ? (
                   <option value={voucherCodeTrimmed}>
-                    {voucherCodeTrimmed} - Äang kiá»ƒm tra Ä‘iá»u kiá»‡n
+                    {voucherCodeTrimmed} - Đang kiểm tra điều kiện
                   </option>
                 ) : null}
                 {eligibleVouchers.map((voucher) => (
@@ -957,8 +957,8 @@ export default function CheckoutPage() {
                     </p>
                     <p className="text-xs text-gray-500">
                       x{item.quantity}
-                      {item.variantName ? ` • ${item.variantName}` : ""}
-                      {item.storeName ? ` • ${item.storeName}` : ""}
+                      {item.variantName ? ` · ${item.variantName}` : ""}
+                      {item.storeName ? ` · ${item.storeName}` : ""}
                     </p>
                   </div>
                   <span className="shrink-0 font-medium text-gray-800">

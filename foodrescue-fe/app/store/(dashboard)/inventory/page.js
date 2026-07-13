@@ -104,7 +104,7 @@ function getUrgencyLevel(batch) {
   if (daysLeft >= 2 && daysLeft <= 3) return "expiring";
   if (daysLeft >= 4 && daysLeft <= 7) return "soon";
 
-  // Slow-moving: >7 days v� consumption <50%
+  // Slow-moving: >7 days and consumption <50%
   const consumption =
     received > 0 ? ((received - available) / received) * 100 : 0;
   if (daysLeft > 7 && consumption < 50) return "slow";
@@ -126,7 +126,7 @@ function fmt(n) {
 
 function fmtMoney(n) {
   if (n == null) return "-";
-  return Number(n).toLocaleString("vi-VN") + "?";
+  return Number(n).toLocaleString("vi-VN") + "đ";
 }
 
 function fmtDate(iso) {
@@ -249,7 +249,7 @@ export default function InventoryPage() {
     e.preventDefault();
     setFormError("");
     if (!batchForm.variantId) {
-      setFormError("Vui l�ng ch?n bi?n th? s?n ph?m");
+      setFormError("Vui lòng chọn biến thể sản phẩm");
       return;
     }
     if (!batchForm.costPrice || Number(batchForm.costPrice) < 0) {
@@ -370,7 +370,7 @@ export default function InventoryPage() {
 
   // ── Tab Config ──
   const tabs = [
-    { id: "all", label: "T?t c?", count: stats.total },
+    { id: "all", label: "Tất cả", count: stats.total },
     {
       id: "urgent",
       label: "Cần xử lý ngay",
@@ -418,7 +418,7 @@ export default function InventoryPage() {
       },
       slow: {
         color: "bg-indigo-50 text-indigo-700",
-        label: "Tiêu th? ch?m",
+        label: "Tiêu thụ chậm",
         icon: <IconTrendingDown />,
         rowBg: "bg-gray-50/30",
       },
@@ -447,8 +447,8 @@ export default function InventoryPage() {
           </h1>
         </div>
         <button
-          data-guide-title="Add inventory batch"
-          data-guide-text="Open the batch form to add stock for a product variant, including cost, quantity, supplier, received date, and expiration date."
+          data-guide-title="Nhập lô hàng"
+          data-guide-text="Mở biểu mẫu để thêm tồn kho cho một biến thể sản phẩm, gồm giá vốn, số lượng, nhà cung cấp, ngày nhập và hạn dùng."
           onClick={openModal}
           className="bg-brand hover:bg-brand-secondary text-gray-900 font-semibold px-4 py-2.5 rounded-xl transition flex items-center gap-2"
         >
@@ -459,8 +459,8 @@ export default function InventoryPage() {
       {/* ════ STATS CARDS ════ */}
       <div
         className="grid grid-cols-2 lg:grid-cols-4 gap-3"
-        data-guide-title="Inventory summary"
-        data-guide-text="Cards summarize total batches, urgent batches, stable batches, and depleted batches."
+        data-guide-title="Tổng quan tồn kho"
+        data-guide-text="Các thẻ tóm tắt tổng số lô, lô cần xử lý gấp, lô ổn định và lô đã hết hàng."
       >
         {[
           {
@@ -504,8 +504,8 @@ export default function InventoryPage() {
       {/* ════ TABS ════ */}
       <div
         className="bg-white rounded-xl border border-gray-100 shadow-sm p-1 inline-flex gap-1"
-        data-guide-title="Batch priority filter"
-        data-guide-text="Filter batches that need urgent handling, are stable, or have no stock left."
+        data-guide-title="Lọc mức ưu tiên"
+        data-guide-text="Lọc nhanh lô cần xử lý ngay, lô đang ổn định hoặc lô đã hết hàng."
       >
         {tabs.map((tab) => (
           <button
@@ -534,8 +534,8 @@ export default function InventoryPage() {
       {/* ════ FILTERS ════ */}
       <div
         className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex flex-wrap gap-3 items-center"
-        data-guide-title="Batch search"
-        data-guide-text="Search by batch code, product name, variant name, or supplier, then refresh data if needed."
+        data-guide-title="Tìm kiếm lô hàng"
+        data-guide-text="Tìm theo mã lô, tên sản phẩm, biến thể hoặc nhà cung cấp. Dùng nút làm mới khi cần tải lại dữ liệu mới nhất."
       >
         <div className="flex-1 min-w-56">
           <input
@@ -663,14 +663,14 @@ export default function InventoryPage() {
                       <td className="px-4 py-3 text-sm">
                         <div className="space-y-0.5">
                           <div className="text-gray-600">
-                            <span className="text-gray-400">Nh?p:</span>{" "}
+                            <span className="text-gray-400">Nhập:</span>{" "}
                             {fmtDate(b.receivedAt)}
                           </div>
                           {b.expiredAt ? (
                             <div
                               className={`font-semibold ${daysLeft && daysLeft < 0 ? "text-red-600" : "text-gray-600"}`}
                             >
-                              <span className="text-gray-400">H?t:</span>{" "}
+                              <span className="text-gray-400">Hết:</span>{" "}
                               {fmtDate(b.expiredAt)}
                               {daysLeft !== null && (
                                 <span
@@ -713,13 +713,13 @@ export default function InventoryPage() {
         {totalPages > 1 && (
           <div className="px-5 py-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-gray-600">
-              Hi?n th? <span className="font-semibold">{pageStart + 1}</span>
+              Hiển thị <span className="font-semibold">{pageStart + 1}</span>
               {" - "}
               <span className="font-semibold">
                 {Math.min(pageStart + paginatedBatches.length, totalFiltered)}
               </span>
               {" / "}
-              <span className="font-semibold">{totalFiltered}</span> l�
+              <span className="font-semibold">{totalFiltered}</span> lô
               <span className="text-gray-400 ml-2">
                 Trang {safeCurrentPage}/{totalPages}
               </span>
@@ -730,7 +730,7 @@ export default function InventoryPage() {
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-brand-bg transition disabled:opacity-40 disabled:pointer-events-none"
               >
-                �
+                ←
               </button>
               {paginationItems.map((item, index) =>
                 item === "ellipsis" ? (
@@ -761,7 +761,7 @@ export default function InventoryPage() {
                 }
                 className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-brand-bg transition disabled:opacity-40 disabled:pointer-events-none"
               >
-                �
+                →
               </button>
             </div>
           </div>
@@ -784,7 +784,7 @@ export default function InventoryPage() {
                 onClick={() => setShowModal(false)}
                 className="text-gray-400 hover:text-gray-600 text-2xl leading-none w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded-lg transition"
               >
-                �
+                ×
               </button>
             </div>
             <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
@@ -956,7 +956,7 @@ export default function InventoryPage() {
                   onChange={(e) =>
                     setBatchForm((p) => ({ ...p, note: e.target.value }))
                   }
-                  placeholder="Ghi ch� th�m v? l� h�ng..."
+                  placeholder="Ghi chú thêm về lô hàng..."
                   className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-dark resize-none"
                 />
               </div>

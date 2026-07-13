@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   apiGetMyShop,
   apiGetSellerStats,
@@ -42,37 +42,51 @@ export default function StoreWalletPage() {
     return Boolean(form.bankName && form.bankAccountName && form.bankAccountNumber);
   }, [form.bankAccountName, form.bankAccountNumber, form.bankName]);
 
-  useEffect(() => {
-    let cancelled = false;
+  const loadWalletSummary = useCallback(({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
 
-    Promise.all([apiGetSellerWallet(30), apiGetSellerStats(), apiGetMyShop()])
-      .then(([walletRes, statsRes, shopRes]) => {
-        if (cancelled) return;
-
+    return Promise.all([apiGetSellerWallet(30), apiGetSellerStats()])
+      .then(([walletRes, statsRes]) => {
         if (walletRes.ok) {
           setWallet(walletRes.data?.data || null);
         }
         if (statsRes.ok) {
           setStats(statsRes.data?.data || null);
         }
-        if (shopRes.ok) {
-          const nextShop = shopRes.data?.data || null;
-          setShop(nextShop);
-          setForm({
-            bankName: nextShop?.bankName || "",
-            bankAccountName: nextShop?.bankAccountName || "",
-            bankAccountNumber: nextShop?.bankAccountNumber || "",
-          });
-        }
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!silent) setLoading(false);
       });
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    Promise.all([loadWalletSummary(), apiGetMyShop()]).then(([, shopRes]) => {
+      if (cancelled) return;
+      if (shopRes.ok) {
+        const nextShop = shopRes.data?.data || null;
+        setShop(nextShop);
+        setForm({
+          bankName: nextShop?.bankName || "",
+          bankAccountName: nextShop?.bankAccountName || "",
+          bankAccountNumber: nextShop?.bankAccountNumber || "",
+        });
+      }
+    });
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadWalletSummary]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      loadWalletSummary({ silent: true });
+    }, 20000);
+
+    return () => window.clearInterval(intervalId);
+  }, [loadWalletSummary]);
 
   const setField = (field) => (event) => {
     const value = event.target.value;
@@ -125,6 +139,7 @@ export default function StoreWalletPage() {
       }
 
       setWallet(res.data?.data || null);
+      await loadWalletSummary({ silent: true });
       setMessage({ type: "success", text: "Đã mô phỏng chi trả thành công và cập nhật lịch sử ví." });
     } finally {
       setPayouting(false);
@@ -141,13 +156,19 @@ export default function StoreWalletPage() {
 
   return (
     <div className="p-6 sm:p-8 space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div
+        className="flex flex-wrap items-end justify-between gap-4"
+        data-guide-title="Trang ví và chi trả"
+        data-guide-text="Theo dõi số dư, doanh thu đã hoàn tất và lịch sử giao dịch. Dữ liệu tự cập nhật định kỳ khi buyer hoàn thành đơn."
+      >
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Ví & chi trả</h1>
           <p className="mt-1 text-sm text-gray-500">Quản lý số dư, giao dịch và tài khoản nhận tiền.</p>
         </div>
         <button
           type="button"
+          data-guide-title="Yêu cầu chi trả demo"
+          data-guide-text="Tạo yêu cầu chi trả thử nghiệm khi cửa hàng có số dư khả dụng và đã nhập đủ thông tin tài khoản nhận tiền."
           onClick={handleSimulatePayout}
           disabled={payouting || !payoutReady || Number(wallet?.availableBalance || 0) <= 0}
           className="rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-gray-900 transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
@@ -156,7 +177,11 @@ export default function StoreWalletPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div
+        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4"
+        data-guide-title="Tổng quan ví"
+        data-guide-text="Các thẻ này cho biết tiền có thể rút, tiền đang chi trả, tổng tiền đã ghi nhận và doanh thu từ đơn đã hoàn thành."
+      >
         <Metric label="Số dư khả dụng" value={formatMoney(wallet?.availableBalance)} tone="green" />
         <Metric label="Đang chi trả" value={formatMoney(wallet?.payoutProcessingBalance)} tone="blue" />
         <Metric label="Đã ghi nhận" value={formatMoney(wallet?.totalCredited)} tone="slate" />
@@ -164,7 +189,12 @@ export default function StoreWalletPage() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[0.9fr_1.1fr] gap-6">
-        <form onSubmit={handleSaveBank} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+        <form
+          onSubmit={handleSaveBank}
+          className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4"
+          data-guide-title="Tài khoản nhận tiền"
+          data-guide-text="Nhập ngân hàng, chủ tài khoản và số tài khoản để cửa hàng sẵn sàng nhận chi trả."
+        >
           <div>
             <h2 className="font-semibold text-gray-900">Tài khoản nhận tiền</h2>
             <p className="mt-1 text-sm text-gray-500">{shop?.shopName || "Cửa hàng"}</p>
@@ -219,7 +249,11 @@ export default function StoreWalletPage() {
           </button>
         </form>
 
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div
+          className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
+          data-guide-title="Lịch sử ví"
+          data-guide-text="Theo dõi từng giao dịch, phí nền tảng và số tiền thực nhận. Khi đơn chuyển hoàn thành, giao dịch liên quan sẽ chuyển sang khả dụng sau lần tự cập nhật."
+        >
           <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
             <div>
               <h2 className="font-semibold text-gray-900">Lịch sử ví</h2>

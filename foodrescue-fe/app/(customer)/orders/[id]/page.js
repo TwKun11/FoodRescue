@@ -281,9 +281,9 @@ export default function OrderDetailPage() {
       {canCompleteOrder && (
         <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-5 flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <p className="font-semibold text-green-800">X?c nh?n ?? nh?n h?ng</p>
+            <p className="font-semibold text-green-800">Xác nhận đã nhận hàng</p>
             <p className="text-sm text-green-700 mt-1">
-              B?m n?t n?y sau khi b?n ?? nh?n ?? ??n h?ng.
+              Bấm nút này sau khi bạn đã nhận được hàng.
             </p>
           </div>
           <button
@@ -292,7 +292,7 @@ export default function OrderDetailPage() {
             onClick={handleCompleteOrder}
             className="inline-flex items-center justify-center rounded-xl px-4 py-2.5 bg-green-600 text-white text-sm font-medium hover:bg-green-700 transition disabled:opacity-60"
           >
-            {completing ? "?ang c?p nh?t..." : "?? nh?n h?ng"}
+            {completing ? "Đang cập nhật..." : "Xác nhận nhận hàng"}
           </button>
         </div>
       )}
